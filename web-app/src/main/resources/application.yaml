@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: SME-ERP
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate.default_schema: sme_erp
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    schemas: sme_erp
+    default-schema: sme_erp
+    locations: classpath:schema
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_EMAIL}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    from: no-reply@sme.com
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID}
+  auth-token: ${TWILIO_AUTH_TOKEN}
+  whatsapp-from: ${TWILIO_WHATSAPP_FROM}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  access-token-validity: ${ACCESS_TOKEN_EXPIRY}
+  refresh-token-validity: ${REFRESH_TOKEN_EXPIRY}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    urls:
+      - name: User Management
+        url: /doc/v3/user-api
+    display-request-duration: true
+    doc-expansion: none
+security:
+  cors:
+    mappings:
+      - path: /**
+        allowed-origins: ${CORS_ALLOWED_ORIGINS}
+        allowed-methods:
+          - "*"
+        allow-credentials: false
+  public-access:
+    - /api/v1/auth/signin
+    - /api/v1/users/register
+    - /swagger-ui.html
+    - /swagger-ui/**
+    - /v3/api-docs/**
+    - /doc/v3/**
