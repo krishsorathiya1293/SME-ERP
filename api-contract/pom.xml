@@ -60,8 +60,6 @@
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>7.4.0</version>
                 <executions>
-
-                    <!-- 1️⃣ User Management API -->
                     <execution>
                         <id>user-management-code-gen</id>
                         <goals>
@@ -74,6 +72,41 @@
                             <apiPackage>com.erp.api.usermanagement</apiPackage>
                             <modelPackage>com.erp.api.usermanagement.model</modelPackage>
                             <apiNameSuffix>UserManagementApi</apiNameSuffix>
+                            <generateApiDocumentation>true</generateApiDocumentation>
+                            <configOptions>
+                                <openApiNullable>false</openApiNullable>
+                                <interfaceOnly>true</interfaceOnly>
+                                <library>spring-boot</library>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <delegatePattern>false</delegatePattern>
+                                <disallowAdditionalPropertiesIfNotPresent>true
+                                </disallowAdditionalPropertiesIfNotPresent>
+                                <documentationProvider>none</documentationProvider>
+                                <ensureUniqueParameters>true</ensureUniqueParameters>
+                                <requestMappingMode>none</requestMappingMode>
+                                <returnSuccessCode>true</returnSuccessCode>
+                                <serializableModel>false</serializableModel>
+                                <sortParamsByRequiredFlag>true</sortParamsByRequiredFlag>
+                                <useOptional>true</useOptional>
+                                <useResponseEntity>true</useResponseEntity>
+                                <useSwaggerUI>false</useSwaggerUI>
+                                <useTags>true</useTags>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>master-management-code-gen</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <skipValidateSpec>true</skipValidateSpec>
+                            <inputSpec>${project.basedir}/src/main/resources/master.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <apiPackage>com.erp.api.mastermanagement</apiPackage>
+                            <modelPackage>com.erp.api.mastermanagement.model</modelPackage>
+                            <apiNameSuffix>MasterManagementApi</apiNameSuffix>
                             <generateApiDocumentation>true</generateApiDocumentation>
                             <configOptions>
                                 <openApiNullable>false</openApiNullable>
