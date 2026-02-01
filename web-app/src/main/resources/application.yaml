@@ -55,6 +55,8 @@ springdoc:
     urls:
       - name: User Management
         url: /doc/v3/user-api
+      - name: Master Management
+        url: /doc/v3/master
     display-request-duration: true
     doc-expansion: none
 security:

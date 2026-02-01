@@ -50,6 +50,11 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.erp</groupId>
+            <artifactId>master-management</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

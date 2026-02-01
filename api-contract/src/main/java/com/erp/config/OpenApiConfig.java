@@ -24,4 +24,17 @@ public class OpenApiConfig {
       return data;
     }
   }
+
+  @RestController
+  @RequestMapping("/doc/v3/master")
+  public class MasterDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("master.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
 }
