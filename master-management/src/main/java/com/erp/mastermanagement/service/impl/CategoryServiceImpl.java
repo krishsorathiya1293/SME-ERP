@@ -2,6 +2,8 @@ package com.erp.mastermanagement.service.impl;
 
 import com.erp.api.mastermanagement.model.Category;
 import com.erp.api.mastermanagement.model.NewCategory;
+import com.erp.constant.Constant;
+import com.erp.exception.EntityNotFoundException;
 import com.erp.mastermanagement.mapper.CategoryMapper;
 import com.erp.mastermanagement.repository.CategoryRepository;
 import com.erp.mastermanagement.service.CategoryService;
@@ -18,14 +20,13 @@ public class CategoryServiceImpl implements CategoryService {
 
   @Override
   public List<Category> getAllbyId(Optional<String> search) {
-    if (search.isPresent()) {
-      return categoryRepository
-          .findAll((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + search.get().toLowerCase() + "%"))
-          .stream()
-          .map(categoryMapper::toDomain)
-          .toList();
-    }
-    return categoryRepository.findAll().stream().map(categoryMapper::toDomain).toList();
+    return search
+        .filter(s -> !s.isBlank())
+        .map(categoryRepository::searchByCategoryOrSubCategory)
+        .orElseGet(categoryRepository::findAll)
+        .stream()
+        .map(categoryMapper::toDomain)
+        .toList();
   }
 
   @Override
@@ -33,20 +34,22 @@ public class CategoryServiceImpl implements CategoryService {
     return categoryRepository
         .findById(id)
         .map(categoryMapper::toDomain)
-        .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+        .orElseThrow(
+            () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
   }
 
   @Override
   public Category save(NewCategory request) {
-    var entity = categoryMapper.toEntity(request);
-    return categoryMapper.toDomain(categoryRepository.save(entity));
+    return categoryMapper.toDomain(categoryRepository.save(categoryMapper.toEntity(request)));
   }
 
   @Override
   public Category update(Long id, NewCategory request) {
-    var entity = categoryRepository
-        .findById(id)
-        .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+    var entity =
+        categoryRepository
+            .findById(id)
+            .orElseThrow(
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     categoryMapper.updateEntity(entity, request);
     return categoryMapper.toDomain(categoryRepository.save(entity));
   }

@@ -29,5 +29,5 @@ public class CategoryEntity extends AuditInfo {
   private String name;
 
   @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<SubCategoryEntity> subCategoryEntityList;
+  private List<SubCategoryEntity> subCategories;
 }

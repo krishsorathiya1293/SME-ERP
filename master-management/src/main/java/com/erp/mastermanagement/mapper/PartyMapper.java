@@ -8,9 +8,9 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface PartyMapper {
-    Party toDomain(PartyEntity partyEntity);
+  Party toDomain(PartyEntity partyEntity);
 
-    PartyEntity toEntity(NewParty newParty);
+  PartyEntity toEntity(NewParty newParty);
 
-    void updateEntity(@MappingTarget PartyEntity partyEntity, NewParty newParty);
+  void updateEntity(@MappingTarget PartyEntity partyEntity, NewParty newParty);
 }

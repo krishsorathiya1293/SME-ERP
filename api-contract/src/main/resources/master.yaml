@@ -140,13 +140,19 @@ paths:
           $ref: '#/components/responses/NotFoundError'
 
   # -------------------- SUB-CATEGORY --------------------
-  /api/v1/sub-categories:
+  /api/v1/categories/{categoryId}/sub-categories:
     get:
       operationId: getAllSubCategories
       tags:
         - SubCategory
       summary: Get all sub categories
       parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
         - $ref: '#/components/parameters/searchParam'
       responses:
         '200':
@@ -163,6 +169,13 @@ paths:
       tags:
         - SubCategory
       summary: Create sub category
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       requestBody:
         required: true
         content:
@@ -177,13 +190,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubCategory'
 
-  /api/v1/sub-categories/{id}:
+  /api/v1/categories/{categoryId}/sub-categories/{id}:
     get:
       operationId: getSubCategoryById
       tags:
         - SubCategory
       summary: Get sub category by id
       parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
         - name: id
           in: path
           required: true
@@ -206,6 +225,12 @@ paths:
         - SubCategory
       summary: Update sub category
       parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
         - name: id
           in: path
           required: true
@@ -234,6 +259,12 @@ paths:
         - SubCategory
       summary: Delete sub category
       parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
         - name: id
           in: path
           required: true
@@ -536,6 +567,10 @@ components:
       properties:
         name:
           type: string
+        subCategories:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewSubCategory'
     Category:
       type: object
       properties:
@@ -544,17 +579,17 @@ components:
           format: int64
         name:
           type: string
+        subCategories:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubCategory'
     NewSubCategory:
       required:
         - name
-        - categoryId
       type: object
       properties:
         name:
           type: string
-        categoryId:
-          type: integer
-          format: int64
     SubCategory:
       type: object
       properties:
@@ -563,9 +598,22 @@ components:
           format: int64
         name:
           type: string
-        categoryId:
+    ItemCategory:
+      type: object
+      properties:
+        id:
           type: integer
           format: int64
+        name:
+          type: string
+    ItemSubCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
 
     NewItem:
       required:
@@ -618,12 +666,10 @@ components:
           type: string
         sizeMm:
           type: string
-        categoryId:
-          type: integer
-          format: int64
-        subCategoryId:
-          type: integer
-          format: int64
+        itemCategory:
+          $ref: '#/components/schemas/ItemCategory'
+        itemSubCategory:
+          $ref: '#/components/schemas/ItemSubCategory'
         itemKg:
           type: number
           format: double

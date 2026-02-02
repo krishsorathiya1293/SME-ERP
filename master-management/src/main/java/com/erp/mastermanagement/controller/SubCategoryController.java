@@ -17,28 +17,31 @@ public class SubCategoryController implements SubCategoryMasterManagementApi {
   private final SubCategoryService subCategoryService;
 
   @Override
-  public ResponseEntity<SubCategory> createSubCategory(NewSubCategory newSubCategory) {
-    return ResponseEntity.ok(subCategoryService.save(newSubCategory));
+  public ResponseEntity<SubCategory> createSubCategory(
+      Long categoryId, NewSubCategory newSubCategory) {
+    return ResponseEntity.ok(subCategoryService.save(categoryId, newSubCategory));
   }
 
   @Override
-  public ResponseEntity<Void> deleteSubCategory(Long id) {
-    subCategoryService.deleteById(id);
+  public ResponseEntity<Void> deleteSubCategory(Long categoryId, Long id) {
+    subCategoryService.deleteById(categoryId, id);
     return ResponseEntity.noContent().build();
   }
 
   @Override
-  public ResponseEntity<List<SubCategory>> getAllSubCategories(Optional<String> search) {
-    return ResponseEntity.ok(subCategoryService.getAll(search));
+  public ResponseEntity<List<SubCategory>> getAllSubCategories(
+      Long categoryId, Optional<String> search) {
+    return ResponseEntity.ok(subCategoryService.getAll(categoryId, search));
   }
 
   @Override
-  public ResponseEntity<SubCategory> getSubCategoryById(Long id) {
-    return ResponseEntity.ok(subCategoryService.getById(id));
+  public ResponseEntity<SubCategory> getSubCategoryById(Long categoryId, Long id) {
+    return ResponseEntity.ok(subCategoryService.getById(categoryId, id));
   }
 
   @Override
-  public ResponseEntity<SubCategory> updateSubCategory(Long id, NewSubCategory newSubCategory) {
-    return ResponseEntity.ok(subCategoryService.update(id, newSubCategory));
+  public ResponseEntity<SubCategory> updateSubCategory(
+      Long categoryId, Long id, NewSubCategory newSubCategory) {
+    return ResponseEntity.ok(subCategoryService.update(categoryId, id, newSubCategory));
   }
 }

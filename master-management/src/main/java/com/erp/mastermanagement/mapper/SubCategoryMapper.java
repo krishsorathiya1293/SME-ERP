@@ -9,12 +9,14 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface SubCategoryMapper {
-    @Mapping(target = "categoryId", source = "category.id")
-    SubCategory toDomain(SubCategoryEntity entity);
+  SubCategory toDomain(SubCategoryEntity entity);
 
-    @Mapping(target = "category", ignore = true)
-    SubCategoryEntity toEntity(NewSubCategory newSubCategory);
+  @Mapping(target = "category", ignore = true)
+  SubCategoryEntity toEntity(NewSubCategory newSubCategory);
 
-    @Mapping(target = "category", ignore = true)
-    void updateEntity(@MappingTarget SubCategoryEntity entity, NewSubCategory newSubCategory);
+  @Mapping(target = "category", ignore = true)
+  SubCategoryEntity toEntity(SubCategory subCategory);
+
+  @Mapping(target = "category", ignore = true)
+  void updateEntity(@MappingTarget SubCategoryEntity entity, NewSubCategory newSubCategory);
 }

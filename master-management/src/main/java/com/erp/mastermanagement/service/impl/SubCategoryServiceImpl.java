@@ -2,6 +2,9 @@ package com.erp.mastermanagement.service.impl;
 
 import com.erp.api.mastermanagement.model.NewSubCategory;
 import com.erp.api.mastermanagement.model.SubCategory;
+import com.erp.constant.Constant;
+import com.erp.exception.EntityNotFoundException;
+import com.erp.mastermanagement.domain.SubCategoryEntity;
 import com.erp.mastermanagement.mapper.SubCategoryMapper;
 import com.erp.mastermanagement.repository.CategoryRepository;
 import com.erp.mastermanagement.repository.SubCategoryRepository;
@@ -19,51 +22,55 @@ public class SubCategoryServiceImpl implements SubCategoryService {
   private final SubCategoryMapper subCategoryMapper;
 
   @Override
-  public List<SubCategory> getAll(Optional<String> search) {
-    if (search.isPresent()) {
-      return subCategoryRepository
-          .findAll((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + search.get().toLowerCase() + "%"))
-          .stream()
-          .map(subCategoryMapper::toDomain)
-          .toList();
-    }
-    return subCategoryRepository.findAll().stream().map(subCategoryMapper::toDomain).toList();
+  public List<SubCategory> getAll(Long categoryId, Optional<String> search) {
+    return subCategoryRepository
+        .findAll(subCategoryRepository.byCategoryAndName(categoryId, search.orElse(null)))
+        .stream()
+        .map(subCategoryMapper::toDomain)
+        .toList();
   }
 
   @Override
-  public SubCategory getById(Long id) {
+  public SubCategory getById(Long categoryId, Long id) {
     return subCategoryRepository
         .findById(id)
         .map(subCategoryMapper::toDomain)
-        .orElseThrow(() -> new RuntimeException("SubCategory not found with id: " + id));
+        .orElseThrow(
+            () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
   }
 
   @Override
-  public SubCategory save(NewSubCategory request) {
-    var category = categoryRepository
-        .findById(request.getCategoryId())
-        .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
-    var entity = subCategoryMapper.toEntity(request);
-    entity.setCategory(category);
+  public SubCategory save(Long categoryId, NewSubCategory request) {
+    SubCategoryEntity entity = subCategoryMapper.toEntity(request);
+    entity.setCategory(
+        categoryRepository
+            .findById(categoryId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(
+                        String.format(Constant.ENTITY_NOT_FOUND, categoryId))));
     return subCategoryMapper.toDomain(subCategoryRepository.save(entity));
   }
 
   @Override
-  public SubCategory update(Long id, NewSubCategory request) {
-    var entity = subCategoryRepository
-        .findById(id)
-        .orElseThrow(() -> new RuntimeException("SubCategory not found with id: " + id));
-    var category = categoryRepository
-        .findById(request.getCategoryId())
-        .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
+  public SubCategory update(Long categoryId, Long id, NewSubCategory request) {
+    SubCategoryEntity entity =
+        subCategoryRepository
+            .findById(id)
+            .orElseThrow(
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
 
     subCategoryMapper.updateEntity(entity, request);
-    entity.setCategory(category);
+    entity.setCategory(
+        categoryRepository
+            .findById(categoryId)
+            .orElseThrow(
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id))));
     return subCategoryMapper.toDomain(subCategoryRepository.save(entity));
   }
 
   @Override
-  public void deleteById(Long id) {
+  public void deleteById(Long categoryId, Long id) {
     subCategoryRepository.deleteById(id);
   }
 }

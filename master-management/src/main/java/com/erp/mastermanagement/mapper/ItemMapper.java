@@ -9,15 +9,11 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface ItemMapper {
-    @Mapping(target = "categoryId", source = "category.id")
-    @Mapping(target = "subCategoryId", source = "subCategory.id")
-    Item toDomain(ItemEntity entity);
+  @Mapping(source = "category", target = "itemCategory")
+  @Mapping(source = "subCategory", target = "itemSubCategory")
+  Item toDomain(ItemEntity entity);
 
-    @Mapping(target = "category", ignore = true)
-    @Mapping(target = "subCategory", ignore = true)
-    ItemEntity toEntity(NewItem newItem);
+  ItemEntity toEntity(NewItem newItem);
 
-    @Mapping(target = "category", ignore = true)
-    @Mapping(target = "subCategory", ignore = true)
-    void updateEntity(@MappingTarget ItemEntity entity, NewItem newItem);
+  void updateEntity(@MappingTarget ItemEntity entity, NewItem newItem);
 }
