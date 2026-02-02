@@ -3,7 +3,6 @@ package com.erp.mastermanagement.repository;
 import com.erp.mastermanagement.domain.SubCategoryEntity;
 import com.erp.repository.CoreRepository;
 import jakarta.persistence.criteria.Predicate;
-import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
@@ -24,6 +23,4 @@ public interface SubCategoryRepository extends CoreRepository<SubCategoryEntity,
       return cb.and(byCategory, byName);
     };
   }
-
-  List<SubCategoryEntity> findByNameContainingIgnoreCase(String name);
 }
