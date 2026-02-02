@@ -1,6 +1,6 @@
 package com.erp.service;
 
-public interface CoreService<R, S, I> {
+public interface CoreServiceV1<R, S, I> {
   S getById(I id);
 
   S save(R request);

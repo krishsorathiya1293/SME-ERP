@@ -3,13 +3,16 @@ package com.erp.mastermanagement.service.impl;
 import com.erp.api.mastermanagement.model.Item;
 import com.erp.api.mastermanagement.model.NewItem;
 import com.erp.api.mastermanagement.model.PaginatedResultItem;
+import com.erp.constant.Constant;
 import com.erp.exception.EntityNotFoundException;
 import com.erp.mastermanagement.domain.ItemEntity;
+import com.erp.mastermanagement.mapper.CategoryMapper;
 import com.erp.mastermanagement.mapper.ItemMapper;
-import com.erp.mastermanagement.repository.CategoryRepository;
+import com.erp.mastermanagement.mapper.SubCategoryMapper;
 import com.erp.mastermanagement.repository.ItemRepository;
-import com.erp.mastermanagement.repository.SubCategoryRepository;
+import com.erp.mastermanagement.service.CategoryService;
 import com.erp.mastermanagement.service.ItemService;
+import com.erp.mastermanagement.service.SubCategoryService;
 import com.erp.util.PaginationUtils;
 import java.util.List;
 import java.util.Optional;
@@ -22,9 +25,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
   private final ItemRepository itemRepository;
-  private final CategoryRepository categoryRepository;
-  private final SubCategoryRepository subCategoryRepository;
+  private final CategoryService categoryService;
+  private final SubCategoryService subCategoryService;
   private final ItemMapper itemMapper;
+  private final CategoryMapper categoryMapper;
+  private final SubCategoryMapper subCategoryMapper;
 
   @Override
   public PaginatedResultItem getAll(
@@ -35,19 +40,12 @@ public class ItemServiceImpl implements ItemService {
       Optional<String> sortBy,
       Optional<String> direction) {
 
-    // 1. Build Specification (same pattern as Order)
     Specification<ItemEntity> spec =
         Specification.where(itemRepository.filterByStatus(filterByStatus))
             .and(itemRepository.filterBySearch(search));
-
-    // 2. Fetch paginated result
     Page<ItemEntity> results =
         itemRepository.findAll(spec, PaginationUtils.getPageRequest(page, size, direction, sortBy));
-
-    // 3. Map content
     List<Item> content = results.getContent().stream().map(itemMapper::toDomain).toList();
-
-    // 4. Build response (same structure as Order)
     return new PaginatedResultItem()
         .data(content)
         .empty(content.isEmpty())
@@ -63,30 +61,17 @@ public class ItemServiceImpl implements ItemService {
     return itemRepository
         .findById(id)
         .map(itemMapper::toDomain)
-        .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + id));
+        .orElseThrow(
+            () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
   }
 
   @Override
   public Item save(NewItem request) {
-    var category =
-        categoryRepository
-            .findById(request.getCategoryId())
-            .orElseThrow(
-                () ->
-                    new EntityNotFoundException(
-                        "Category not found with id: " + request.getCategoryId()));
-    var subCategory =
-        subCategoryRepository
-            .findById(request.getSubCategoryId())
-            .orElseThrow(
-                () ->
-                    new EntityNotFoundException(
-                        "SubCategory not found with id: " + request.getSubCategoryId()));
-
     var entity = itemMapper.toEntity(request);
-    entity.setCategory(category);
-    entity.setSubCategory(subCategory);
-
+    entity.setCategory(categoryMapper.toEntity(categoryService.getById(request.getCategoryId())));
+    entity.setSubCategory(
+        subCategoryMapper.toEntity(
+            subCategoryService.getById(request.getCategoryId(), request.getSubCategoryId())));
     return itemMapper.toDomain(itemRepository.save(entity));
   }
 
@@ -95,26 +80,13 @@ public class ItemServiceImpl implements ItemService {
     var entity =
         itemRepository
             .findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + id));
-
-    var category =
-        categoryRepository
-            .findById(request.getCategoryId())
             .orElseThrow(
-                () ->
-                    new EntityNotFoundException(
-                        "Category not found with id: " + request.getCategoryId()));
-    var subCategory =
-        subCategoryRepository
-            .findById(request.getSubCategoryId())
-            .orElseThrow(
-                () ->
-                    new EntityNotFoundException(
-                        "SubCategory not found with id: " + request.getSubCategoryId()));
-
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     itemMapper.updateEntity(entity, request);
-    entity.setCategory(category);
-    entity.setSubCategory(subCategory);
+    entity.setCategory(categoryMapper.toEntity(categoryService.getById(request.getCategoryId())));
+    entity.setSubCategory(
+        subCategoryMapper.toEntity(
+            subCategoryService.getById(request.getCategoryId(), request.getSubCategoryId())));
 
     return itemMapper.toDomain(itemRepository.save(entity));
   }

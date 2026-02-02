@@ -2,6 +2,8 @@ package com.erp.mastermanagement.service.impl;
 
 import com.erp.api.mastermanagement.model.NewParty;
 import com.erp.api.mastermanagement.model.Party;
+import com.erp.constant.Constant;
+import com.erp.exception.EntityNotFoundException;
 import com.erp.mastermanagement.domain.PartyEntity;
 import com.erp.mastermanagement.mapper.PartyMapper;
 import com.erp.mastermanagement.repository.PartyRepository;
@@ -19,19 +21,12 @@ public class PartyServiceImpl implements PartyService {
 
   @Override
   public List<Party> getAll(Optional<String> partyType, Optional<String> search) {
-    var specification = org.springframework.data.jpa.domain.Specification.<PartyEntity>where(null);
 
-    if (partyType.isPresent()) {
-      specification = specification.and(
-          (root, query, cb) -> cb.equal(root.get("partyType").get("name"), partyType.get()));
-    }
-
-    if (search.isPresent()) {
-      specification = specification.and(
-          (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + search.get().toLowerCase() + "%"));
-    }
-
-    return partyRepository.findAll(specification).stream().map(partyMapper::toDomain).toList();
+    return partyRepository
+        .findAll(partyRepository.filter(partyType.orElse(null), search.orElse(null)))
+        .stream()
+        .map(partyMapper::toDomain)
+        .toList();
   }
 
   @Override
@@ -39,20 +34,22 @@ public class PartyServiceImpl implements PartyService {
     return partyRepository
         .findById(id)
         .map(partyMapper::toDomain)
-        .orElseThrow(() -> new RuntimeException("Party not found with id: " + id));
+        .orElseThrow(
+            () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
   }
 
   @Override
   public Party save(NewParty request) {
-    var entity = partyMapper.toEntity(request);
-    return partyMapper.toDomain(partyRepository.save(entity));
+    return partyMapper.toDomain(partyRepository.save(partyMapper.toEntity(request)));
   }
 
   @Override
   public Party update(Long id, NewParty request) {
-    var entity = partyRepository
-        .findById(id)
-        .orElseThrow(() -> new RuntimeException("Party not found with id: " + id));
+    PartyEntity entity =
+        partyRepository
+            .findById(id)
+            .orElseThrow(
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     partyMapper.updateEntity(entity, request);
     return partyMapper.toDomain(partyRepository.save(entity));
   }
