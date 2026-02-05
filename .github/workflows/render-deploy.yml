@@ -6,7 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    environment: RENDER_DEPLOY_HOOK
     steps:
       - name: Trigger Render Deploy
         run: |
