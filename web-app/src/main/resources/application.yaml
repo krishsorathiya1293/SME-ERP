@@ -57,6 +57,8 @@ springdoc:
         url: /doc/v3/user-api
       - name: Master Management
         url: /doc/v3/master
+      - name: Invoice Management
+        url: /doc/v3/invoice
     display-request-duration: true
     doc-expansion: none
 security:
