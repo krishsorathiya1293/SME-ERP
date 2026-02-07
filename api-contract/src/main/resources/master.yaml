@@ -410,6 +410,7 @@ paths:
             enum:
               - CUSTOMER
               - VENDOR
+              - BOTH
         - $ref: '#/components/parameters/searchParam'
       responses:
         '200':
@@ -728,6 +729,7 @@ components:
       enum:
         - CUSTOMER
         - VENDOR
+        - BOTH
 
     StockStatus:
       type: string

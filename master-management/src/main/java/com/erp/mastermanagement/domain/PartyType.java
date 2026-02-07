@@ -5,7 +5,8 @@ import lombok.Getter;
 @Getter
 public enum PartyType {
   CUSTOMER("CUSTOMER"),
-  VENDOR("VENDOR");
+  VENDOR("VENDOR"),
+  BOTH("BOTH");
 
   private final String value;
 
