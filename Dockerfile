@@ -18,6 +18,10 @@ WORKDIR /app
 # Copy the JAR
 COPY --from=builder /app/web-app/target/*.jar app.jar
 
+# Tell Playwright to use system-installed browsers (already in the Docker image)
+# This prevents runtime extraction from nested JARs which causes ZipException
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
 # Optimization: Limit Java Memory to fit in t3.micro (1GB RAM)
 # This prevents the container from being killed by AWS for using too much RAM
 ENV JAVA_OPTS="-Xmx512M -Xms256M"
