@@ -11,8 +11,8 @@ RUN ./mvnw -DskipTests clean package
 ########################################
 # 2) Run stage (Optimized for AWS Free Tier)
 ########################################
-# Use official Playwright image which includes Java, Browsers, and System Dependencies
-FROM mcr.microsoft.com/playwright/java:v1.41.0-jammy
+# Use official Playwright image which includes Java 21, Browsers, and System Dependencies
+FROM mcr.microsoft.com/playwright/java:v1.49.0-jammy
 WORKDIR /app
 
 # Copy the JAR
