@@ -11,8 +11,8 @@ RUN ./mvnw -DskipTests clean package
 ########################################
 # 2) Run stage (Optimized for AWS Free Tier)
 ########################################
-# Use JRE instead of JDK to save ~200MB of RAM/Disk
-FROM eclipse-temurin:21-jre-jammy
+# Use official Playwright image which includes Java, Browsers, and System Dependencies
+FROM mcr.microsoft.com/playwright/java:v1.41.0-jammy
 WORKDIR /app
 
 # Copy the JAR
