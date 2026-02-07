@@ -389,6 +389,8 @@ components:
     Invoice:
       type: object
       properties:
+        id:
+          type: integer
         # Exporter
         exporterCompanyName:
           type: string
