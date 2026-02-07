@@ -546,6 +546,8 @@ components:
     InvoiceInfo:
       type: object
       properties:
+        id:
+          type: integer
         invoiceNo:
           type: string
         createdAt:
