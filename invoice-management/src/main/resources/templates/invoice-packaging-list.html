@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Packing List</title>
+    <style type="text/css">
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: #261911;
+            background-color: #ffffff;
+        }
+
+        .main {
+            width: 100%;
+            background-color: #ffffff;
+        }
+
+        .page-container {
+            padding: 20px 30px;
+        }
+
+        /* Top Header */
+        .top-header-table {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .since {
+            font-size: 15px;
+            font-weight: normal;
+            color: #333333;
+        }
+
+        .tagline {
+            font-style: italic;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .company-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333333;
+            text-align: right;
+        }
+
+        .border-line {
+            height: 5px;
+            background-color: #90C7FF;
+            margin-bottom: 10px;
+        }
+
+        /* Title Row */
+        .title-row-table {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .export-title-box {
+            background-color: #ebf5fb;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #D8E1E6;
+        }
+
+        .export-title-box h2 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: bold;
+            color: #343434;
+        }
+
+        .lut-box {
+            background-color: #ebf5fb;
+            padding: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            line-height: 1.5;
+            color: #343434;
+            border: 1px solid #D8E1E6;
+        }
+
+        /* Address Grid */
+        .address-table {
+            width: 100%;
+            margin-bottom: 10px;
+            border-collapse: separate;
+            border-spacing: 8px 0;
+        }
+
+        .addr-col {
+            border: 1px solid #d8e1e6;
+            vertical-align: top;
+            background-color: #ffffff;
+            width: 33%;
+        }
+
+        .addr-header {
+            text-align: center;
+            padding: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            border-bottom: 1px solid #d8e1e6;
+            color: #261911;
+            background-color: #f8f9fa;
+        }
+
+        .addr-content {
+            padding: 10px;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #343434;
+            font-weight: 500;
+        }
+
+        .addr-content strong {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 12px;
+            color: #343434;
+        }
+
+        .addr-label {
+            color: #737373;
+            margin-top: 8px;
+            margin-bottom: 2px;
+            display: block;
+            font-size: 10px;
+            font-weight: normal;
+        }
+
+        /* Details Grid */
+        .details-table {
+            width: 100%;
+            margin-bottom: 10px;
+            border: 1px solid #d8e1e6;
+            border-collapse: collapse;
+        }
+
+        .details-table td {
+            padding: 8px;
+            vertical-align: top;
+            border-right: 1px solid #d8e1e6;
+        }
+
+        .details-table td:last-child {
+            border-right: none;
+        }
+
+        .detail-item {
+            margin-bottom: 6px;
+        }
+
+        .detail-label {
+            color: #737373;
+            font-size: 10px;
+            font-weight: normal;
+        }
+
+        .detail-value {
+            font-weight: 500;
+            color: #343434;
+            font-size: 10px;
+        }
+
+        /* Packing Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #d8e1e6;
+        }
+
+        .items-table th {
+            background-color: #ebf5fb;
+            padding: 8px;
+            font-size: 9px;
+            font-weight: bold;
+            border: 1px solid #d8e1e6;
+            text-align: center;
+        }
+
+        .items-table td {
+            padding: 10px;
+            font-size: 11px;
+            border: 1px solid #d8e1e6;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .items-table tfoot td {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            border-top: 2px solid #d8e1e6;
+        }
+
+        .desc-text {
+            text-align: center;
+            color: #343434;
+        }
+
+        /* Footer Section */
+        .footer-table {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .footer-left {
+            width: 50%;
+            vertical-align: top;
+            padding-right: 15px;
+        }
+
+        .footer-right {
+            width: 50%;
+            vertical-align: top;
+            padding-left: 15px;
+        }
+
+        .summary-box {
+            border: 1px solid #d8e1e6;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .summary-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .summary-row {
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+
+        .summary-label {
+            color: #737373;
+            font-size: 10px;
+            font-weight: normal;
+            display: inline-block;
+            width: 140px;
+        }
+
+        .summary-val {
+            color: #343434;
+            font-weight: 500;
+            font-size: 10px;
+        }
+
+        /* Signature */
+        .stamp-area {
+            text-align: right;
+            padding-top: 30px;
+        }
+
+        .sign-text {
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        .sign-company {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* Bottom Disclaimer */
+        .bottom-disclaimer {
+            background-color: #ebf5fb;
+            padding: 12px 30px;
+            font-size: 10px;
+            color: #737373;
+            line-height: 1.4;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="main">
+    <div class="page-container">
+        <!-- Top Header -->
+        <table class="top-header-table">
+            <tr>
+                <td style="vertical-align: middle;">
+                    <div class="since">Since 1994</div>
+                    <div class="tagline">Every Metal, Every Process, One Precision Partner.</div>
+                </td>
+                <td class="company-logo" th:text="${invoice.exporterCompanyName}">Company Name</td>
+            </tr>
+        </table>
+
+        <div class="border-line"></div>
+
+        <!-- Title Row -->
+        <table class="title-row-table">
+            <tr>
+                <td style="width: 35%;">
+                    <div class="export-title-box">
+                        <h2>Packing List</h2>
+                    </div>
+                </td>
+                <td style="width: 65%; padding-left: 10px;">
+                    <div class="lut-box">
+                        <strong>Invoice No:</strong> <span th:text="${invoice.invoiceNo}">INV-001</span><br/>
+                        <strong>Invoice Date:</strong> <span th:text="${#temporals.format(invoice.invoiceDate, 'dd/MM/yyyy')}">01/01/2026</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Address Grid -->
+        <table class="address-table">
+            <tr>
+                <!-- Exporter -->
+                <td class="addr-col">
+                    <div class="addr-header">Exporter</div>
+                    <div class="addr-content">
+                        <span class="addr-label">Company Name</span>
+                        <span th:text="${invoice.exporterCompanyName}">Ishita Industries</span>
+
+                        <span class="addr-label">Address</span>
+                        <span th:text="${invoice.exporterAddress}">Address here</span>
+
+                        <span class="addr-label">Contact Number</span>
+                        <span th:text="${invoice.exporterContactNo}">+91 72289 81407</span>
+                    </div>
+                </td>
+
+                <!-- Importer (Bill To) -->
+                <td class="addr-col">
+                    <div class="addr-header">Importer (Bill To)</div>
+                    <div class="addr-content">
+                        <strong th:text="'To the Order (' + ${invoice.billToCountry} + ')'"
+                                th:if="${invoice.billToCountry != null}">To the Order (USA)</strong>
+
+                        <span class="addr-label">Bill To</span>
+                        <span th:text="${invoice.billToName}">Det Danske Madhus</span>
+
+                        <span class="addr-label">Address</span>
+                        <span th:utext="${invoice.billToAddress}">Address here</span>
+
+                        <span class="addr-label">Contact Number</span>
+                        <span th:text="${invoice.billToContactNo}">+91 72289 81407</span>
+                    </div>
+                </td>
+
+                <!-- Importer (Ship To) -->
+                <td class="addr-col">
+                    <div class="addr-header">Importer (Ship To)</div>
+                    <div class="addr-content">
+                        <strong th:text="'To the Order (' + ${invoice.shipToCountry} + ')'"
+                                th:if="${invoice.shipToCountry != null}">To the Order (USA)</strong>
+
+                        <span class="addr-label">Ship To</span>
+                        <span th:text="${invoice.shipToName}">Det Danske Madhus</span>
+
+                        <span class="addr-label">Address</span>
+                        <span th:utext="${invoice.shipToAddress}">Address here</span>
+
+                        <span class="addr-label">Contact Number</span>
+                        <span th:text="${invoice.shipToContactNo}">+91 72289 81407</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Details Grid -->
+        <table class="details-table">
+            <tr>
+                <!-- Col 1 -->
+                <td style="width: 33%;">
+                    <div class="detail-item">
+                        <span class="detail-label">P/O No :- </span>
+                        <span class="detail-value" th:text="${invoice.poNo}">6792659</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Incoterms :- </span>
+                        <span class="detail-value" th:text="${invoice.incoterms}">F.O.B</span>
+                    </div>
+                </td>
+                <!-- Col 2 -->
+                <td style="width: 33%;">
+                    <div class="detail-item">
+                        <span class="detail-label">Country of origin :- </span>
+                        <span class="detail-value" th:text="${invoice.countryOfOrigin}">India</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Country of Final Destination :- </span>
+                        <span class="detail-value" th:text="${invoice.countryOfFinalDestination}">Denmark</span>
+                    </div>
+                </td>
+                <!-- Col 3 -->
+                <td style="width: 34%;">
+                    <div class="detail-item">
+                        <span class="detail-label">Port of loading :- </span>
+                        <span class="detail-value" th:text="${invoice.portOfLoading}">Nhava Sheva</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Port of discharge :- </span>
+                        <span class="detail-value" th:text="${invoice.portOfDischarge}">Dallas Port</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Packing Details Table -->
+        <table class="items-table">
+            <thead>
+            <tr>
+                <th style="width: 6%;">Item No.</th>
+                <th style="width: 26%;">Description</th>
+                <th style="width: 10%;">Total Qty</th>
+                <th style="width: 10%;">Qty/Carton</th>
+                <th style="width: 10%;">No. of Cartons</th>
+                <th style="width: 12%;">Gross Wt (Kg)</th>
+                <th style="width: 12%;">Net Wt (Kg)</th>
+                <th style="width: 14%;">Wooden Pallets</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="packing : ${invoice.packingDetails}">
+                <td th:text="${packing.itemNo}">01</td>
+                <td class="desc-text" th:text="${packing.description}">FHCS316L : 10-32 X 5/16</td>
+                <td th:text="${packing.totalQty}">560</td>
+                <td th:text="${packing.qtyPerCarton}">100</td>
+                <td th:text="${packing.noOfCartons}">6</td>
+                <td th:text="${packing.grossWeightKg != null ? #numbers.formatDecimal(packing.grossWeightKg, 1, 2) : '-'}">120.50</td>
+                <td th:text="${packing.netWeightKg != null ? #numbers.formatDecimal(packing.netWeightKg, 1, 2) : '-'}">100.00</td>
+                <td th:text="${packing.woodenPallets != null ? packing.woodenPallets : '-'}">1</td>
+            </tr>
+            </tbody>
+            <tfoot th:with="totalQty=${#aggregates.sum(invoice.packingDetails.![totalQty])},
+                           totalCartons=${#aggregates.sum(invoice.packingDetails.![noOfCartons])},
+                           totalGrossWt=${#aggregates.sum(invoice.packingDetails.![grossWeightKg])},
+                           totalNetWt=${#aggregates.sum(invoice.packingDetails.![netWeightKg])},
+                           totalPallets=${#aggregates.sum(invoice.packingDetails.![woodenPallets])}">
+            <tr>
+                <td colspan="2"><strong>TOTAL</strong></td>
+                <td th:text="${totalQty}">2240</td>
+                <td>-</td>
+                <td th:text="${totalCartons}">24</td>
+                <td th:text="${totalGrossWt != null ? #numbers.formatDecimal(totalGrossWt, 1, 2) : '-'}">482.00</td>
+                <td th:text="${totalNetWt != null ? #numbers.formatDecimal(totalNetWt, 1, 2) : '-'}">400.00</td>
+                <td th:text="${totalPallets != null ? totalPallets : '-'}">4</td>
+            </tr>
+            </tfoot>
+        </table>
+
+        <!-- Footer Area -->
+        <table class="footer-table">
+            <tr>
+                <!-- Footer Left -->
+                <td class="footer-left">
+                    <div class="summary-box"
+                         th:with="totalCartons=${#aggregates.sum(invoice.packingDetails.![noOfCartons])},
+                                  totalGrossWt=${#aggregates.sum(invoice.packingDetails.![grossWeightKg])},
+                                  totalNetWt=${#aggregates.sum(invoice.packingDetails.![netWeightKg])},
+                                  totalPallets=${#aggregates.sum(invoice.packingDetails.![woodenPallets])}">
+                        <div class="summary-title">Packing Summary</div>
+                        <div class="summary-row">
+                            <span class="summary-label">Total Cartons :-</span>
+                            <span class="summary-val" th:text="${totalCartons}">24</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Total Gross Weight :-</span>
+                            <span class="summary-val" th:text="${totalGrossWt != null ? #numbers.formatDecimal(totalGrossWt, 1, 2) + ' Kg' : '-'}">482.00 Kg</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Total Net Weight :-</span>
+                            <span class="summary-val" th:text="${totalNetWt != null ? #numbers.formatDecimal(totalNetWt, 1, 2) + ' Kg' : '-'}">400.00 Kg</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Total Wooden Pallets :-</span>
+                            <span class="summary-val" th:text="${totalPallets != null ? totalPallets : '-'}">4</span>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Footer Right -->
+                <td class="footer-right">
+                    <div class="stamp-area">
+                        <div class="sign-text">Authorized Signatory</div>
+                        <div class="sign-company">For <span th:text="${invoice.exporterCompanyName}">Ishita Industries</span></div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="bottom-disclaimer">
+        This document is system generated and is valid without signature. For any queries, please contact us.
+    </div>
+</div>
+</body>
+</html>
