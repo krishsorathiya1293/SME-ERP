@@ -51,20 +51,21 @@ public class InvoiceController implements InvoiceInvoiceManagementApi {
 
   @Override
   public ResponseEntity<Resource> getInvoicePdf(Long id, InvoiceType invoiceType) {
-    //    Invoice invoice = invoiceService.getInvoiceByType(id, invoiceType);
-    //    byte[] pdf = invoicePdfService.generatePdf(invoice);
-    //    HttpHeaders headers = new HttpHeaders();
-    //    headers.setContentType(MediaType.APPLICATION_PDF);
-    //    headers.setContentDispositionFormData(
-    //        "attachment",
-    //        String.format(
-    //            INVOICE_FILENAME_FORMAT,
-    //            id,
-    //            invoicePdfService.shortName(invoice.getExporterCompanyName()),
-    //            invoiceType));
-    //    headers.setContentLength(pdf.length);
-    //    return new ResponseEntity<>(new ByteArrayResource(pdf), headers, HttpStatus.OK);
-    return null;
+    Invoice invoice = invoiceService.getInvoiceByType(id, invoiceType);
+    byte[] pdf = invoicePdfService.generatePdf(invoice);
+
+    org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+    headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
+    headers.setContentDispositionFormData(
+        "attachment",
+        String.format(
+            "invoice_%d_%s_%s.pdf",
+            id,
+            invoicePdfService.shortName(invoice.getExporterCompanyName()),
+            invoiceType));
+    headers.setContentLength(pdf.length);
+
+    return new ResponseEntity<>(new org.springframework.core.io.ByteArrayResource(pdf), headers, HttpStatus.OK);
   }
 
   @Override

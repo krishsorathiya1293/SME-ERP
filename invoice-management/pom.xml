@@ -28,6 +28,11 @@
             <artifactId>mapstruct</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>html2pdf</artifactId>
+            <version>5.0.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.erp</groupId>
             <artifactId>api-contract</artifactId>
             <version>${project.version}</version>
@@ -36,7 +41,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
-        <!--        <dependency>-->
         <!--            <groupId>com.microsoft.playwright</groupId>-->
         <!--            <artifactId>playwright</artifactId>-->
         <!--            <version>1.41.0</version>-->
