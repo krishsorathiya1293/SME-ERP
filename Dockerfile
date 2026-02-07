@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 RUN sed -i 's/\r$//' mvnw
 RUN chmod +x mvnw
-RUN ./mvnw -DskipTests clean package
+RUN ./mvnw -DskipTests clean package -U
 
 ########################################
 # 2) Run stage (Optimized for AWS Free Tier)
