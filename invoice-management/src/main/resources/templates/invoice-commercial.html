@@ -731,6 +731,8 @@
                 <th style="width: 20%">Total Amount (<span
                         th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
                 </th>
+                <th style="width: 20%">Total Amount (INR)
+                </th>
             </tr>
             </thead>
             <tbody>
@@ -747,6 +749,10 @@
                 </td>
                 <td style="text-align: center"
                     th:text="${#numbers.formatDecimal(item.quantity * item.unitPriceUsd, 1, 2)}">6720.00
+                </td>
+                <td style="text-align: center"
+                    th:text="${#numbers.formatDecimal(item.quantity * item.unitPriceUsd*item.currencyCurrentPrice, 1, 2)}">
+                    6720.00
                 </td>
             </tr>
             </tbody>
