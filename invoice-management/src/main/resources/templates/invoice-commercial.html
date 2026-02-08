@@ -60,7 +60,7 @@
             font-size: 13px;
             font-weight: 400;
             color: #333333;
-            width: max-content;
+            display: inline-block;
         }
 
         .header-left .tagline {
@@ -74,6 +74,7 @@
         .header-right {
             margin-left: 300px;
             text-align: right;
+            margin-right: -100px;
         }
 
         .header-right > * {
@@ -106,6 +107,7 @@
             max-height: 400px;
             width: 300px;
             display: block;
+            margin-left: -180px;
         }
 
         /* Blue Header Bars */
@@ -358,6 +360,22 @@
             text-align: right;
         }
 
+        .footer-title {
+            display: flex;
+            justify-content: left;
+            text-align: left;
+
+        }
+
+        .footer-right span {
+            display: flex;
+            font-weight: 500;
+            font-size: 8px;
+            color: black;
+            margin-top: 2px;
+            justify-content: center;
+        }
+
         .bank-box {
             width: 260px;
             border: 1px solid #d8e1e6;
@@ -403,7 +421,7 @@
         }
 
         .declaration-text {
-            width: 104%;
+            width: 260px;
             max-width: 300px;
             font-size: 8px;
             color: #444444;
@@ -421,7 +439,7 @@
             width: 270px;
             font-size: 11px;
             border: 1px solid #d8e1e6;
-            padding: 10px;
+            padding: 8px;
             border-radius: 5px;
             margin: 0 0 5px auto;
         }
@@ -435,13 +453,14 @@
 
         .totals-table td strong {
             color: #261911;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .totals-table .amount {
             text-align: right;
             font-weight: 500;
             color: #737373;
+            padding-left: 12px;
         }
 
         .totals-table .amount_last {
@@ -782,7 +801,7 @@
                                  rate=${(invoice.items != null and !invoice.items.isEmpty() and invoice.items[0].currencyCurrentPrice != null)
               ? invoice.items[0].currencyCurrentPrice : 1}">
                     <tr>
-                        <td><strong>Sub Total(USD):-</strong></td>
+                        <td class="footer-title"><strong>Sub Total(USD):-</strong></td>
                         <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(subtotal, 1, 2)}"><strong>$
                             4,00,000
                         </strong></td>
@@ -793,7 +812,7 @@
                             </strong></td>
                     </tr>
                     <tr th:if="${invoice.freightCost != null and invoice.freightCost > 0}">
-                        <td>Freight Cost(USD):-</td>
+                        <td class="footer-title">Freight Cost(USD):-</td>
                         <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.freightCost, 1, 2)}">$
                             0.00
                         </td>
@@ -804,7 +823,7 @@
                         </td>
                     </tr>
                     <tr th:if="${invoice.insuranceCost != null and invoice.insuranceCost > 0}">
-                        <td>Insurance Cost(USD):-</td>
+                        <td class="footer-title">Insurance Cost(USD):-</td>
                         <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.insuranceCost, 1, 2)}">$
                             0.00
                         </td>
@@ -815,7 +834,7 @@
                         </td>
                     </tr>
                     <tr th:if="${invoice.otherCost != null and invoice.otherCost > 0}">
-                        <td>Other Cost(USD):-</td>
+                        <td class="footer-title">Other Cost(USD):-</td>
                         <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.otherCost, 1, 2)}">$
                             0.00
                         </td>
@@ -826,7 +845,7 @@
                         </td>
                     </tr>
                     <tr class="final-row">
-                        <td><strong>Grand Total(USD):-</strong></td>
+                        <td class="footer-title"><strong>Grand Total(USD):-</strong></td>
                         <td class="amount_last"><strong
                                 th:text="'$ ' + ${#numbers.formatDecimal(grandTotal, 1, 2)}">$ 4,00,000</strong>
                         </td>
