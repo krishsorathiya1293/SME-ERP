@@ -30,7 +30,8 @@ public class InvoicePdfService {
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
       // Configure PDF properties for A4 page size
-      com.itextpdf.html2pdf.ConverterProperties converterProperties = new com.itextpdf.html2pdf.ConverterProperties();
+      com.itextpdf.html2pdf.ConverterProperties converterProperties =
+          new com.itextpdf.html2pdf.ConverterProperties();
 
       HtmlConverter.convertToPdf(htmlContent, outputStream, converterProperties);
 

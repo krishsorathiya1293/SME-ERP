@@ -60,12 +60,11 @@ public class InvoiceController implements InvoiceInvoiceManagementApi {
         "attachment",
         String.format(
             "invoice_%d_%s_%s.pdf",
-            id,
-            invoicePdfService.shortName(invoice.getExporterCompanyName()),
-            invoiceType));
+            id, invoicePdfService.shortName(invoice.getExporterCompanyName()), invoiceType));
     headers.setContentLength(pdf.length);
 
-    return new ResponseEntity<>(new org.springframework.core.io.ByteArrayResource(pdf), headers, HttpStatus.OK);
+    return new ResponseEntity<>(
+        new org.springframework.core.io.ByteArrayResource(pdf), headers, HttpStatus.OK);
   }
 
   @Override

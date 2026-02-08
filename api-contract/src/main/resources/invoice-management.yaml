@@ -537,6 +537,9 @@ components:
         rexNo:
           type: string
           nullable: true
+        createdAt:
+          type: string
+          format: date
     InvoiceType:
       type: string
       enum:
