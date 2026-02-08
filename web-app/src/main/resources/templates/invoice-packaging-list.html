@@ -47,7 +47,6 @@
             margin: 2px 0;
             padding: 0;
             height: 50px;
-            overflow: hidden;
         }
 
         .header-left {
@@ -98,7 +97,6 @@
             font-size: 0;
             line-height: 0;
             color: #333;
-            margin-left: 110px;
             margin-top: 15px;
         }
 
@@ -106,7 +104,7 @@
             max-height: 400px;
             width: 300px;
             display: block;
-            margin-left: -295px;
+            margin-left: -180px;
         }
 
         /* Blue Header Bars */
@@ -199,7 +197,7 @@
 
         .addr-label {
             color: #737373;
-            margin-top: 5px;
+            margin-top: 8px;
             margin-bottom: 2px;
             display: block;
             font-size: 10px;
@@ -236,21 +234,21 @@
         .details-grid > div {
             display: table-cell;
             vertical-align: top;
-            padding: 4px;
+            padding: 10px;
         }
 
         .details-grid > div:first-child .detail-label {
-            width: 90px;
+            width: 80px;
             display: inline-block;
         }
 
         .details-grid > div:first-child + div .detail-label {
-            width: 100px;
+            width: 90px;
             display: inline-block;
         }
 
         .details-grid > div:first-child + div + div .detail-label {
-            width: 160px;
+            width: 143px;
             display: inline-block;
         }
 
@@ -314,6 +312,29 @@
             border-bottom: none;
         }
 
+        /* Fix tfoot size */
+        .items-table tfoot td {
+            padding: 6px 4px !important;
+            font-size: 11px !important;
+            border-top: 1px solid #d8e1e6;
+            /* add border before tfoot */
+        }
+
+        /* Make Total text proper size like screenshot */
+        .items-table tfoot td:first-child {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+        }
+
+        /* Keep borders consistent */
+        .items-table tfoot td {
+            border-right: 1px solid #d8e1e6;
+        }
+
+        .items-table tfoot td:last-child {
+            border-right: none;
+        }
+
         .desc-cell {
             text-align: left;
         }
@@ -351,7 +372,8 @@
         }
 
         .footer-right {
-            display: table-cell; /* IMPORTANT */
+            display: table-cell;
+            /* IMPORTANT */
             width: 50%;
             vertical-align: top;
             padding-left: 10px;
@@ -376,11 +398,23 @@
 
         .bank-box {
             width: 260px;
+            height: 131px;
             border: 1px solid #d8e1e6;
             padding: 10px;
             margin-bottom: 10px;
             margin-left: -10px;
             border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .bank-box div {
+            font-size: 16px;
+            font-weight: 600;
+            color: #261911;
+            line-height: 1.4;
         }
 
         .bank-title {
@@ -420,30 +454,30 @@
 
         .declaration-text {
             width: 260px;
-            max-width: 300px;
-            font-size: 8px;
+            font-size: 9px;
             color: #444444;
-            line-height: 1.2;
+            line-height: 1.3;
             border: 1px solid #d8e1e6;
             padding: 5px 10px;
             margin-left: -10px;
             border-radius: 5px;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            margin-bottom: 5px;
         }
 
         /* Totals Area */
         .totals-table {
-            width: 240px;
+            width: 300px;
             font-size: 11px;
             border: 1px solid #d8e1e6;
-            padding: 10px;
+            padding: 8px;
             border-radius: 5px;
-            margin: 0 0 5px auto;
+            margin: 0 -9px 5px auto;
         }
 
         .totals-table td {
-            padding: 2px 0;
+            padding: 6px 0;
             font-size: 10px;
             color: #737373;
             font-weight: 400;
@@ -451,13 +485,18 @@
 
         .totals-table td strong {
             color: #261911;
-            font-size: 12px;
+            font-size: 11px;
+        }
+
+        .u-line {
+            border-bottom: 0.5px solid #d8e1e6;
         }
 
         .totals-table .amount {
             text-align: right;
             font-weight: 500;
             color: #737373;
+            padding-left: 12px;
         }
 
         .totals-table .amount_last {
@@ -475,18 +514,20 @@
 
         /* Signature / Stamp */
         .stamp-area {
-            width: 240px;
-            margin: 6px 0 0 auto; /* keep it on the right */
+            width: 275px;
+            margin: 20px 0 0 auto;
+            /* keep it on the right */
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 2px;
-
+            justify-content: center;
         }
 
         .stamp-area img {
-            width: 140px; /* control size from CSS */
+            width: 140px;
+            /* control size from CSS */
             height: auto;
             display: block;
             margin: 0;
@@ -497,7 +538,8 @@
         .stamp-area .sign-date,
         .stamp-area .sign-text {
             width: 100%;
-            margin: 0; /* remove manual shifting */
+            margin: 0;
+            /* remove manual shifting */
             text-align: center;
             line-height: 1.2;
             word-break: break-word;
@@ -585,7 +627,7 @@
         <!-- Blue Header Row -->
         <div class="blue-header-row">
             <div class="export-title-box">
-                <h2>Export Invoice</h2>
+                <h2>Packing List</h2>
             </div>
             <div class="lut-box" th:if="${invoice.arnNo != null}">
                     <span>SUPPLY MEANT FOR EXPORT UNDER BOND OR LUT WITHOUT PAYMENT OF INTEGRATED TAX (IGST),
@@ -716,66 +758,101 @@
         </div>
 
         <!-- Items Table -->
+        <!-- Items Table (UPDATED as per screenshot) -->
         <table class="items-table">
             <thead>
             <tr>
                 <th style="width: 8%">Item No.</th>
-                <th style="width: 40%">Description</th>
-                <th style="width: 10%">HS Code</th>
-                <th style="width: 10%">Qty (Pcs)</th>
-                <th style="width: 15%">Unit Price (<span
-                        th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
-                </th>
-                <th style="width: 20%">Total Amount (<span
-                        th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
-                </th>
+                <th style="width: 38%">Description</th>
+                <th style="width: 11%">Total Qty. (Pcs)</th>
+                <th style="width: 11%">Qty (Pcs) In<br/>Each Carton</th>
+                <th style="width: 11%">No Of Cartons</th>
+                <th style="width: 11%">Gross Weight<br/>(Kgs)</th>
+                <th style="width: 10%">Net Weight<br/>(Kgs)</th>
             </tr>
             </thead>
+
             <tbody>
-            <tr th:each="item : ${invoice.items}">
-                <td style="text-align: center" th:text="${item.itemNo}">01</td>
+            <tr th:each="item : ${invoice.packingDetails}">
+                <td style="text-align:center;" th:text="${item.itemNo}">01</td>
+
                 <td class="desc-cell">
-                            <span class="desc-text" th:text="${item.description}">FHCS316L : 10-32 X 5/16 A/F E.S.P Hex
-                                Nut</span>
+                            <span class="desc-text" th:text="${item.description}">
+                                FNESPBL : 10-32 X 5/16 A/F E.S.P Hex Nut
+                            </span>
                 </td>
-                <td style="text-align: center" th:text="${item.hsCode}">7318</td>
-                <td style="text-align: center" th:text="${item.quantity}">560</td>
-                <td style="text-align: center" th:text="${#numbers.formatDecimal(item.unitPriceUsd, 1, 3)}">
-                    12.000
+
+                <td style="text-align:center;"
+                    th:text="${#numbers.formatDecimal(item.totalQty, 1, 0)}">1012000
                 </td>
-                <td style="text-align: center"
-                    th:text="${#numbers.formatDecimal(item.quantity * item.unitPriceUsd, 1, 2)}">6720.00
+
+                <td style="text-align:center;"
+                    th:text="${#numbers.formatDecimal(item.qtyPerCarton, 1, 0)}">22000
+                </td>
+
+                <td style="text-align:center;"
+                    th:text="${#numbers.formatDecimal(item.noOfCartons, 1, 0)}">46
+                </td>
+
+                <td style="text-align:center;"
+                    th:text="${#numbers.formatDecimal(item.grossWeightKg, 1, 3)}">828.000
+                </td>
+
+                <td style="text-align:center;"
+                    th:text="${#numbers.formatDecimal(item.netWeightKg, 1, 3)}">787.060
                 </td>
             </tr>
             </tbody>
+
+            <tfoot>
+            <tr>
+                <td colspan="2" style="text-align:center; font-weight:700; font-size:16px; padding:10px 4px;">
+                    Total
+                </td>
+
+                <!-- Total Qty -->
+                <td style="text-align:center; font-weight:700; font-size:12px;"
+                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.packingDetails.![totalQty]), 1, 0)}">
+                    0
+                </td>
+
+                <!-- Qty per carton (blank like screenshot) -->
+                <td></td>
+
+                <!-- No of cartons total -->
+                <td style="text-align:center; font-weight:700; font-size:12px;"
+                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.packingDetails.![noOfCartons]), 1, 0)}">
+                    0
+                </td>
+
+                <!-- Gross weight total -->
+                <td style="text-align:center; font-weight:700; font-size:12px;"
+                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.packingDetails.![grossWeightKg]), 1, 3)}">
+                    0.000
+                </td>
+
+                <!-- Net weight total -->
+                <td style="text-align:center; font-weight:700; font-size:12px;"
+                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.packingDetails.![netWeightKg]), 1, 3)}">
+                    0.000
+                </td>
+            </tr>
+            </tfoot>
         </table>
+
 
         <!-- Footer Area -->
         <div class="footer-section">
             <!-- Footer Left -->
             <div class="footer-left">
                 <div class="bank-box">
-                    <div class="bank-title">Bank Details</div>
-                    <div class="bank-row">
-                        <span class="bank-label">Beneficiary name :-</span>
-                        <span class="bank-val" th:text="${invoice.beneficiaryName}">Ishita Industries</span>
+                    <div>
+                        <span th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.packingDetails.![noOfCartons]), 1, 0)}">0</span>
+                        Carton with
+                        <span th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.packingDetails.![woodenPallets]), 1, 0)}">0</span>
+                        Wooden Palate.
                     </div>
-                    <div class="bank-row">
-                        <span class="bank-label">Beneficiary Bank :-</span>
-                        <span class="bank-val" th:text="${invoice.bankName}">HDFC BANK</span>
-                    </div>
-                    <div class="bank-row">
-                        <span class="bank-label">Branch :-</span>
-                        <span class="bank-val" th:text="${invoice.branch}">Dared Branch</span>
-                    </div>
-                    <div class="bank-row">
-                        <span class="bank-label">Beneficiary A/C No. :-</span>
-                        <span class="bank-val" th:text="${invoice.accountNo}">50200028447924</span>
-                    </div>
-                    <div class="bank-row-last">
-                        <span class="bank-label">Swift Code :-</span>
-                        <span class="bank-val" th:text="${invoice.swiftCode}">HDFCINBB</span>
-                    </div>
+
                 </div>
 
                 <div class="declaration-text" th:if="${invoice.rexNo != null}">
@@ -791,41 +868,43 @@
 
             <!-- Footer Right -->
             <div class="footer-right">
-                <table class="totals-table" th:with="subtotal=${#aggregates.sum(invoice.items.![quantity * unitPriceUsd])},
-                                 freight=${invoice.freightCost != null ? invoice.freightCost : 0},
-                                 insurance=${invoice.insuranceCost != null ? invoice.insuranceCost : 0},
-                                 other=${invoice.otherCost != null ? invoice.otherCost : 0},
-                                 grandTotal=${subtotal + freight + insurance + other}">
+                <table class="totals-table" th:with="totalQty=${#aggregates.sum(invoice.packingDetails.![totalQty])},
+         totalCartons=${#aggregates.sum(invoice.packingDetails.![noOfCartons])},
+         totalGross=${#aggregates.sum(invoice.packingDetails.![grossWeightKg])},
+         totalNet=${#aggregates.sum(invoice.packingDetails.![netWeightKg])}">
                     <tr>
-                        <td class="footer-title"><strong>Sub Total(USD):-</strong></td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(subtotal, 1, 2)}"><strong>$
-                            4,00,000
-                        </strong></td>
-                    </tr>
-                    <tr th:if="${invoice.freightCost != null and invoice.freightCost > 0}">
-                        <td class="footer-title">Freight Cost(USD):-</td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.freightCost, 1, 2)}">$
-                            0.00
+                        <td class="footer-title u-line"><strong>Total Packages (Cartons) :</strong></td>
+                        <td class="amount u-line "
+                            th:text="${#numbers.formatDecimal(totalCartons, 1, 0)}">
+                            56
                         </td>
                     </tr>
-                    <tr th:if="${invoice.insuranceCost != null and invoice.insuranceCost > 0}">
-                        <td class="footer-title">Insurance Cost(USD):-</td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.insuranceCost, 1, 2)}">$
-                            0.00
+
+
+                    <tr>
+                        <td class="footer-title u-line"><strong>Total Quantity (Pcs) :</strong></td>
+                        <td class="amount u-line "
+                            th:text="${#numbers.formatDecimal(totalQty, 1, 0)}">
+                            10,44,000
                         </td>
                     </tr>
-                    <tr th:if="${invoice.otherCost != null and invoice.otherCost > 0}">
-                        <td class="footer-title">Other Cost(USD):-</td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.otherCost, 1, 2)}">$
-                            0.00
+
+                    <tr>
+                        <td class="footer-title u-line"><strong>Total Net Weight (Kgs) :</strong></td>
+                        <td class="amount u-line "
+                            th:text="${#numbers.formatDecimal(totalNet, 1, 3)}">
+                            934.305
                         </td>
                     </tr>
-                    <tr class="final-row">
-                        <td class="footer-title"><strong>Grand Total(USD):-</strong></td>
-                        <td class="amount_last"><strong
-                                th:text="'$ ' + ${#numbers.formatDecimal(grandTotal, 1, 2)}">$ 4,00,000</strong>
+
+                    <tr>
+                        <td class="footer-title"><strong>Total Gross Weight (Kgs) :</strong></td>
+                        <td class="amount"
+                            th:text="${#numbers.formatDecimal(totalGross, 1, 3)}">
+                            982.350
                         </td>
                     </tr>
+
                 </table>
 
                 <div class="stamp-area">
