@@ -721,18 +721,17 @@
         <table class="items-table">
             <thead>
             <tr>
-                <th style="width: 8%">Item No.</th>
-                <th style="width: 40%">Description</th>
-                <th style="width: 10%">HS Code</th>
-                <th style="width: 10%">Qty (Pcs)</th>
-                <th style="width: 15%">Unit Price (<span
-                        th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
+                <th style="width: 7%">Item No.</th>
+                <th style="width: 36%">Description</th>
+                <th style="width: 9%">HS Code</th>
+                <th style="width: 8%">Qty (Pcs)</th>
+                <th style="width: 12%">
+                    Unit Price (<span th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
                 </th>
-                <th style="width: 20%">Total Amount (<span
-                        th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
+                <th style="width: 13%">
+                    Total Amount (<span th:text="${invoice.currency != null ? invoice.currency : 'USD'}">USD</span>)
                 </th>
-                <th style="width: 20%">Total Amount (INR)
-                </th>
+                <th style="width: 15%">Total Amount (INR)</th>
             </tr>
             </thead>
             <tbody>
@@ -748,10 +747,10 @@
                     12.000
                 </td>
                 <td style="text-align: center"
-                    th:text="${#numbers.formatDecimal(item.quantity * item.unitPriceUsd, 1, 2)}">6720.00
+                    th:text="'$ '+${#numbers.formatDecimal(item.quantity * item.unitPriceUsd, 1, 2)}">6720.00
                 </td>
                 <td style="text-align: center"
-                    th:text="${#numbers.formatDecimal(item.quantity * item.unitPriceUsd*item.currencyCurrentPrice, 1, 2)}">
+                    th:text="'₹ ' +${#numbers.formatDecimal(item.quantity * item.unitPriceUsd*item.currencyCurrentPrice, 1, 2)}">
                     6720.00
                 </td>
             </tr>
@@ -812,7 +811,7 @@
                             4,00,000
                         </strong></td>
                         <td class="amount"
-                            th:text="'$ ' + ${#numbers.formatDecimal(subtotal*rate, 1, 2)}">
+                            th:text="'₹ ' + ${#numbers.formatDecimal(subtotal*rate, 1, 2)}">
                             <strong>₹
                                 4,00,000
                             </strong></td>
@@ -823,7 +822,7 @@
                             0.00
                         </td>
                         <td class="amount"
-                            th:text="'$ ' + ${#numbers.formatDecimal(invoice.freightCost*rate, 1, 2)}">
+                            th:text="'₹ ' + ${#numbers.formatDecimal(invoice.freightCost*rate, 1, 2)}">
                             ₹
                             0.00
                         </td>
@@ -834,7 +833,7 @@
                             0.00
                         </td>
                         <td class="amount"
-                            th:text="'$ ' + ${#numbers.formatDecimal(invoice.insuranceCost*rate, 1, 2)}">
+                            th:text="'₹ ' + ${#numbers.formatDecimal(invoice.insuranceCost*rate, 1, 2)}">
                             ₹
                             0.00
                         </td>
@@ -845,7 +844,7 @@
                             0.00
                         </td>
                         <td class="amount"
-                            th:text="'$ ' + ${#numbers.formatDecimal(invoice.otherCost*rate, 1, 2)}">
+                            th:text="'₹ ' + ${#numbers.formatDecimal(invoice.otherCost*rate, 1, 2)}">
                             ₹
                             0.00
                         </td>
@@ -856,7 +855,7 @@
                                 th:text="'$ ' + ${#numbers.formatDecimal(grandTotal, 1, 2)}">$ 4,00,000</strong>
                         </td>
                         <td class="amount_last"><strong
-                                th:text="'$ ' + ${#numbers.formatDecimal(grandTotal*rate, 1, 2)}">₹
+                                th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal*rate, 1, 2)}">₹
                             4,00,000</strong>
                         </td>
                     </tr>
