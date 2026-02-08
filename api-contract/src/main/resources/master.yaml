@@ -8,7 +8,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://sme-erp-2.onrender.com
+  - url: https://sme-erp-2j8m.onrender.com
     description: Production Server
 
 tags:
