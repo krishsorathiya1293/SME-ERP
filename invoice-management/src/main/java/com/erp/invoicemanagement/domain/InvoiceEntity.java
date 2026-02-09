@@ -36,7 +36,6 @@ public class InvoiceEntity extends AuditInfo {
   @Column(columnDefinition = "TEXT")
   private String exporterAddress;
 
-  private String currency;
   // Importer (Bill To)
   private String billToCountry;
   private String billToName;
@@ -75,10 +74,6 @@ public class InvoiceEntity extends AuditInfo {
   // Items (same name, one-to-many)
   @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<InvoiceItemEntity> items;
-
-  // Packing Details (same name, one-to-many)
-  @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<PackingDetailEntity> packingDetails;
 
   // Bank Details
   private String beneficiaryName;

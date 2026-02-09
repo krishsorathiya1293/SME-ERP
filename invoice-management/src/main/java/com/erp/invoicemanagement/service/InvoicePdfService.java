@@ -2,6 +2,7 @@ package com.erp.invoicemanagement.service;
 
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.InvoiceType;
+import com.erp.api.invoicemanagement.model.ItemCurrency;
 import com.erp.exception.PdfGenerationFailedException;
 import com.itextpdf.html2pdf.HtmlConverter;
 import java.io.ByteArrayOutputStream;
@@ -21,8 +22,13 @@ public class InvoicePdfService {
   private final TemplateEngine templateEngine;
 
   public byte[] generatePdf(Invoice invoice) {
+    ItemCurrency currency = invoice.getItems().getFirst().getCurrency();
     Context context = new Context();
     context.setVariable("invoice", invoice);
+    context.setVariable("currencyType", currency.name());
+    context.setVariable(
+        "currencyValue",
+        com.erp.invoicemanagement.domain.ItemCurrency.valueOf(currency.getValue()));
     String templateName = resolveTemplateName(invoice.getInvoiceType());
     String htmlContent = templateEngine.process(templateName, context);
 
