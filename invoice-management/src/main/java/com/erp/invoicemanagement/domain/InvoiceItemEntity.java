@@ -13,14 +13,24 @@ public class InvoiceItemEntity {
   private Long id;
 
   private String itemNo;
-
-  @Column(columnDefinition = "TEXT")
+  private String partNo;
   private String description;
-
   private String hsCode;
-  private Integer quantity;
   private Double unitPriceUsd;
   private Double currencyCurrentPrice;
+  private Double inrPrice;
+
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  @Enumerated(EnumType.STRING)
+  private ItemCurrency currency;
+
+  private Integer totalQuantity;
+  private Integer qtyPerCarton;
+  private Integer noOfCartons;
+  private Double grossWeightKg;
+  private Double netWeightKg;
+  private Integer woodenPallets;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "invoice_id", nullable = false)

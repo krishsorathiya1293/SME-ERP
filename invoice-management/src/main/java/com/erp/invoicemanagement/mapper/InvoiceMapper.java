@@ -5,7 +5,6 @@ import com.erp.api.invoicemanagement.model.InvoiceInfo;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.invoicemanagement.domain.InvoiceEntity;
 import com.erp.invoicemanagement.domain.InvoiceItemEntity;
-import com.erp.invoicemanagement.domain.PackingDetailEntity;
 import java.util.List;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
@@ -29,12 +28,6 @@ public interface InvoiceMapper {
     if (target.getItems() != null) {
       for (InvoiceItemEntity item : target.getItems()) {
         item.setInvoice(target);
-      }
-    }
-
-    if (target.getPackingDetails() != null) {
-      for (PackingDetailEntity packing : target.getPackingDetails()) {
-        packing.setInvoice(target);
       }
     }
   }

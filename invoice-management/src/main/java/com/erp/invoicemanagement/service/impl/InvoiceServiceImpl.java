@@ -9,7 +9,6 @@ import com.erp.invoicemanagement.domain.InvoiceEntity;
 import com.erp.invoicemanagement.domain.InvoiceType;
 import com.erp.invoicemanagement.mapper.InvoiceMapper;
 import com.erp.invoicemanagement.repository.InvoiceRepository;
-import com.erp.invoicemanagement.service.InvoicePdfService;
 import com.erp.invoicemanagement.service.InvoiceService;
 import com.erp.util.PaginationUtils;
 import java.util.Arrays;
@@ -28,7 +27,6 @@ public class InvoiceServiceImpl implements InvoiceService {
 
   private final InvoiceRepository invoiceRepository;
   private final InvoiceMapper invoiceMapper;
-  private final InvoicePdfService pdfService;
 
   @Override
   public List<Invoice> saveInvoice(NewInvoice invoice) {
