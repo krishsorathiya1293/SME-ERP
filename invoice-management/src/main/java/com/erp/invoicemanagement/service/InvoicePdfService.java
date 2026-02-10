@@ -6,6 +6,8 @@ import com.erp.api.invoicemanagement.model.ItemCurrency;
 import com.erp.exception.PdfGenerationFailedException;
 import com.itextpdf.html2pdf.HtmlConverter;
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -26,9 +28,10 @@ public class InvoicePdfService {
     Context context = new Context();
     context.setVariable("invoice", invoice);
     context.setVariable("currencyType", currency.name());
-    context.setVariable(
-        "currencyValue",
-        com.erp.invoicemanagement.domain.ItemCurrency.valueOf(currency.getValue()));
+    context.setVariable("currencyValue", currency.name().equals("USD") ? "$" : "€");
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
+    String todayDate = LocalDate.now().format(formatter);
+    context.setVariable("todayDate", todayDate);
     String templateName = resolveTemplateName(invoice.getInvoiceType());
     String htmlContent = templateEngine.process(templateName, context);
 

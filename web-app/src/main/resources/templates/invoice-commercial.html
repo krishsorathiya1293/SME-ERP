@@ -439,7 +439,7 @@
 
         /* Totals Area */
         .totals-table {
-            width: 300px;
+            width: 320px;
             font-size: 11px;
             border: 1px solid #d8e1e6;
             padding: 8px;
@@ -749,10 +749,10 @@
                     12.000
                 </td>
                 <td style="text-align: center"
-                    th:text="'$ '+${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd, 1, 2)}">6720.00
+                    th:text="${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd, 1, 2)}">6720.00
                 </td>
                 <td style="text-align: center"
-                    th:text="'₹ ' +${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd*item.currencyCurrentPrice, 1, 2)}">
+                    th:text="${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd*item.currencyCurrentPrice, 1, 2)}">
                     6720.00
                 </td>
             </tr>
@@ -763,39 +763,7 @@
         <div class="footer-section">
             <!-- Footer Left -->
             <div class="footer-left">
-                <div class="bank-box">
-                    <div class="bank-title">Bank Details</div>
-                    <div class="bank-row">
-                        <span class="bank-label">Beneficiary name :-</span>
-                        <span class="bank-val" th:text="${invoice.beneficiaryName}">Ishita Industries</span>
-                    </div>
-                    <div class="bank-row">
-                        <span class="bank-label">Beneficiary Bank :-</span>
-                        <span class="bank-val" th:text="${invoice.bankName}">HDFC BANK</span>
-                    </div>
-                    <div class="bank-row">
-                        <span class="bank-label">Branch :-</span>
-                        <span class="bank-val" th:text="${invoice.branch}">Dared Branch</span>
-                    </div>
-                    <div class="bank-row">
-                        <span class="bank-label">Beneficiary A/C No. :-</span>
-                        <span class="bank-val" th:text="${invoice.accountNo}">50200028447924</span>
-                    </div>
-                    <div class="bank-row-last">
-                        <span class="bank-label">Swift Code :-</span>
-                        <span class="bank-val" th:text="${invoice.swiftCode}">HDFCINBB</span>
-                    </div>
-                </div>
 
-                <div class="declaration-text" th:if="${invoice.rexNo != null}">
-                    <span th:text="${invoice.exporterCompanyName}">Ishita Industries</span> having REX reg n°
-                    <span th:text="${invoice.rexNo}">INREXGQIPMxxxxx</span> of the
-                    products covered by this document declare that, except where
-                    otherwise clearly indicated, these products are of India
-                    preferential origin according to rules of origin of the
-                    generalised system of preferences of the European Union and that
-                    the origin criterion met is "P".
-                </div>
             </div>
 
             <!-- Footer Right -->
@@ -809,73 +777,65 @@
               ? invoice.items[0].currencyCurrentPrice : 1}">
                     <tr>
                         <td class="footer-title"><strong>Sub Total <strong
-                                th:text="'('+${currencyType}+'):-'">(USD):-</strong></strong></td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(subtotal, 1, 2)}"><strong>
-                            <strong th:text="${currencyValue}">$</strong> 4,00,000
-                        </strong></td>
-                        <td class="amount"
-                            th:text="'₹ ' + ${#numbers.formatDecimal(subtotal*rate, 1, 2)}">
-                            <strong>₹ 4,00,000</strong>
+                                th:text="'('+${currencyType}+'):-'"></strong></strong></td>
+                        <td class="amount">
+                            <strong th:text="${currencyType=='USD'?'$':'€'}"></strong>
+                            <strong th:text="${#numbers.formatDecimal(subtotal, 1, 2)}"></strong>
+                        </td>
+                        <td class="amount">
+                            <strong th:text="'₹ ' + ${#numbers.formatDecimal(subtotal*rate, 1, 2)}"></strong>
                         </td>
                     </tr>
                     <tr th:if="${invoice.freightCost != null and invoice.freightCost > 0}">
                         <td class="footer-title">Freight Cost
-                            <th:block th:text="'('+${currencyType}+'):-'">(USD):-</th:block>
+                            <th:block th:text="' ('+${currencyType}+'):-'"></th:block>
                         </td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.freightCost, 1, 2)}">
+                        <td class="amount">
+                            <th:block th:text="${currencyType=='USD'?'$':'€'}"></th:block>
+                            <th:block th:text="${#numbers.formatDecimal(invoice.freightCost, 1, 2)}"></th:block>
+                        </td>
+                        <td class="amount">
                             <th:block
-                                    th:text="${currencyValue}">$
-                            </th:block>
-                            0.00
-                        </td>
-                        <td class="amount"
-                            th:text="'₹ ' + ${#numbers.formatDecimal(invoice.freightCost*rate, 1, 2)}">
-                            ₹
-                            0.00
+                                    th:text="'₹ ' + ${#numbers.formatDecimal(invoice.freightCost*rate, 1, 2)}"></th:block>
                         </td>
                     </tr>
                     <tr th:if="${invoice.insuranceCost != null and invoice.insuranceCost > 0}">
                         <td class="footer-title">Insurance Cost
-                            <th:block th:text="'('+${currencyType}+'):-'">(USD):-</th:block>
+                            <th:block th:text="' ('+${currencyType}+'):-'"></th:block>
                         </td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.insuranceCost, 1, 2)}">
+                        <td class="amount">
+                            <th:block th:text="${currencyType=='USD'?'$':'€'}"></th:block>
                             <th:block
-                                    th:text="${currencyValue}">$
-                            </th:block>
-                            0.00
+                                    th:text="${#numbers.formatDecimal(invoice.insuranceCost, 1, 2)}"></th:block>
                         </td>
-                        <td class="amount"
-                            th:text="'₹ ' + ${#numbers.formatDecimal(invoice.insuranceCost*rate, 1, 2)}">
-                            ₹
-                            0.00
+                        <td class="amount">
+                            <th:block
+                                    th:text="'₹ ' + ${#numbers.formatDecimal(invoice.insuranceCost*rate, 1, 2)}"></th:block>
                         </td>
                     </tr>
                     <tr th:if="${invoice.otherCost != null and invoice.otherCost > 0}">
                         <td class="footer-title">Other Cost
-                            <th:block th:text="'('+${currencyType}+'):-'">(USD):-</th:block>
+                            <th:block th:text="' ('+${currencyType}+'):-'"></th:block>
                         </td>
-                        <td class="amount" th:text="'$ ' + ${#numbers.formatDecimal(invoice.otherCost, 1, 2)}">
+                        <td class="amount">
+                            <th:block th:text="${currencyType=='USD'?'$':'€'}"></th:block>
+                            <th:block th:text="${#numbers.formatDecimal(invoice.otherCost, 1, 2)}"></th:block>
+                        </td>
+                        <td class="amount">
                             <th:block
-                                    th:text="${currencyValue}">$
-                            </th:block>
-                            0.00
-                        </td>
-                        <td class="amount"
-                            th:text="'₹ ' + ${#numbers.formatDecimal(invoice.otherCost*rate, 1, 2)}">
-                            ₹
-                            0.00
+                                    th:text="'₹ ' + ${#numbers.formatDecimal(invoice.otherCost*rate, 1, 2)}"></th:block>
                         </td>
                     </tr>
                     <tr class="final-row">
                         <td class="footer-title"><strong>Grand Total <strong
-                                th:text="'('+${currencyType}+'):-'">(USD):-</strong></strong></td>
-                        <td class="amount_last"><strong
-                                th:text="'$ ' + ${#numbers.formatDecimal(grandTotal, 1, 2)}">
-                            <strong th:text="${currencyValue}">$</strong> 4,00,000</strong>
+                                th:text="'('+${currencyType}+'):-'"></strong></strong></td>
+                        <td class="amount_last">
+                            <strong th:text="${currencyType=='USD'?'$':'€'}"></strong>
+                            <strong
+                                    th:text="${#numbers.formatDecimal(grandTotal, 1, 2)}"></strong>
                         </td>
                         <td class="amount_last"><strong
-                                th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal*rate, 1, 2)}">₹
-                            4,00,000</strong>
+                                th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal*rate, 1, 2)}"></strong>
                         </td>
                     </tr>
                 </table>
