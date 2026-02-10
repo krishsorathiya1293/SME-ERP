@@ -59,7 +59,7 @@ public class InvoiceController implements InvoiceInvoiceManagementApi {
     headers.setContentDispositionFormData(
         "attachment",
         String.format(
-            "invoice_%d_%s_%s.pdf",
+            "%d_%s_%s.pdf",
             id, invoicePdfService.shortName(invoice.getExporterCompanyName()), invoiceType));
     headers.setContentLength(pdf.length);
 
