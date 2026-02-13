@@ -76,3 +76,11 @@ security:
     - /swagger-ui/**
     - /v3/api-docs/**
     - /doc/v3/**
+encryption:
+  cipherAlgorithm: AES/GCM/NoPadding
+  keyAlgorithm: AES
+  secretKeyBase64: ${ENCRYPTION_SECRET}
+  prefix: ENC
+  enabled: true
+  gcmIvLength: 12
+  gcmTagLength: 128
