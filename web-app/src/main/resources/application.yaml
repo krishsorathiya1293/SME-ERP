@@ -77,10 +77,16 @@ security:
     - /v3/api-docs/**
     - /doc/v3/**
 encryption:
-  cipherAlgorithm: AES/GCM/NoPadding
-  keyAlgorithm: AES
-  secretKeyBase64: ${ENCRYPTION_SECRET}
-  prefix: ENC
   enabled: true
-  gcmIvLength: 12
-  gcmTagLength: 128
+  cipher-algorithm: AES/GCM/NoPadding
+  require-gcm: true
+  prefix: ENC
+  gcm-iv-length: 12
+  gcm-tag-length: 128
+  aad: "SME-ERP"
+  current-key-id: "k0"
+  keys-base64:
+    k1: "${ENC_KEY_K1_BASE64}"
+    k0: "${ENC_KEY_K0_BASE64}"
+server:
+  port: 8081

@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: OpenAPI for Auth (signin, refresh) and user management
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8081
     description: Local development server
   - url: https://sme-erp-2j8m.onrender.com
     description: Production Server

@@ -6,7 +6,7 @@ info:
   description: OpenAPI for Invoice management
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8081
     description: Local development server
   - url: https://sme-erp-2j8m.onrender.com
     description: Production Server
