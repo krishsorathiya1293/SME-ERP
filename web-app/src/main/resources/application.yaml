@@ -88,5 +88,3 @@ encryption:
   keys-base64:
     k1: "${ENC_KEY_K1_BASE64}"
     k0: "${ENC_KEY_K0_BASE64}"
-server:
-  port: 8081
