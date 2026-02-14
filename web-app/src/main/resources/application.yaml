@@ -36,6 +36,9 @@ spring:
           starttls:
             enable: true
     from: no-reply@sme.com
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
 twilio:
   account-sid: ${TWILIO_ACCOUNT_SID}
@@ -76,15 +79,11 @@ security:
     - /swagger-ui/**
     - /v3/api-docs/**
     - /doc/v3/**
-encryption:
-  enabled: true
-  cipher-algorithm: AES/GCM/NoPadding
-  require-gcm: true
-  prefix: ENC
-  gcm-iv-length: 12
-  gcm-tag-length: 128
-  aad: "SME-ERP"
-  current-key-id: "k0"
-  keys-base64:
-    k1: "${ENC_KEY_K1_BASE64}"
-    k0: "${ENC_KEY_K0_BASE64}"
+master-key-store:
+  keystorePath: /opt/app/keys/master.p12
+  keystoreType: PKCS12
+  activeAliasFile: /opt/app/keys/active.alias
+  keystorePassword: ${MASTER_KEYSTORE_PASSWORD}
+  aliasPrefix: master-v
+  createIfMissing: true
+  masterKeySizeBytes: 32

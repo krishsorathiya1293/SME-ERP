@@ -9,5 +9,4 @@ REFRESH_TOKEN_EXPIRY: 2592000000
 CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8080,http://localhost:5173
 MAIL_EMAIL: sorathiyakrish12@gmail.com
 MAIL_PASSWORD: zmzplctgbosvnmbo
-ENC_KEY_K1_BASE64: w7L8Yz1FvJmR9Yk2n8Bz8jQxYH5u4A7Tz1xM9KpC6s0=
-ENC_KEY_K0_BASE64: 3X7nZrQGf8yZlLx9GvQmYF2KkN5cWjR1pT8sA4uHcB0=
+MASTER_KEYSTORE_PASSWORD: FJ!7-lunar^Maple=Echo_92@Quartz

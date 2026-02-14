@@ -1,7 +1,7 @@
 package com.erp.invoicemanagement.domain;
 
 import com.erp.audit.AuditInfo;
-import com.erp.encryptionmanagement.attributeconverter.EncryptConverter;
+import com.erp.encryptionmanagement.converter.EncryptedStringConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -41,23 +41,23 @@ public class InvoiceEntity extends AuditInfo {
   // Importer (Bill To)
   private String billToCountry;
 
-  @Convert(converter = EncryptConverter.class)
+  @Convert(converter = EncryptedStringConverter.class)
   private String billToName;
 
-  @Convert(converter = EncryptConverter.class)
+  @Convert(converter = EncryptedStringConverter.class)
   private String billToContactNo;
 
   @Column(columnDefinition = "TEXT")
-  @Convert(converter = EncryptConverter.class)
+  @Convert(converter = EncryptedStringConverter.class)
   private String billToAddress;
 
   // Importer (Ship To)
   private String shipToCountry;
 
-  @Convert(converter = EncryptConverter.class)
+  @Convert(converter = EncryptedStringConverter.class)
   private String shipToName;
 
-  @Convert(converter = EncryptConverter.class)
+  @Convert(converter = EncryptedStringConverter.class)
   private String shipToContactNo;
 
   @ToString.Exclude
@@ -66,7 +66,7 @@ public class InvoiceEntity extends AuditInfo {
   private InvoiceType invoiceType;
 
   @Column(columnDefinition = "TEXT")
-  @Convert(converter = EncryptConverter.class)
+  @Convert(converter = EncryptedStringConverter.class)
   private String shipToAddress;
 
   // Invoice Details
