@@ -9,6 +9,4 @@ REFRESH_TOKEN_EXPIRY: 2592000000
 CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8000,http://localhost:5173,https://sme-soultion-rose.vercel.app
 MAIL_EMAIL: sorathiyakrish12@gmail.com
 MAIL_PASSWORD: zmzplctgbosvnmbo
-TWILIO_ACCOUNT_SID: ACf54bcdd0ce81640a4022d9abbea02375
-TWILIO_AUTH_TOKEN: 792b3c33cd7e941f20222f2980d0b5ee
-TWILIO_WHATSAPP_FROM: +14155238886
+MASTER_KEYSTORE_PASSWORD: PA!75-hbshdb^Moewut=Judh_92@Querhgyf

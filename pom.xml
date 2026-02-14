@@ -36,6 +36,7 @@
 
     <modules>
         <module>api-contract</module>
+        <module>encryption-management</module>
         <module>user-management</module>
         <module>invoice-management</module>
         <module>master-management</module>

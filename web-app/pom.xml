@@ -60,6 +60,11 @@
             <artifactId>invoice-management</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.erp</groupId>
+            <artifactId>encryption-management</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
