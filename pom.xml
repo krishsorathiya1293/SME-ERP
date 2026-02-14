@@ -38,6 +38,8 @@
         <module>api-contract</module>
         <module>encryption-management</module>
         <module>user-management</module>
+        <module>export-management</module>
+
         <module>invoice-management</module>
         <module>master-management</module>
         <module>web-app</module>

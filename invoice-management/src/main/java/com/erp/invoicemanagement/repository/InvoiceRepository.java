@@ -5,7 +5,6 @@ import com.erp.invoicemanagement.domain.InvoiceType;
 import com.erp.repository.CoreRepository;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface InvoiceRepository extends CoreRepository<InvoiceEntity, Long> {
   default Specification<InvoiceEntity> filterBySearch(Optional<String> search) {
@@ -20,6 +19,5 @@ public interface InvoiceRepository extends CoreRepository<InvoiceEntity, Long> {
     };
   }
 
-  @EntityGraph(attributePaths = "items")
   Optional<InvoiceEntity> findByIdAndInvoiceType(Long id, InvoiceType invoiceType);
 }

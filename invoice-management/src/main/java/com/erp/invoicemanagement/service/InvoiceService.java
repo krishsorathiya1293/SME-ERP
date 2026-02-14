@@ -1,7 +1,6 @@
 package com.erp.invoicemanagement.service;
 
 import com.erp.api.invoicemanagement.model.Invoice;
-import com.erp.api.invoicemanagement.model.InvoiceType;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.api.invoicemanagement.model.PaginatedResultInvoice;
 import com.erp.service.CoreServiceV1;
@@ -11,7 +10,7 @@ import java.util.Optional;
 public interface InvoiceService extends CoreServiceV1<NewInvoice, Invoice, Long> {
   List<Invoice> saveInvoice(NewInvoice invoice);
 
-  Invoice getInvoiceByType(Long id, InvoiceType invoiceType);
+  Invoice getInvoiceByType(Long id, String invoiceType);
 
   PaginatedResultInvoice getAll(
       Optional<String> filterByType,

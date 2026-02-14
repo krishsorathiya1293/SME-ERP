@@ -50,4 +50,17 @@ public class OpenApiConfig {
       return data;
     }
   }
+
+  @RestController
+  @RequestMapping("/doc/v3/export")
+  public class ExportDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("export-management.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
 }
