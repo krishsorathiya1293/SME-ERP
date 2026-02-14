@@ -43,8 +43,7 @@ public class InvoiceServiceImpl implements InvoiceService {
   }
 
   @Override
-  public Invoice getInvoiceByType(
-      Long id, com.erp.api.invoicemanagement.model.InvoiceType invoiceType) {
+  public Invoice getInvoiceByType(Long id, String invoiceType) {
     return invoiceMapper.toDomain(
         invoiceRepository
             .findByIdAndInvoiceType(id, InvoiceType.valueOf(String.valueOf(invoiceType)))

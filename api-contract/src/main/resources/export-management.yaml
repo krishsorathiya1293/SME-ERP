@@ -1,0 +1,111 @@
+openapi: 3.0.3
+
+info:
+  title: Export Management API
+  version: 1.0.0
+  description: OpenAPI for Export management
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://sme-erp-2j8m.onrender.com
+    description: Production Server
+
+tags:
+  - name: Export
+    description: Export Endpoints
+
+security:
+  - oauth2: [ ]
+paths:
+  /api/v1/invoice/{id}/type/{invoiceType}/pdf:
+    get:
+      tags:
+        - Export
+      operationId: getInvoicePdf
+      summary: Get Invoice pdf
+      description: Returns Invoice pdf
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: invoiceType
+          in: path
+          required: true
+          description: The unique identifier of the invoice
+          schema:
+            $ref: '#/components/schemas/InvoiceType'
+      responses:
+        '200':
+          description: PDF generated successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    oauth2:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        detail:
+          type: object
+    InvoiceType:
+      type: string
+      enum:
+        - EXPORT
+        - COMMERCIAL
+        - PACKAGING_LIST
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

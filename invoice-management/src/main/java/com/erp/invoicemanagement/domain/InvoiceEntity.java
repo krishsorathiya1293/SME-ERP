@@ -16,13 +16,17 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.List;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Table(name = "invoices")
 @EntityListeners(AuditingEntityListener.class)
 @EqualsAndHashCode(callSuper = true)
@@ -102,4 +106,16 @@ public class InvoiceEntity extends AuditInfo {
   private String arnNo;
   private String rodTep;
   private String rexNo;
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof InvoiceEntity)) return false;
+    return id != null && id.equals(((InvoiceEntity) o).id);
+  }
+
+  @Override
+  public int hashCode() {
+    return getClass().hashCode();
+  }
 }

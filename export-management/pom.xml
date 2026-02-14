@@ -7,25 +7,18 @@
         <artifactId>erp-system</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>invoice-management</artifactId>
-    <name>invoice-management</name>
-    <description>invoice-management</description>
+    <artifactId>export-management</artifactId>
+    <name>export-management</name>
+    <description>export-management</description>
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>html2pdf</artifactId>
+            <version>5.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.erp</groupId>
@@ -33,9 +26,13 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.erp</groupId>
-            <artifactId>encryption-management</artifactId>
-            <version>${project.version}</version>
+            <artifactId>invoice-management</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

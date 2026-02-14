@@ -147,46 +147,6 @@ paths:
           description: Invoice deleted
         '404':
           $ref: '#/components/responses/NotFoundError'
-  /api/v1/invoice/{id}/type/{invoiceType}/pdf:
-    get:
-      tags:
-        - Invoice
-      operationId: getInvoicePdf
-      summary: Get Invoice pdf
-      description: Returns Invoice pdf
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: invoiceType
-          in: path
-          required: true
-          description: The unique identifier of the invoice
-          schema:
-            $ref: '#/components/schemas/InvoiceType'
-      responses:
-        '200':
-          description: PDF generated successfully
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 components:
 
   securitySchemes:
