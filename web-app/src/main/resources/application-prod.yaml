@@ -9,5 +9,4 @@ REFRESH_TOKEN_EXPIRY: 2592000000
 CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8000,http://localhost:5173,https://sme-soultion-rose.vercel.app
 MAIL_EMAIL: sorathiyakrish12@gmail.com
 MAIL_PASSWORD: zmzplctgbosvnmbo
-ENC_KEY_K0_BASE64: Vp9C2R7mQx4ZkA5uY8sN3H0WcT6FJrDBeM1LKgPytE=
-ENC_KEY_K1_BASE64: A6mFJZs8W2N3kK0TQ5R7E4C9xDUpHByLrP1vMtgYc=
+MASTER_KEYSTORE_PASSWORD: PA!75-hbshdb^Moewut=Judh_92@Querhgyf

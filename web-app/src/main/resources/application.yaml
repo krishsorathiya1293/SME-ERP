@@ -36,9 +36,6 @@ spring:
           starttls:
             enable: true
     from: no-reply@sme.com
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
 
 twilio:
   account-sid: ${TWILIO_ACCOUNT_SID}
