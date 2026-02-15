@@ -79,10 +79,14 @@ security:
     - /v3/api-docs/**
     - /doc/v3/**
 master-key-store:
-  keystorePath: /opt/app/keys/master.p12
+  envMasterKeyBase64: ${MASTER_KEY_BASE64:}
+  envMasterKeyBase64Env: MASTER_KEY_BASE64
+  envMasterKeyVersion: ${MASTER_KEY_VERSION:master-v1}
+  keystorePath: ${MASTER_KEYSTORE_PATH:/opt/app/keys/master.p12}
   keystoreType: PKCS12
-  activeAliasFile: /opt/app/keys/active.alias
-  keystorePassword: ${MASTER_KEYSTORE_PASSWORD}
-  aliasPrefix: master-v1
-  createIfMissing: true
+  activeAliasFile: ${MASTER_KEYSTORE_ACTIVE_ALIAS:/opt/app/keys/active.alias}
+  keystorePassword: ${MASTER_KEYSTORE_PASSWORD:}
+  keystorePasswordEnv: MASTER_KEYSTORE_PASSWORD
+  aliasPrefix: master-v
+  createIfMissing: ${MASTER_KEYSTORE_CREATE_IF_MISSING:false}
   masterKeySizeBytes: 32

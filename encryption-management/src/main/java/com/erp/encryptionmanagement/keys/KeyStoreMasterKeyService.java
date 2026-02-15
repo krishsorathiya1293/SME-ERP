@@ -5,8 +5,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.SecretKey;
@@ -27,6 +29,14 @@ public class KeyStoreMasterKeyService implements MasterKeyService {
   @Override
   public synchronized void ensureActive() {
     if (cachedKey.get() != null && cachedAlias.get() != null) return;
+
+    // Render free (no persistent disk): use a stable env-provided master key if present.
+    byte[] envKey = readEnvMasterKeyBytes();
+    if (envKey != null) {
+      cachedAlias.set(req(props.getEnvMasterKeyVersion(), "envMasterKeyVersion"));
+      cachedKey.set(envKey);
+      return;
+    }
 
     try {
       KeyStore ks = loadOrCreateKeyStore();
@@ -60,6 +70,12 @@ public class KeyStoreMasterKeyService implements MasterKeyService {
 
   @Override
   public byte[] getMasterKeyForVersion(String version) {
+    byte[] envKey = readEnvMasterKeyBytes();
+    if (envKey != null) {
+      String v = req(props.getEnvMasterKeyVersion(), "envMasterKeyVersion");
+      if (v.equals(version)) return envKey;
+      throw new IllegalStateException("Unknown master key version (env mode): " + version);
+    }
     try {
       KeyStore ks = loadOrCreateKeyStore();
       return readKeyBytes(ks, version);
@@ -70,6 +86,11 @@ public class KeyStoreMasterKeyService implements MasterKeyService {
 
   @Override
   public synchronized String rotateMasterKey() {
+    // Cannot rotate when running with an env-provided single master key.
+    if (readEnvMasterKeyBytes() != null) {
+      throw new IllegalStateException(
+          "Master key rotation is disabled when envMasterKeyBase64 is used");
+    }
     ensureActive();
     try {
       KeyStore ks = loadOrCreateKeyStore();
@@ -179,12 +200,57 @@ public class KeyStoreMasterKeyService implements MasterKeyService {
         StandardCharsets.UTF_8,
         StandardOpenOption.CREATE,
         StandardOpenOption.TRUNCATE_EXISTING);
-    Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+    try {
+      Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+    } catch (AtomicMoveNotSupportedException e) {
+      Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING);
+    }
+  }
+
+  private byte[] readEnvMasterKeyBytes() {
+    // 1) direct property
+    String b64 = props.getEnvMasterKeyBase64();
+    if (b64 != null) {
+      b64 = b64.trim();
+      if (!b64.isEmpty() && !(b64.startsWith("${") && b64.endsWith("}"))) {
+        return decodeBase64Key(b64);
+      }
+    }
+
+    // 2) env var
+    String envName = props.getEnvMasterKeyBase64Env();
+    if (envName != null && !envName.isBlank()) {
+      String v = System.getenv(envName.trim());
+      if (v != null && !v.isBlank()) {
+        return decodeBase64Key(v.trim());
+      }
+    }
+    return null;
+  }
+
+  private byte[] decodeBase64Key(String b64) {
+    try {
+      byte[] key = Base64.getDecoder().decode(b64);
+      if (key.length != props.getMasterKeySizeBytes()) {
+        throw new IllegalStateException(
+            "MASTER_KEY_BASE64 must decode to "
+                + props.getMasterKeySizeBytes()
+                + " bytes, got "
+                + key.length);
+      }
+      return key;
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("Invalid base64 in MASTER_KEY_BASE64", e);
+    }
   }
 
   private char[] password() {
-    if (props.getKeystorePassword() != null && !props.getKeystorePassword().isBlank()) {
-      return props.getKeystorePassword().toCharArray();
+    if (props.getKeystorePassword() != null) {
+      String p = props.getKeystorePassword().trim();
+      // ignore unresolved placeholders like ${MASTER_KEYSTORE_PASSWORD}
+      if (!p.isEmpty() && !(p.startsWith("${") && p.endsWith("}"))) {
+        return p.toCharArray();
+      }
     }
     String env = req(props.getKeystorePasswordEnv(), "keystorePasswordEnv");
     String v = System.getenv(env);

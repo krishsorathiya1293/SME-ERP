@@ -32,4 +32,15 @@ public class MasterKeyStoreProperties {
 
   /** 32 bytes = AES-256 */
   private int masterKeySizeBytes = 32;
+
+  private String envMasterKeyBase64;
+
+  /** Env var name for base64 master key */
+  private String envMasterKeyBase64Env = "MASTER_KEY_BASE64";
+
+  /**
+   * The "version" string stored in payloads as mkv when envMasterKeyBase64 is used. Keep stable
+   * forever once data is encrypted.
+   */
+  private String envMasterKeyVersion = "master-v1";
 }
