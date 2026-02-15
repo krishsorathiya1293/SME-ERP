@@ -28,9 +28,9 @@ public class ExportController implements ExportExportManagementApi {
     String filename =
         String.format(
             INVOICE_FILENAME_FORMAT,
-            id,
+            invoice.getInvoiceNo(),
             exportService.shortName(invoice.getExporterCompanyName()),
-            invoiceType);
+            invoiceType.name());
 
     return ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
