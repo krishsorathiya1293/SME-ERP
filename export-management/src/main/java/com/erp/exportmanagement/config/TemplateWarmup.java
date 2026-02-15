@@ -4,6 +4,7 @@ import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.InvoiceItemsInner;
 import com.erp.api.invoicemanagement.model.InvoiceType;
 import com.erp.api.invoicemanagement.model.ItemCurrency;
+import com.erp.exportmanagement.assets.Base64Assets;
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -21,7 +22,7 @@ import org.thymeleaf.context.Context;
 public class TemplateWarmup {
 
   private final TemplateEngine templateEngine;
-
+  private final Base64Assets base64Assets;
   private static final String[] TEMPLATES = {
     "invoice-export", "invoice-commercial", "invoice-packaging-list"
   };
@@ -37,6 +38,10 @@ public class TemplateWarmup {
 
     Context context = new Context();
     context.setVariable("invoice", invoice);
+    context.setVariable(
+        "companyLogoDataUri", "data:image/png;base64," + base64Assets.getCompanyLogoPng());
+
+    context.setVariable("stampDataUri", "data:image/jpeg;base64," + base64Assets.getStampJpg());
 
     // these variables are used directly in templates in many setups
     context.setVariable("currencyType", "USD");
