@@ -83,6 +83,7 @@ master-key-store:
   keystoreType: PKCS12
   activeAliasFile: /opt/app/keys/active.alias
   keystorePassword: ${MASTER_KEYSTORE_PASSWORD}
+  keystorePasswordEnv: ${MASTER_KEYSTORE_PASSWORD}
   aliasPrefix: master-v
   createIfMissing: true
   masterKeySizeBytes: 32

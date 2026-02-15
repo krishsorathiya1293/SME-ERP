@@ -28,7 +28,7 @@
     </parent>
 
     <groupId>com.erp</groupId>
-    <artifactId>erp-system</artifactId>
+    <artifactId>SME-ERP</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>ERP System</name>
@@ -39,7 +39,6 @@
         <module>encryption-management</module>
         <module>user-management</module>
         <module>export-management</module>
-
         <module>invoice-management</module>
         <module>master-management</module>
         <module>web-app</module>
@@ -158,6 +157,4 @@
             </plugin>
         </plugins>
     </build>
-
-
 </project>
