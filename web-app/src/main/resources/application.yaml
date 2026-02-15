@@ -23,7 +23,7 @@ spring:
     suffix: .html
     mode: HTML
     encoding: UTF-8
-    cache: false
+    cache: ${THYMLEAF_CACHE_ENABLED}
   mail:
     host: smtp.gmail.com
     port: 587
