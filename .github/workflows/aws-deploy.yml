@@ -1,0 +1,62 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - master   # deploys to prod
+      - develop  # deploys to dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'maven'
+
+      - name: Build JAR
+        run: mvn clean package -DskipTests
+
+      - name: Set deploy target
+        id: target
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "host=${{ secrets.PROD_EC2_IP }}" >> $GITHUB_OUTPUT
+            echo "env=prod" >> $GITHUB_OUTPUT
+          else
+            echo "host=${{ secrets.DEV_EC2_IP }}" >> $GITHUB_OUTPUT
+            echo "env=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Copy JAR to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ steps.target.outputs.host }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "web-app/target/web-app-1.0.0-SNAPSHOT.jar"
+          target: "/tmp/"
+          strip_components: 2
+
+      - name: Deploy and restart app
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.target.outputs.host }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo mv /tmp/web-app-1.0.0-SNAPSHOT.jar /opt/sme-erp/app.jar
+            sudo chown appuser:appuser /opt/sme-erp/app.jar
+            sudo systemctl restart sme-erp
+            sleep 20
+            sudo systemctl is-active sme-erp
+
+      - name: Notify success
+        run: echo "Deployed to ${{ steps.target.outputs.env }} successfully"
