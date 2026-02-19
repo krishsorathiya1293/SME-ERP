@@ -51,12 +51,28 @@ jobs:
           host: ${{ steps.target.outputs.host }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 5m
           script: |
             sudo mv /tmp/web-app-1.0.0-SNAPSHOT.jar /opt/sme-erp/app.jar
             sudo chown appuser:appuser /opt/sme-erp/app.jar
             sudo systemctl restart sme-erp
-            sleep 20
-            sudo systemctl is-active sme-erp
+            echo "Waiting for app to start..."
+            for i in {1..18}; do
+              STATUS=$(sudo systemctl is-active sme-erp)
+              echo "Attempt $i/18 - Status: $STATUS"
+              if [ "$STATUS" = "active" ]; then
+                echo "App is running successfully"
+                exit 0
+              elif [ "$STATUS" = "failed" ]; then
+                echo "App failed to start. Last logs:"
+                sudo tail -30 /var/log/sme-erp/error.log
+                exit 1
+              fi
+              sleep 10
+            done
+            echo "Timeout: app did not start within 3 minutes"
+            sudo tail -30 /var/log/sme-erp/app.log
+            exit 1
 
       - name: Notify success
         run: echo "Deployed to ${{ steps.target.outputs.env }} successfully"
