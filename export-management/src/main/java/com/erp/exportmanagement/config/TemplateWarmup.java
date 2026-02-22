@@ -39,11 +39,10 @@ public class TemplateWarmup {
     Context context = new Context();
     context.setVariable("invoice", invoice);
     context.setVariable(
-        "companyLogoDataUri", "data:image/png;base64," + base64Assets.getCompanyLogoPng());
+        "companyLogoDataUri", "data:image/png;base64," + base64Assets.getCompanyLogo());
 
-    context.setVariable("stampDataUri", "data:image/jpeg;base64," + base64Assets.getStampJpg());
+    context.setVariable("stampDataUri", "data:image/jpeg;base64," + base64Assets.getStamp());
 
-    // these variables are used directly in templates in many setups
     context.setVariable("currencyType", "USD");
     context.setVariable("todayDate", LocalDate.now().format(DATE_FMT));
 
