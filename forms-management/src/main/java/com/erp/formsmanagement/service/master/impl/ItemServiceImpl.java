@@ -13,11 +13,11 @@ import com.erp.formsmanagement.mapper.master.SubCategoryMapper;
 import com.erp.formsmanagement.service.master.CategoryService;
 import com.erp.formsmanagement.service.master.ItemService;
 import com.erp.formsmanagement.service.master.SubCategoryService;
+import com.erp.util.GetAllQuery;
 import com.erp.util.PaginationUtils;
 import com.erp.wrappers.CreateOne;
 import com.erp.wrappers.CreateResult;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -34,19 +34,15 @@ public class ItemServiceImpl implements ItemService {
   private final SubCategoryMapper subCategoryMapper;
 
   @Override
-  public PaginatedResultItem getAll(
-      Optional<String> filterByStatus,
-      Optional<String> search,
-      Optional<Integer> page,
-      Optional<Integer> size,
-      Optional<String> sortBy,
-      Optional<String> direction) {
-
+  public PaginatedResultItem getAll(GetAllQuery<String> query) {
     Specification<ItemEntity> spec =
-        Specification.where(itemRepository.filterByStatus(filterByStatus))
-            .and(itemRepository.filterBySearch(search));
+        Specification.where(itemRepository.filterByStatus(query.filter()))
+            .and(itemRepository.filterBySearch(query.search()));
     Page<ItemEntity> results =
-        itemRepository.findAll(spec, PaginationUtils.getPageRequest(page, size, direction, sortBy));
+        itemRepository.findAll(
+            spec,
+            PaginationUtils.getPageRequest(
+                query.page(), query.size(), query.direction(), query.sortBy()));
     List<Item> content = results.getContent().stream().map(itemMapper::toDomain).toList();
     return new PaginatedResultItem()
         .data(content)

@@ -47,7 +47,7 @@ public class PdfService {
     vars.putIfAbsent("companyLogoDataUri", base64Assets.getCompanyLogo());
     vars.putIfAbsent("stampDataUri", base64Assets.getStamp());
     Context context = new Context();
-    context.setVariables(variables);
+    context.setVariables(vars);
     String htmlContent = templateEngine.process(templateName, context);
     try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(32 * 1024)) {
       HtmlConverter.convertToPdf(htmlContent, outputStream, converterProperties);

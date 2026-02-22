@@ -4,7 +4,9 @@ import com.erp.api.mastermanagement.SubCategoryMasterManagementApi;
 import com.erp.api.mastermanagement.model.NewSubCategory;
 import com.erp.api.mastermanagement.model.SubCategory;
 import com.erp.controller.GenericCrudDelegateV2;
+import com.erp.controller.GetAllDelegateV2;
 import com.erp.formsmanagement.service.master.SubCategoryService;
+import com.erp.util.GetAllQuery;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,10 @@ public class SubCategoryController implements SubCategoryMasterManagementApi {
 
   private GenericCrudDelegateV2<Long, NewSubCategory, SubCategory, Long> crud() {
     return new GenericCrudDelegateV2<>(subCategoryService);
+  }
+
+  private GetAllDelegateV2<Long, Void, List<SubCategory>> page() {
+    return new GetAllDelegateV2<>(subCategoryService);
   }
 
   @Override
@@ -37,7 +43,7 @@ public class SubCategoryController implements SubCategoryMasterManagementApi {
   public ResponseEntity<List<SubCategory>> getAllSubCategories(
       Long categoryId, Optional<String> search) {
 
-    return ResponseEntity.ok(subCategoryService.getAll(categoryId, search));
+    return page().getAll(categoryId, GetAllQuery.of(search));
   }
 
   @Override

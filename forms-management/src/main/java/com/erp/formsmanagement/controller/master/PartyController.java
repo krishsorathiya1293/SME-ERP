@@ -4,7 +4,9 @@ import com.erp.api.mastermanagement.PartyMasterManagementApi;
 import com.erp.api.mastermanagement.model.NewParty;
 import com.erp.api.mastermanagement.model.Party;
 import com.erp.controller.GenericCrudDelegateV1;
+import com.erp.controller.GetAllDelegateV1;
 import com.erp.formsmanagement.service.master.PartyService;
+import com.erp.util.GetAllQuery;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,10 @@ public class PartyController implements PartyMasterManagementApi {
     return new GenericCrudDelegateV1<>(partyService);
   }
 
+  private GetAllDelegateV1<String, List<Party>> page() {
+    return new GetAllDelegateV1<>(partyService);
+  }
+
   @Override
   public ResponseEntity<Party> createParty(NewParty newParty) {
     return crud().createOne(newParty);
@@ -35,7 +41,7 @@ public class PartyController implements PartyMasterManagementApi {
   public ResponseEntity<List<Party>> getAllParties(
       Optional<String> partyType, Optional<String> search) {
 
-    return ResponseEntity.ok(partyService.getAll(partyType, search));
+    return page().getAll(GetAllQuery.of(partyType, search));
   }
 
   @Override

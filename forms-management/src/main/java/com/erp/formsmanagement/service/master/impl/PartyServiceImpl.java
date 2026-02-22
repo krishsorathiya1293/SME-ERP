@@ -8,10 +8,10 @@ import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.mapper.master.PartyMapper;
 import com.erp.formsmanagement.service.master.PartyService;
+import com.erp.util.GetAllQuery;
 import com.erp.wrappers.CreateOne;
 import com.erp.wrappers.CreateResult;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,10 +22,9 @@ public class PartyServiceImpl implements PartyService {
   private final PartyMapper partyMapper;
 
   @Override
-  public List<Party> getAll(Optional<String> partyType, Optional<String> search) {
-
+  public List<Party> getAll(GetAllQuery<String> query) {
     return partyRepository
-        .findAll(partyRepository.filter(partyType.orElse(null), search.orElse(null)))
+        .findAll(partyRepository.filter(query.filter().orElse(null), query.search().orElse(null)))
         .stream()
         .map(partyMapper::toDomain)
         .toList();

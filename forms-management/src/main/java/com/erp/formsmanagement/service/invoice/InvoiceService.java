@@ -4,17 +4,11 @@ import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.api.invoicemanagement.model.PaginatedResultInvoice;
 import com.erp.service.CoreServiceV1;
-import java.util.Optional;
+import com.erp.service.GetAllServiceV1;
 
-public interface InvoiceService extends CoreServiceV1<NewInvoice, Invoice, Long> {
+public interface InvoiceService
+    extends CoreServiceV1<NewInvoice, Invoice, Long>,
+        GetAllServiceV1<String, PaginatedResultInvoice> {
 
   Invoice getInvoiceByType(Long id, String invoiceType);
-
-  PaginatedResultInvoice getAll(
-      Optional<String> filterByType,
-      Optional<String> search,
-      Optional<Integer> page,
-      Optional<Integer> size,
-      Optional<String> sortByFields,
-      Optional<String> direction);
 }

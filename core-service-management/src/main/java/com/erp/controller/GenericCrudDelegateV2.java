@@ -19,7 +19,6 @@ public class GenericCrudDelegateV2<P, R, S, I> {
     return ResponseEntity.ok(service.getById(parentId, id));
   }
 
-  /** Use when API returns ONE item */
   public ResponseEntity<S> createOne(P parentId, R request) {
     CreateResult<S> result = service.save(parentId, request);
 
@@ -31,7 +30,6 @@ public class GenericCrudDelegateV2<P, R, S, I> {
         "Expected CreateOne but got: " + result.getClass().getSimpleName());
   }
 
-  /** Use when API returns MANY or NONE */
   public ResponseEntity<List<S>> createMany(P parentId, R request) {
     CreateResult<S> result = service.save(parentId, request);
 

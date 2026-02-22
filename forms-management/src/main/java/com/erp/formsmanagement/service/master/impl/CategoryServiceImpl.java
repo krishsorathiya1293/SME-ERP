@@ -7,10 +7,10 @@ import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.repository.master.CategoryRepository;
 import com.erp.formsmanagement.mapper.master.CategoryMapper;
 import com.erp.formsmanagement.service.master.CategoryService;
+import com.erp.util.GetAllQuery;
 import com.erp.wrappers.CreateOne;
 import com.erp.wrappers.CreateResult;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +21,9 @@ public class CategoryServiceImpl implements CategoryService {
   private final CategoryMapper categoryMapper;
 
   @Override
-  public List<Category> getAllbyId(Optional<String> search) {
-    return search
+  public List<Category> getAll(GetAllQuery<Void> query) {
+    return query
+        .search()
         .filter(s -> !s.isBlank())
         .map(categoryRepository::searchByCategoryOrSubCategory)
         .orElseGet(categoryRepository::findAll)

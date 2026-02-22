@@ -5,7 +5,9 @@ import com.erp.api.mastermanagement.model.Item;
 import com.erp.api.mastermanagement.model.NewItem;
 import com.erp.api.mastermanagement.model.PaginatedResultItem;
 import com.erp.controller.GenericCrudDelegateV1;
+import com.erp.controller.GetAllDelegateV1;
 import com.erp.formsmanagement.service.master.ItemService;
+import com.erp.util.GetAllQuery;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,10 @@ public class ItemController implements ItemMasterManagementApi {
 
   private GenericCrudDelegateV1<NewItem, Item, Long> crud() {
     return new GenericCrudDelegateV1<>(itemService);
+  }
+
+  private GetAllDelegateV1<String, PaginatedResultItem> page() {
+    return new GetAllDelegateV1<>(itemService);
   }
 
   @Override
@@ -40,8 +46,8 @@ public class ItemController implements ItemMasterManagementApi {
       Optional<String> sortByFields,
       Optional<String> direction) {
 
-    return ResponseEntity.ok(
-        itemService.getAll(filterByStatus, search, page, size, sortByFields, direction));
+    return page()
+        .getAll(GetAllQuery.of(filterByStatus, search, page, size, sortByFields, direction));
   }
 
   @Override

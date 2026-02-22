@@ -5,7 +5,9 @@ import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.api.invoicemanagement.model.PaginatedResultInvoice;
 import com.erp.controller.GenericCrudDelegateV1;
+import com.erp.controller.GetAllDelegateV1;
 import com.erp.formsmanagement.service.invoice.InvoiceService;
+import com.erp.util.GetAllQuery;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,10 @@ public class InvoiceController implements InvoiceInvoiceManagementApi {
     return new GenericCrudDelegateV1<>(invoiceService);
   }
 
+  private GetAllDelegateV1<String, PaginatedResultInvoice> page() {
+    return new GetAllDelegateV1<>(invoiceService);
+  }
+
   @Override
   public ResponseEntity<PaginatedResultInvoice> getAllInvoice(
       Optional<String> filterByType,
@@ -29,8 +35,7 @@ public class InvoiceController implements InvoiceInvoiceManagementApi {
       Optional<Integer> size,
       Optional<String> sortByFields,
       Optional<String> direction) {
-    return ResponseEntity.ok(
-        invoiceService.getAll(filterByType, search, page, size, sortByFields, direction));
+    return page().getAll(GetAllQuery.of(filterByType, search, page, size, sortByFields, direction));
   }
 
   @Override

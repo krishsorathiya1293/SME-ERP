@@ -35,7 +35,7 @@
     <description>Enterprise Resource Planning System</description>
 
     <modules>
-        <module>api-contract</module>
+        <module>core-service-management</module>
         <module>encryption-management</module>
         <module>user-management</module>
         <module>export-management</module>

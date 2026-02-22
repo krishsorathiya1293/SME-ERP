@@ -10,12 +10,12 @@ import com.erp.formsmanagement.domain.entity.invoice.InvoiceType;
 import com.erp.formsmanagement.domain.repository.invoice.InvoiceRepository;
 import com.erp.formsmanagement.mapper.invoice.InvoiceMapper;
 import com.erp.formsmanagement.service.invoice.InvoiceService;
+import com.erp.util.GetAllQuery;
 import com.erp.util.PaginationUtils;
 import com.erp.wrappers.CreateMany;
 import com.erp.wrappers.CreateResult;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -53,19 +53,15 @@ public class InvoiceServiceImpl implements InvoiceService {
   }
 
   @Override
-  public PaginatedResultInvoice getAll(
-      Optional<String> filterByType,
-      Optional<String> search,
-      Optional<Integer> page,
-      Optional<Integer> size,
-      Optional<String> sortByFields,
-      Optional<String> direction) {
+  public PaginatedResultInvoice getAll(GetAllQuery<String> query) {
     Specification<InvoiceEntity> spec =
-        Specification.where(invoiceRepository.filterBySearch(search));
+        Specification.where(invoiceRepository.filterBySearch(query.search()));
 
     Page<InvoiceEntity> results =
         invoiceRepository.findAll(
-            spec, PaginationUtils.getPageRequest(page, size, direction, sortByFields));
+            spec,
+            PaginationUtils.getPageRequest(
+                query.page(), query.size(), query.direction(), query.sortBy()));
 
     List<InvoiceInfo> content = results.getContent().stream().map(invoiceMapper::toInfo).toList();
 

@@ -9,10 +9,10 @@ import com.erp.formsmanagement.domain.repository.master.CategoryRepository;
 import com.erp.formsmanagement.domain.repository.master.SubCategoryRepository;
 import com.erp.formsmanagement.mapper.master.SubCategoryMapper;
 import com.erp.formsmanagement.service.master.SubCategoryService;
+import com.erp.util.GetAllQuery;
 import com.erp.wrappers.CreateOne;
 import com.erp.wrappers.CreateResult;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +24,9 @@ public class SubCategoryServiceImpl implements SubCategoryService {
   private final SubCategoryMapper subCategoryMapper;
 
   @Override
-  public List<SubCategory> getAll(Long categoryId, Optional<String> search) {
+  public List<SubCategory> getAll(Long categoryId, GetAllQuery<Void> query) {
     return subCategoryRepository
-        .findAll(subCategoryRepository.byCategoryAndName(categoryId, search.orElse(null)))
+        .findAll(subCategoryRepository.byCategoryAndName(categoryId, query.search().orElse(null)))
         .stream()
         .map(subCategoryMapper::toDomain)
         .toList();
