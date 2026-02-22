@@ -6,7 +6,7 @@ import com.erp.api.exportmanagement.ExportExportManagementApi;
 import com.erp.api.exportmanagement.model.InvoiceType;
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.exportmanagement.service.ExportService;
-import com.erp.invoicemanagement.service.InvoiceService;
+import com.erp.formsmanagement.service.invoice.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;

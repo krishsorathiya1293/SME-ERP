@@ -35,12 +35,11 @@
     <description>Enterprise Resource Planning System</description>
 
     <modules>
-        <module>api-contract</module>
+        <module>core-service-management</module>
         <module>encryption-management</module>
         <module>user-management</module>
         <module>export-management</module>
-        <module>invoice-management</module>
-        <module>master-management</module>
+        <module>forms-management</module>
         <module>web-app</module>
     </modules>
 
@@ -142,19 +141,5 @@
                 </plugin>
             </plugins>
         </pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>com.spotify.fmt</groupId>
-                <artifactId>fmt-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>format</goal>
-                        </goals>
-                        <phase>validate</phase>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
     </build>
 </project>

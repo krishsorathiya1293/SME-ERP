@@ -26,7 +26,7 @@
         </dependency>
         <dependency>
             <groupId>com.erp</groupId>
-            <artifactId>api-contract</artifactId>
+            <artifactId>core-service-management</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -52,12 +52,7 @@
         </dependency>
         <dependency>
             <groupId>com.erp</groupId>
-            <artifactId>master-management</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.erp</groupId>
-            <artifactId>invoice-management</artifactId>
+            <artifactId>forms-management</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

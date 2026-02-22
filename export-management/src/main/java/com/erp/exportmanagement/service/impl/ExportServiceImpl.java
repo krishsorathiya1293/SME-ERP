@@ -3,7 +3,6 @@ package com.erp.exportmanagement.service.impl;
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.InvoiceType;
 import com.erp.exportmanagement.PdfService;
-import com.erp.exportmanagement.assets.Base64Assets;
 import com.erp.exportmanagement.service.ExportService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ExportServiceImpl implements ExportService {
   private final PdfService pdfService;
-  private final Base64Assets base64Assets;
 
   @Override
   public ByteArrayResource generateInvoicePdf(Invoice invoice) {
@@ -30,9 +28,6 @@ public class ExportServiceImpl implements ExportService {
     variables.put("invoice", invoice);
     variables.put("currencyType", invoice.getItems().getFirst().getCurrency().name());
     variables.put("todayDate", LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")));
-    variables.put(
-        "companyLogoDataUri", "data:image/png;base64," + base64Assets.getCompanyLogoPng());
-    variables.put("stampDataUri", "data:image/jpeg;base64," + base64Assets.getStampJpg());
     return pdfService.generatePdf(resolveTemplateName(invoice.getInvoiceType()), variables);
   }
 
