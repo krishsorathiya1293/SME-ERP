@@ -1,15 +1,21 @@
 name: Deploy to AWS
 
 on:
-  push:
-    branches:
-      - master   # deploys to prod
-      - develop  # deploys to dev
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select deployment environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    environment: ${{ inputs.environment }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,7 +33,7 @@ jobs:
       - name: Set deploy target
         id: target
         run: |
-          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+          if [ "${{ inputs.environment }}" = "prod" ]; then
             echo "host=${{ secrets.PROD_EC2_IP }}" >> $GITHUB_OUTPUT
             echo "env=prod" >> $GITHUB_OUTPUT
           else
@@ -53,6 +59,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 5m
           script: |
+            set -e
             sudo mv /tmp/web-app-1.0.0-SNAPSHOT.jar /opt/sme-erp/app.jar
             sudo chown appuser:appuser /opt/sme-erp/app.jar
             sudo systemctl restart sme-erp

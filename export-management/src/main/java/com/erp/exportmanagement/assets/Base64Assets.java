@@ -11,12 +11,12 @@ import org.springframework.stereotype.Component;
 @Getter
 public class Base64Assets {
 
-  private final String companyLogoPng;
-  private final String stampJpg;
+  private final String companyLogo;
+  private final String stamp;
 
   public Base64Assets() {
-    this.companyLogoPng = readB64("assets/base64/company-logo.png.b64");
-    this.stampJpg = readB64("assets/base64/stamp.jpg.b64");
+    this.companyLogo = "data:image/png;base64," + readB64("assets/base64/company-logo.png.b64");
+    this.stamp = "data:image/jpeg;base64," + readB64("assets/base64/stamp.jpg.b64");
   }
 
   private String readB64(String path) {

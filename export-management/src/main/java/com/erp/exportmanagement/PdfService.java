@@ -1,9 +1,11 @@
 package com.erp.exportmanagement;
 
+import com.erp.exportmanagement.assets.Base64Assets;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.layout.font.FontProvider;
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.thymeleaf.context.Context;
 @Slf4j
 public class PdfService {
   private final TemplateEngine templateEngine;
+  private final Base64Assets base64Assets;
   private final ConverterProperties converterProperties = createConverterProperties();
 
   private ConverterProperties createConverterProperties() {
@@ -40,8 +43,11 @@ public class PdfService {
   }
 
   public ByteArrayResource generatePdf(String templateName, Map<String, Object> variables) {
+    Map<String, Object> vars = new HashMap<>(variables);
+    vars.putIfAbsent("companyLogoDataUri", base64Assets.getCompanyLogo());
+    vars.putIfAbsent("stampDataUri", base64Assets.getStamp());
     Context context = new Context();
-    context.setVariables(variables);
+    context.setVariables(vars);
     String htmlContent = templateEngine.process(templateName, context);
     try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(32 * 1024)) {
       HtmlConverter.convertToPdf(htmlContent, outputStream, converterProperties);

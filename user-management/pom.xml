@@ -17,7 +17,7 @@
     <dependencies>
         <dependency>
             <groupId>com.erp</groupId>
-            <artifactId>api-contract</artifactId>
+            <artifactId>core-service-management</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Spring Boot Starters -->
