@@ -5,6 +5,7 @@ import com.erp.api.invoicemanagement.model.InvoiceInfo;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.formsmanagement.domain.entity.invoice.InvoiceEntity;
 import com.erp.formsmanagement.domain.entity.invoice.InvoiceItemEntity;
+import com.erp.mapper.EntityMapper;
 import java.util.List;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
@@ -12,7 +13,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface InvoiceMapper {
+public interface InvoiceMapper extends EntityMapper<InvoiceEntity, NewInvoice, Invoice> {
   @Mapping(target = "rodtep", source = "rodTep")
   Invoice toDomain(InvoiceEntity entity);
 
@@ -33,7 +34,8 @@ public interface InvoiceMapper {
   }
 
   @AfterMapping
-  default void linkChildrenOnUpdate(NewInvoice source, @MappingTarget InvoiceEntity target) {}
+  default void linkChildrenOnUpdate(NewInvoice source, @MappingTarget InvoiceEntity target) {
+  }
 
   List<Invoice> toDomainList(List<InvoiceEntity> invoiceEntities);
 

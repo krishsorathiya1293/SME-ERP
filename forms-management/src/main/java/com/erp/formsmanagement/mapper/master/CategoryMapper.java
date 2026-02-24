@@ -4,12 +4,13 @@ import com.erp.api.mastermanagement.model.Category;
 import com.erp.api.mastermanagement.model.NewCategory;
 import com.erp.formsmanagement.domain.entity.master.CategoryEntity;
 import com.erp.formsmanagement.domain.entity.master.SubCategoryEntity;
+import com.erp.mapper.EntityMapper;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface CategoryMapper {
+public interface CategoryMapper extends EntityMapper<CategoryEntity, NewCategory, Category> {
   Category toDomain(CategoryEntity entity);
 
   CategoryEntity toEntity(NewCategory newCategory);
@@ -23,7 +24,6 @@ public interface CategoryMapper {
     if (category.getSubCategories() == null) {
       return;
     }
-
     for (SubCategoryEntity sub : category.getSubCategories()) {
       sub.setCategory(category);
     }

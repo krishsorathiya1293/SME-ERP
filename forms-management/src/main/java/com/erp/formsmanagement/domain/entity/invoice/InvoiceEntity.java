@@ -29,7 +29,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @NoArgsConstructor
 @Table(name = "invoices")
 @EntityListeners(AuditingEntityListener.class)
-@EqualsAndHashCode(callSuper = true)
 public class InvoiceEntity extends AuditInfo {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
