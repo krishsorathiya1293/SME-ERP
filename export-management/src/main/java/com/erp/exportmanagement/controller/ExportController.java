@@ -23,8 +23,9 @@ public class ExportController implements ExportExportManagementApi {
 
   @Override
   public ResponseEntity<Resource> getInvoicePdf(Long id, InvoiceType invoiceType) {
+    byte[] pdfBytes = exportService.getCachedPdf("invoice", id, String.valueOf(invoiceType));
+    ByteArrayResource pdf = new ByteArrayResource(pdfBytes);
     Invoice invoice = invoiceService.getInvoiceByType(id, String.valueOf(invoiceType));
-    ByteArrayResource pdf = exportService.generateInvoicePdf(invoice);
     String filename =
         String.format(
             INVOICE_FILENAME_FORMAT,

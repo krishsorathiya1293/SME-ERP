@@ -9,19 +9,46 @@ import com.erp.formsmanagement.domain.repository.master.CategoryRepository;
 import com.erp.formsmanagement.domain.repository.master.SubCategoryRepository;
 import com.erp.formsmanagement.mapper.master.SubCategoryMapper;
 import com.erp.formsmanagement.service.master.SubCategoryService;
+import com.erp.mapper.EntityMapper;
+import com.erp.service.AbstractCrudServiceV2;
 import com.erp.util.GetAllQuery;
-import com.erp.wrappers.CreateOne;
-import com.erp.wrappers.CreateResult;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class SubCategoryServiceImpl implements SubCategoryService {
+public class SubCategoryServiceImpl
+    extends AbstractCrudServiceV2<SubCategoryEntity, NewSubCategory, SubCategory, Long>
+    implements SubCategoryService {
+
   private final SubCategoryRepository subCategoryRepository;
   private final CategoryRepository categoryRepository;
   private final SubCategoryMapper subCategoryMapper;
+
+  @Override
+  protected JpaRepository<SubCategoryEntity, Long> repository() {
+    return subCategoryRepository;
+  }
+
+  @Override
+  protected EntityMapper<SubCategoryEntity, NewSubCategory, SubCategory> mapper() {
+    return subCategoryMapper;
+  }
+
+  @Override
+  protected void afterCreate(SubCategoryEntity entity, Long categoryId, NewSubCategory request) {
+    entity.setCategory(
+        categoryRepository
+            .findById(categoryId)
+            .orElseThrow(() -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, categoryId))));
+  }
+
+  @Override
+  protected void afterUpdate(SubCategoryEntity entity, Long categoryId, NewSubCategory request) {
+    afterCreate(entity, categoryId, request);
+  }
 
   @Override
   public List<SubCategory> getAll(Long categoryId, GetAllQuery<Void> query) {
@@ -30,49 +57,5 @@ public class SubCategoryServiceImpl implements SubCategoryService {
         .stream()
         .map(subCategoryMapper::toDomain)
         .toList();
-  }
-
-  @Override
-  public SubCategory getById(Long categoryId, Long id) {
-    return subCategoryRepository
-        .findById(id)
-        .map(subCategoryMapper::toDomain)
-        .orElseThrow(
-            () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
-  }
-
-  @Override
-  public CreateResult<SubCategory> save(Long categoryId, NewSubCategory request) {
-    SubCategoryEntity entity = subCategoryMapper.toEntity(request);
-    entity.setCategory(
-        categoryRepository
-            .findById(categoryId)
-            .orElseThrow(
-                () ->
-                    new EntityNotFoundException(
-                        String.format(Constant.ENTITY_NOT_FOUND, categoryId))));
-    return new CreateOne<>(subCategoryMapper.toDomain(subCategoryRepository.save(entity)));
-  }
-
-  @Override
-  public SubCategory update(Long categoryId, Long id, NewSubCategory request) {
-    SubCategoryEntity entity =
-        subCategoryRepository
-            .findById(id)
-            .orElseThrow(
-                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
-
-    subCategoryMapper.updateEntity(entity, request);
-    entity.setCategory(
-        categoryRepository
-            .findById(categoryId)
-            .orElseThrow(
-                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id))));
-    return subCategoryMapper.toDomain(subCategoryRepository.save(entity));
-  }
-
-  @Override
-  public void deleteById(Long categoryId, Long id) {
-    subCategoryRepository.deleteById(id);
   }
 }

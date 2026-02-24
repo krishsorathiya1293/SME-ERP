@@ -11,15 +11,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.List;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Table(name = "category")
 @EntityListeners(AuditingEntityListener.class)
-@EqualsAndHashCode(callSuper = true)
 public class CategoryEntity extends AuditInfo {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,4 +33,18 @@ public class CategoryEntity extends AuditInfo {
 
   @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<SubCategoryEntity> subCategories;
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (!(o instanceof CategoryEntity e))
+      return false;
+    return id != null && id.equals(e.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(id);
+  }
 }
