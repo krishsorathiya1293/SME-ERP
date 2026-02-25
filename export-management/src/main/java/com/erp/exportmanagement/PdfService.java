@@ -1,5 +1,6 @@
 package com.erp.exportmanagement;
 
+import com.erp.exception.PdfGenerationFailedException;
 import com.erp.exportmanagement.assets.Base64Assets;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
@@ -38,6 +39,12 @@ public class PdfService {
     fontProvider.addFont(
         Objects.requireNonNull(getClass().getResource("/fonts/KantumruyPro-Light.ttf"))
             .toExternalForm());
+    fontProvider.addFont(
+        Objects.requireNonNull(getClass().getResource("/fonts/NotoSans-Regular.ttf"))
+            .toExternalForm());
+    fontProvider.addFont(
+        Objects.requireNonNull(getClass().getResource("/fonts/NotoSans-Bold.ttf"))
+            .toExternalForm());
     props.setFontProvider(fontProvider);
     return props;
   }
@@ -56,7 +63,7 @@ public class PdfService {
       return new ByteArrayResource(pdfBytes);
     } catch (Exception e) {
       log.error("Failed to generate PDF", e);
-      throw new RuntimeException("Failed to generate PDF", e);
+      throw new PdfGenerationFailedException("Failed to generate PDF" + e.getMessage());
     }
   }
 }
