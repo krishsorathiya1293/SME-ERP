@@ -376,65 +376,6 @@
             justify-content: center;
         }
 
-        .bank-box {
-            width: 260px;
-            border: 1px solid #d8e1e6;
-            padding: 10px;
-            margin-bottom: 7px;
-            margin-left: -10px;
-            border-radius: 5px;
-        }
-
-        .bank-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 11px;
-        }
-
-        .bank-row {
-            display: block;
-            overflow: hidden;
-            margin-bottom: 6.8px;
-            font-size: 10px;
-        }
-
-        .bank-row-last {
-            display: block;
-            overflow: hidden;
-            font-size: 11px;
-        }
-
-        .bank-label {
-            width: 120px;
-            color: #737373;
-            font-size: 10px;
-            float: left;
-            font-weight: 400;
-        }
-
-        .bank-val {
-            color: #4d00ff;
-            font-weight: 400;
-            font-size: 10px;
-            float: right;
-            text-align: right;
-        }
-
-        .declaration-text {
-            width: 260px;
-            max-width: 300px;
-            font-size: 9px;
-            color: #444444;
-            line-height: 1.3;
-            border: 1px solid #d8e1e6;
-            padding: 5px 10px;
-            margin-left: -10px;
-            border-radius: 5px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            margin-bottom: 5px;
-        }
-
         /* Totals Area */
         .totals-table {
             width: 320px;
@@ -442,7 +383,7 @@
             border: 1px solid #d8e1e6;
             padding: 8px;
             border-radius: 5px;
-            margin: 0 -9px 5px auto;
+            margin: 0 -9px 0px auto;
         }
 
         .totals-table td {
@@ -477,10 +418,9 @@
             border-top: 1px solid #ddd;
         }
 
-        /* Signature / Stamp */
         .stamp-area {
             width: 280px;
-            margin: 15px 0 0 auto;
+            margin: 45px 0 0 auto;
             /* keep it on the right */
             text-align: center;
             display: flex;
@@ -491,19 +431,24 @@
 
         .stamp-area img {
             width: 140px;
-            /* control size from CSS */
             height: auto;
             display: block;
-            margin: 0;
+            margin: -30px;
+            margin-left: -11px;
             object-fit: contain;
         }
 
         /* text below stamp */
-        .stamp-area .sign-date,
+        .stamp-area .sign-date {
+            width: 100%;
+            text-align: center;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
         .stamp-area .sign-text {
             width: 100%;
-            margin: 0;
-            /* remove manual shifting */
+            margin-top: 8px;
             text-align: center;
             line-height: 1.2;
             word-break: break-word;
@@ -530,7 +475,7 @@
 
         .sign-date {
             font-size: 11px;
-            margin-top: 2px;
+            margin-top: 35px;
             margin-left: 18px;
             width: 105px;
             text-align: center;

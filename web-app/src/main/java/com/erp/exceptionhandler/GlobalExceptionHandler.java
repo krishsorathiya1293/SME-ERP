@@ -3,6 +3,7 @@ package com.erp.exceptionhandler;
 import com.erp.api.usermanagement.model.ErrorResponse;
 import com.erp.exception.EncryptionException;
 import com.erp.exception.EntityNotFoundException;
+import com.erp.exception.ForeignKeyReferenceException;
 import com.erp.exception.PdfGenerationFailedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -95,11 +96,10 @@ public class GlobalExceptionHandler {
     return handle(req, ex, spec, message);
   }
 
-  @ExceptionHandler(DataIntegrityViolationException.class)
-  public ResponseEntity<ErrorResponse> handleConflict(
-      HttpServletRequest req, DataIntegrityViolationException ex) {
+  @ExceptionHandler({DataIntegrityViolationException.class, ForeignKeyReferenceException.class})
+  public ResponseEntity<ErrorResponse> handleConflict(HttpServletRequest req, Exception ex) {
 
-    return handle(req, ex, CONFLICT, ex.getMostSpecificCause().getMessage());
+    return handle(req, ex, CONFLICT, "Cannot delete. This record is Used in Other Service");
   }
 
   @ExceptionHandler({
