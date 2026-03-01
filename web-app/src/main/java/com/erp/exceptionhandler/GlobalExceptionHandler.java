@@ -3,7 +3,6 @@ package com.erp.exceptionhandler;
 import com.erp.api.usermanagement.model.ErrorResponse;
 import com.erp.exception.EncryptionException;
 import com.erp.exception.EntityNotFoundException;
-import com.erp.exception.ForeignKeyReferenceException;
 import com.erp.exception.PdfGenerationFailedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -96,10 +95,26 @@ public class GlobalExceptionHandler {
     return handle(req, ex, spec, message);
   }
 
-  @ExceptionHandler({DataIntegrityViolationException.class, ForeignKeyReferenceException.class})
-  public ResponseEntity<ErrorResponse> handleConflict(HttpServletRequest req, Exception ex) {
-
-    return handle(req, ex, CONFLICT, "Cannot delete. This record is Used in Other Service");
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorResponse> handleConflict(
+      HttpServletRequest req, DataIntegrityViolationException ex) {
+    Throwable root = ex.getRootCause();
+    String sqlState = null;
+    if (root instanceof org.hibernate.exception.ConstraintViolationException cve
+        && cve.getSQLException() != null) {
+      sqlState = cve.getSQLException().getSQLState();
+    }
+    boolean isUniqueViolation = "23505".equals(sqlState);
+    boolean isForeignKeyViolation = "23503".equals(sqlState);
+    ErrorSpec spec = (isUniqueViolation || isForeignKeyViolation) ? CONFLICT : BAD_REQUEST;
+    String message;
+    if (isUniqueViolation) {
+      message = "Duplicate value already exists";
+    } else {
+      if (isForeignKeyViolation) message = "Cannot delete. This record is used in another service";
+      else message = "Data integrity violation";
+    }
+    return handle(req, ex, spec, message);
   }
 
   @ExceptionHandler({
