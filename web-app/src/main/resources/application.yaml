@@ -70,6 +70,8 @@ springdoc:
         url: /doc/v3/export
       - name: Item Management
         url: /doc/v3/item
+      - name: Client Management
+        url: /doc/v3/client
     display-request-duration: true
     doc-expansion: none
 security:
