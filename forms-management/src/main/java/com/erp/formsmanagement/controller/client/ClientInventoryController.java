@@ -42,7 +42,7 @@ public class ClientInventoryController implements ClientInventoryClientManagemen
   @Override
   public ResponseEntity<PaginatedResultClientInventory> getInventoryByClient(
       Long clientId,
-      Long sizeId,
+      Optional<Long> sizeId,
       Optional<String> search,
       Optional<Integer> page,
       Optional<Integer> size,
@@ -50,7 +50,7 @@ public class ClientInventoryController implements ClientInventoryClientManagemen
       Optional<String> direction) {
     return page().getAll(
         clientId,
-        GetAllQuery.of(Optional.of(new ClientInventoryFilter(search.orElse(null), sizeId)), search, page, size, sortByFields, direction));
+        GetAllQuery.of(Optional.of(new ClientInventoryFilter(search.orElse(null), sizeId.orElse(null))), search, page, size, sortByFields, direction));
   }
 
   @Override
