@@ -60,4 +60,9 @@ public interface InventoryRepository extends CoreRepository<InventoryEntity, Lon
   default Specification<InventoryEntity> filterByItemId(Long itemId) {
     return (root, query, cb) -> cb.equal(root.get("size").get("item").get("id"), itemId);
   }
+
+    default Specification<InventoryEntity> filterBySizeId(Optional<Long> sizeId) {
+        return (root, query, cb) ->
+                sizeId.map(id -> cb.equal(root.get("size").get("id"), id)).orElse(cb.conjunction());
+    }
 }

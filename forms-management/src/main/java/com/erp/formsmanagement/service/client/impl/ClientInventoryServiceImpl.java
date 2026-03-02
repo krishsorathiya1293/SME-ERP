@@ -21,6 +21,7 @@ import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -121,9 +122,11 @@ public class ClientInventoryServiceImpl
         .findById(clientId)
         .orElseThrow(() -> new EntityNotFoundException("Client (Party) not found with id: " + clientId));
 
+    Optional<Long> sizeId = query.filter().map(ClientInventoryFilter::sizeId);
+
     // 2. Paginate base inventory, applying optional search filter
     Specification<InventoryEntity> spec = Specification.where(
-        inventoryRepository.filterBySearch(query.search()));
+        inventoryRepository.filterBySearch(query.search())).and(inventoryRepository.filterBySizeId(sizeId));
 
     Page<InventoryEntity> inventoryPage = inventoryRepository.findAll(
         spec,
@@ -141,8 +144,8 @@ public class ClientInventoryServiceImpl
     return PageMapper.toResult(
         inventoryPage,
         inv -> {
-          Long sizeId = inv.getSize().getId();
-          ClientInventoryEntity override = overridesBySizeId.get(sizeId);
+          Long invSizeId = inv.getSize().getId();
+          ClientInventoryEntity override = overridesBySizeId.get(invSizeId);
           return override != null
               ? clientInventoryMapper.toDomain(override)
               : clientInventoryMapper.fromBaseInventory(inv, client);
