@@ -107,7 +107,8 @@ public class InventoryServiceImpl
                 () ->
                     new EntityNotFoundException(
                         "Inventory not found with id: " + id + " for item id: " + itemId));
-    inventoryRepository.delete(entity);
+    ItemBlueprintDataEntity size = entity.getSize();
+    size.setInventory(null);
   }
 
   @Override

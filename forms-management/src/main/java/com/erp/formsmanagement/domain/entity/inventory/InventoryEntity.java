@@ -44,7 +44,7 @@ public class InventoryEntity extends AuditInfo {
   private Double clearlacq;
 
   @OneToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "size_id", nullable = false)
+  @JoinColumn(name = "size_id", nullable = false, unique = true)
   private ItemBlueprintDataEntity size;
 
   @Override
