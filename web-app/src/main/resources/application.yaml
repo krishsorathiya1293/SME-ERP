@@ -72,6 +72,8 @@ springdoc:
         url: /doc/v3/item
       - name: Client Management
         url: /doc/v3/client
+      - name: Order Management
+        url: /doc/v3/orders
     display-request-duration: true
     doc-expansion: none
 security:
