@@ -5,32 +5,24 @@ import com.erp.api.ordermanagement.model.NewOrder;
 import com.erp.api.ordermanagement.model.Order;
 import com.erp.api.ordermanagement.model.PaginatedPartyOrdersResponse;
 import com.erp.api.ordermanagement.model.PaginatedResultOrder;
-import com.erp.controller.GenericCrudDelegateV2;
+import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.controller.GetAllDelegateV1;
-import com.erp.controller.GetAllDelegateV2;
 import com.erp.formsmanagement.service.order.OrderService;
 import com.erp.util.GetAllQuery;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
-public class OrderController implements OrderOrderManagementApi {
+public class OrderController
+    extends AbstractCrudControllerV2<Long, NewOrder, Order, String, PaginatedResultOrder>
+    implements OrderOrderManagementApi {
 
-  private final OrderService orderService;
+  private final GetAllDelegateV1<String, PaginatedPartyOrdersResponse> partyOrdersPage;
 
-  private GenericCrudDelegateV2<Long, NewOrder, Order, Long> crud() {
-    return new GenericCrudDelegateV2<>(orderService);
-  }
-
-  private GetAllDelegateV2<Long, String, PaginatedResultOrder> page() {
-    return new GetAllDelegateV2<>(orderService);
-  }
-
-  private GetAllDelegateV1<String, PaginatedPartyOrdersResponse> page2() {
-    return new GetAllDelegateV1<>(orderService);
+  public OrderController(OrderService s) {
+    super(s, s);
+    this.partyOrdersPage = new GetAllDelegateV1<>(s);
   }
 
   @Override
@@ -73,7 +65,7 @@ public class OrderController implements OrderOrderManagementApi {
       Optional<Integer> size,
       Optional<String> sortByFields,
       Optional<String> direction) {
-    return page2()
-        .getAll(GetAllQuery.of(Optional.empty(), search, page, size, sortByFields, direction));
+    return partyOrdersPage.getAll(
+        GetAllQuery.of(Optional.empty(), search, page, size, sortByFields, direction));
   }
 }

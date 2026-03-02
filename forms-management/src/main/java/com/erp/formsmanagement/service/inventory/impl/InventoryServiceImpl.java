@@ -4,7 +4,6 @@ import com.erp.api.itemmanagement.model.Inventory;
 import com.erp.api.itemmanagement.model.NewInventory;
 import com.erp.api.itemmanagement.model.PaginatedResultInventory;
 import com.erp.exception.EntityNotFoundException;
-import com.erp.service.AbstractCrudServiceV2;
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintEntity;
@@ -14,37 +13,34 @@ import com.erp.formsmanagement.domain.repository.inventory.ItemBlueprintDataRepo
 import com.erp.formsmanagement.domain.repository.inventory.ItemBlueprintRepository;
 import com.erp.formsmanagement.mapper.inventory.InventoryMapper;
 import com.erp.formsmanagement.service.inventory.InventoryService;
-import com.erp.mapper.EntityMapper;
+import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class InventoryServiceImpl
-    extends AbstractCrudServiceV2<InventoryEntity, NewInventory, Inventory, Long>
+    extends AbstractSpecificationServiceV2<InventoryEntity, NewInventory, Inventory, Long>
     implements InventoryService {
 
   private final InventoryRepository inventoryRepository;
   private final ItemBlueprintRepository itemBlueprintRepository;
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
-  private final InventoryMapper inventoryMapper;
 
-  @Override
-  protected JpaRepository<InventoryEntity, Long> repository() {
-    return inventoryRepository;
-  }
-
-  @Override
-  protected EntityMapper<InventoryEntity, NewInventory, Inventory> mapper() {
-    return inventoryMapper;
+  public InventoryServiceImpl(
+      InventoryRepository inventoryRepository,
+      ItemBlueprintRepository itemBlueprintRepository,
+      ItemBlueprintDataRepository itemBlueprintDataRepository,
+      InventoryMapper inventoryMapper) {
+    super(inventoryRepository, inventoryMapper);
+    this.inventoryRepository = inventoryRepository;
+    this.itemBlueprintRepository = itemBlueprintRepository;
+    this.itemBlueprintDataRepository = itemBlueprintDataRepository;
   }
 
   @Override
@@ -94,7 +90,7 @@ public class InventoryServiceImpl
                 () ->
                     new EntityNotFoundException(
                         "Inventory not found with id: " + id + " for item id: " + itemId));
-    return inventoryMapper.toDomain(entity);
+    return mapper().toDomain(entity);
   }
 
   @Override
@@ -127,9 +123,8 @@ public class InventoryServiceImpl
 
     return PageMapper.toResult(
         results,
-        inventoryMapper::toDomain,
+        mapper()::toDomain,
         PaginatedResultInventory::new,
         PaginatedResultInventory::setData);
   }
-
 }

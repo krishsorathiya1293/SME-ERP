@@ -6,31 +6,21 @@ import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.mapper.master.PartyMapper;
 import com.erp.formsmanagement.service.master.PartyService;
-import com.erp.mapper.EntityMapper;
-import com.erp.service.AbstractCrudServiceV1;
+import com.erp.service.AbstractSpecificationServiceV1;
 import com.erp.util.GetAllQuery;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class PartyServiceImpl
-    extends AbstractCrudServiceV1<PartyEntity, NewParty, Party>
+    extends AbstractSpecificationServiceV1<PartyEntity, NewParty, Party>
     implements PartyService {
 
   private final PartyRepository partyRepository;
-  private final PartyMapper partyMapper;
 
-  @Override
-  protected JpaRepository<PartyEntity, Long> repository() {
-    return partyRepository;
-  }
-
-  @Override
-  protected EntityMapper<PartyEntity, NewParty, Party> mapper() {
-    return partyMapper;
+  public PartyServiceImpl(PartyRepository partyRepository, PartyMapper partyMapper) {
+    super(partyRepository, partyMapper);
+    this.partyRepository = partyRepository;
   }
 
   @Override
@@ -38,7 +28,7 @@ public class PartyServiceImpl
     return partyRepository
         .findAll(partyRepository.filter(query.filter().orElse(null), query.search().orElse(null)))
         .stream()
-        .map(partyMapper::toDomain)
+        .map(e -> mapper().toDomain(e))
         .toList();
   }
 }
