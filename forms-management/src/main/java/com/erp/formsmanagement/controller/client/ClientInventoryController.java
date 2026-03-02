@@ -4,8 +4,7 @@ import com.erp.api.clientmanagement.ClientInventoryClientManagementApi;
 import com.erp.api.clientmanagement.model.ClientInventory;
 import com.erp.api.clientmanagement.model.NewClientInventory;
 import com.erp.api.clientmanagement.model.PaginatedResultClientInventory;
-import com.erp.controller.GenericCrudDelegateV2;
-import com.erp.controller.GetAllDelegateV2;
+import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.formsmanagement.domain.entity.client.filter.ClientInventoryFilter;
 import com.erp.formsmanagement.service.client.ClientInventoryService;
 import com.erp.util.GetAllQuery;
@@ -15,17 +14,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
-public class ClientInventoryController implements ClientInventoryClientManagementApi {
+public class ClientInventoryController
+    extends AbstractCrudControllerV2<
+        Long,
+        NewClientInventory,
+        ClientInventory,
+        ClientInventoryFilter,
+        PaginatedResultClientInventory>
+    implements ClientInventoryClientManagementApi {
 
-  private final ClientInventoryService clientInventoryService;
-
-  private GenericCrudDelegateV2<Long, NewClientInventory, ClientInventory, Long> crud() {
-    return new GenericCrudDelegateV2<>(clientInventoryService);
-  }
-
-  private GetAllDelegateV2<Long, ClientInventoryFilter, PaginatedResultClientInventory> page() {
-    return new GetAllDelegateV2<>(clientInventoryService);
+  public ClientInventoryController(ClientInventoryService s) {
+    super(s, s);
   }
 
   @Override
