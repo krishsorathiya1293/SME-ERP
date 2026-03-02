@@ -9,7 +9,6 @@ import com.erp.formsmanagement.domain.entity.client.filter.ClientInventoryFilter
 import com.erp.formsmanagement.service.client.ClientInventoryService;
 import com.erp.util.GetAllQuery;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,15 +40,22 @@ public class ClientInventoryController
   @Override
   public ResponseEntity<PaginatedResultClientInventory> getInventoryByClient(
       Long clientId,
-      Long sizeId,
+      Optional<Long> sizeId,
       Optional<String> search,
       Optional<Integer> page,
       Optional<Integer> size,
       Optional<String> sortByFields,
       Optional<String> direction) {
-    return page().getAll(
-        clientId,
-        GetAllQuery.of(Optional.of(new ClientInventoryFilter(search.orElse(null), sizeId)), search, page, size, sortByFields, direction));
+    return page()
+        .getAll(
+            clientId,
+            GetAllQuery.of(
+                Optional.of(new ClientInventoryFilter(search.orElse(null), sizeId.orElse(null))),
+                search,
+                page,
+                size,
+                sortByFields,
+                direction));
   }
 
   @Override
