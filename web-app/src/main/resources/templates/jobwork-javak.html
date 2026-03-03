@@ -2,227 +2,201 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Work Chitthi - Javak</title>
 
-    <!-- Kantumruy Pro -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link
-            href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"/>
+
     <style>
         * {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+        }
+
+        @page {
+            margin: 0;
+            size: 297.5px 420.82px;
+        }
+
+        html, body {
+            width: 297.5px;
+            height: 420.82px;
+            background: #fff;
+            overflow: hidden;
         }
 
         body {
             font-family: "Kantumruy Pro", Arial, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             font-weight: 500;
-            padding: 20px;
+            position: relative;
+            color: #111;
         }
 
         .ticket {
+            position: absolute;
+            left: 0;
+            top: 0;
             width: 297.5px;
             height: 420.82px;
-            background-color: #ffffff;
-            padding: 15px;
+            padding: 18px 18px 12px 18px;
             font-size: 11px;
-            line-height: 1.4;
+            line-height: 1.35;
+            box-sizing: border-box;
         }
 
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
+            overflow: hidden;
+            margin-bottom: 18px;
         }
 
-        .header-left {
+        .h-left {
+            float: left;
             font-size: 12px;
+            font-weight: 600;
         }
 
-        .header-right {
+        .h-right {
+            float: right;
             text-align: right;
             font-size: 10px;
-            color: #888888;
+            color: #7e7e7e;
+            line-height: 1.35;
         }
 
-        .header-right div {
+        .h-right .row {
             margin: 2px 0;
         }
 
-        .section {
-            margin-bottom: 8px;
+        .info {
+            margin-top: 8px;
         }
 
         .info-row {
-            display: flex;
-            margin-bottom: 10px;
+            overflow: hidden;
+            margin: 10px 0;
         }
 
-        .info-label {
-            margin-right: 8px;
-            min-width: 50px;
+        .lbl {
+            float: left;
+            width: 78px;
+            color: #3a3a3a;
         }
 
-        .info-value {
-            flex: 1;
-            text-decoration: underline;
+        .val {
+            float: left;
+            width: 180px;
+            border-bottom: 1px solid #3a3a3a;
+            padding-bottom: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .detail-section {
-            padding-top: 5px;
-            margin-top: 5px;
+        .section-title {
+            margin-top: 26px;
+            font-weight: 600;
+            color: #111;
         }
 
-        .detail-item {
-            margin-bottom: 10px;
-            line-height: 1.3;
+        .details {
+            overflow: hidden;
+            margin-top: 14px;
         }
 
-        .detail-label {
-            display: inline-block;
-            width: 50px;
-            color: #888888;
+        .dcol {
+            float: left;
+            width: 50%;
         }
 
-        .detail-value {
-            display: inline;
+        .ditem {
+            margin-top: 16px;
         }
 
-        .two-column {
-            display: flex;
-            gap: 15px;
+        .dlabel {
+            color: #8a8a8a;
+            font-size: 11px;
         }
 
-        .col {
-            flex: 1;
-        }
-
-        .col-header {
-            margin-bottom: 4px;
-            text-align: start;
-            padding-bottom: 2px;
-        }
-
-        hr {
-            border: none;
-            margin: 5px 0;
+        .dvalue {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #111;
         }
     </style>
 </head>
 
 <body>
-<div class="ticket">
+<div class="ticket"
+     th:with="
+       jwNo=${job.orderItem != null && job.orderItem.jobWorkNo != null ? #numbers.formatInteger(job.orderItem.jobWorkNo,3) : ''},
+       dt=${job.jobDate != null ? #temporals.format(job.jobDate,'dd-MM-yyyy') : ''},
+       tm=${#temporals.format(#temporals.createNow(),'HH:mm')},
+       party=${job.party != null ? job.party.name : ''},
+       finish=${job.finish != null ? job.finish : ''},
+       sticker=${job.orderItem != null && job.orderItem.stickerQty != null ? job.orderItem.stickerQty : ''},
+       sizeText=${job.size != null ? job.size.sizeInInch : ''},
+       elem=${job.elementType != null ? job.elementType.name() : ''},
+       kg=${job.qtyKg != null ? job.qtyKg + 'Kg' : ''},
+       pc=${job.qtyPc != null ? job.qtyPc + ' Pc.' : ''}
+     ">
 
-    <!-- Header -->
     <div class="header">
-        <div class="header-left">
-            Job ID - <span th:text="${job.jobId}">003</span>
-        </div>
-        <div class="header-right">
-            <div>
-                Date:
-                <span th:text="${#temporals.format(job.date,'dd-MM-yyyy')}">
-                    03-11-2025
-                </span>
-            </div>
-            <div>
-                Time:
-                <span th:text="${job.time}">13:15</span>
-            </div>
+        <div class="h-left">Job ID - <span th:text="${jwNo}">001</span></div>
+        <div class="h-right">
+            <div class="row">Date: <span th:text="${dt}">03-11-2025</span></div>
+            <div class="row">Time: <span th:text="${tm}">13:15</span></div>
         </div>
     </div>
 
-    <!-- From and Party -->
-    <div class="section">
+    <div class="info">
         <div class="info-row">
-            <div class="info-label">From :</div>
-            <div class="info-value" th:text="${job.fromName}">
-                Ishita Industries / इशिता इंडस्ट्रीज
-            </div>
+            <div class="lbl">From :</div>
+            <div class="val">Ishita Industries / इशिता इंडस्ट्रीज</div>
         </div>
 
         <div class="info-row">
-            <div class="info-label">Party Name :</div>
-            <div class="info-value" th:text="${job.partyName}">
-                Maruti Brass / मारुती पीतल
-            </div>
+            <div class="lbl">Party Name :</div>
+            <div class="val" th:text="${party}">Maruti Brass / मारुती पीतल</div>
+        </div>
+
+        <div class="info-row">
+            <div class="lbl">Finishing :</div>
+            <div class="val" th:text="${finish}">SS + 16</div>
+        </div>
+
+        <div class="info-row">
+            <div class="lbl">Sticker Qty. :</div>
+            <div class="val" th:text="${sticker}">26</div>
         </div>
     </div>
 
-    <!-- Finishing & Sticker -->
-    <div class="section">
-        <div class="info-row">
-            <div class="info-label">Finishing :</div>
-            <div class="info-value" th:text="${job.finishing}">
-                SS + I6
+    <div class="section-title">Javak</div>
+
+    <div class="details">
+        <div class="dcol">
+            <div class="ditem">
+                <div class="dlabel">Sizes</div>
+                <div class="dvalue" th:text="${sizeText}">6 X 1.1/8 X 5/32 - 3.600</div>
+            </div>
+
+            <div class="ditem">
+                <div class="dlabel">Kg.</div>
+                <div class="dvalue" th:text="${kg}">100Kg</div>
             </div>
         </div>
 
-        <div class="info-row">
-            <div class="info-label">Sticker Qty. :</div>
-            <div class="info-value" th:text="${job.stickerQty}">
-                26
-            </div>
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Two Column Section -->
-    <div class="two-column">
-
-        <!-- Left Column (Javak Main) -->
-        <div class="col">
-            <div class="col-header">Javak</div>
-
-            <div class="detail-section">
-                <div class="detail-label">Sizes</div>
-                <div style="font-size:10px; margin-top:2px;"
-                     th:text="${job.javak.size}">
-                    6 X 1.1/8 x 5/32 - 3,600
-                </div>
+        <div class="dcol">
+            <div class="ditem">
+                <div class="dlabel">Element</div>
+                <div class="dvalue" th:text="${elem}">2P</div>
             </div>
 
-            <div class="detail-section">
-                <div class="detail-label">Kg.</div>
-                <div style="font-size:10px; margin-top:2px;"
-                     th:text="${job.javak.kg + ' Kg'}">
-                    100 Kg
-                </div>
+            <div class="ditem">
+                <div class="dlabel">Total Pc.</div>
+                <div class="dvalue" th:text="${pc}">1250 Pc.</div>
             </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="col">
-
-            <div class="detail-section">
-                <div class="detail-label">Element</div>
-                <div style="font-size:10px; margin-top:2px;"
-                     th:text="${job.javak.element}">
-                    2P
-                </div>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-label">Total Pc.</div>
-                <div style="font-size:10px; margin-top:2px;"
-                     th:text="${job.javak.totalPc + ' Pc.'}">
-                    1250 PC.
-                </div>
-            </div>
-
         </div>
     </div>
 

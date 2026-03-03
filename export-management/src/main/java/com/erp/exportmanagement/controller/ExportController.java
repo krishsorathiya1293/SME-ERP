@@ -43,7 +43,7 @@ public class ExportController extends AbstractDocumentController
     byte[] pngBytes =
         exportService.getCachedDocument(
             "job-work", id, String.valueOf(jobWorkFormType), DocumentFormat.PNG);
-    String filename = "jobwork-" + id + ".png";
+    String filename = "JOBWORK-" + jobWorkFormType + "-" + id + ".png";
     return buildPngResponse(pngBytes, filename);
   }
 }
