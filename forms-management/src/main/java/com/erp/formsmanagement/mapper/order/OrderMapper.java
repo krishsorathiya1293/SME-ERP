@@ -31,13 +31,6 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
   @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toLocalDate")
   Order toDomain(OrderEntity entity);
 
-  //  @Mapping(target = "partyName", source = "party.name")
-  //  @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toLocalDate")
-  //  @Mapping(
-  //      target = "totalItems",
-  //      expression = "java(entity.getOrderItems() == null ? 0 : entity.getOrderItems().size())")
-  //  OrderInfo toInfo(OrderEntity entity);
-
   List<Order> toDomainList(List<OrderEntity> entities);
 
   @Named("toLocalDate")

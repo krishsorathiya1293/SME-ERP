@@ -1,9 +1,10 @@
 package com.erp.exportmanagement.service.impl;
 
-import com.erp.exportmanagement.PdfService;
+import com.erp.exportmanagement.DocumentRenderService;
 import com.erp.exportmanagement.service.ExportService;
-import com.erp.service.PdfDataProvider;
-import com.erp.service.PdfDataProvider.PdfData;
+import com.erp.service.DocumentDataProvider;
+import com.erp.service.DocumentDataProvider.DocumentData;
+import com.erp.service.DocumentFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -20,38 +21,38 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ExportServiceImpl implements ExportService {
 
-  private final PdfService pdfService;
-  private final Map<String, PdfDataProvider> providerRegistry;
+  private final DocumentRenderService documentRenderService;
+  private final Map<String, DocumentDataProvider> providerRegistry;
   private final org.springframework.cache.CacheManager cacheManager;
 
   public ExportServiceImpl(
-      PdfService pdfService,
-      List<PdfDataProvider> providers,
+      DocumentRenderService documentRenderService,
+      List<DocumentDataProvider> providers,
       org.springframework.cache.CacheManager cacheManager) {
-    this.pdfService = pdfService;
+    this.documentRenderService = documentRenderService;
     this.providerRegistry =
         providers.stream()
-            .collect(Collectors.toMap(PdfDataProvider::formType, Function.identity()));
+            .collect(Collectors.toMap(DocumentDataProvider::formType, Function.identity()));
     this.cacheManager = cacheManager;
-    log.info("Registered PDF providers: {}", providerRegistry.keySet());
+    log.info("Registered Document providers: {}", providerRegistry.keySet());
   }
 
   @Override
-  @Cacheable(value = "pdfCache", key = "#formType + '-' + #id + '-' + #variant")
-  public byte[] getCachedPdf(String formType, Long id, String variant) {
-    log.info("Cache MISS — generating PDF for {} id={} variant={}", formType, id, variant);
-    return generatePdf(formType, id, variant).getByteArray();
+  @Cacheable(value = "pdfCache", key = "#formType + '-' + #id + '-' + #variant + '-' + #format.name()")
+  public byte[] getCachedDocument(String formType, Long id, String variant, DocumentFormat format) {
+    log.info("Cache MISS — generating {} for {} id={} variant={}", format, formType, id, variant);
+    return generateDocument(formType, id, variant, format).getByteArray();
   }
 
   @Override
-  public ByteArrayResource generatePdf(String formType, Long id, String variant) {
-    PdfData data = getProvider(formType).resolve(id, variant);
-    return pdfService.generatePdf(data.templateName(), data.variables());
+  public ByteArrayResource generateDocument(String formType, Long id, String variant, DocumentFormat format) {
+    DocumentData data = getProvider(formType).resolve(id, variant);
+    return documentRenderService.renderDocument(data.templateName(), data.variables(), format);
   }
 
   @Override
   public void evictCache(String formType, Long id) {
-    log.info("Evicting PDF cache for {} id={}", formType, id);
+    log.info("Evicting Document cache for {} id={}", formType, id);
     Cache cache = cacheManager.getCache("pdfCache");
     if (cache != null) {
       Object nativeCache = cache.getNativeCache();
@@ -87,11 +88,11 @@ public class ExportServiceImpl implements ExportService {
         .collect(Collectors.joining());
   }
 
-  private PdfDataProvider getProvider(String formType) {
-    PdfDataProvider provider = providerRegistry.get(formType);
+  private DocumentDataProvider getProvider(String formType) {
+    DocumentDataProvider provider = providerRegistry.get(formType);
     if (provider == null) {
       throw new IllegalArgumentException(
-          "No PdfDataProvider registered for: "
+          "No DocumentDataProvider registered for: "
               + formType
               + ". Available: "
               + providerRegistry.keySet());
