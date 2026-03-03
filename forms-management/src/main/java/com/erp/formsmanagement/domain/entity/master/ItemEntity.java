@@ -1,6 +1,7 @@
 package com.erp.formsmanagement.domain.entity.master;
 
 import com.erp.audit.AuditInfo;
+import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -10,7 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
 import lombok.Getter;
@@ -29,21 +30,13 @@ public class ItemEntity extends AuditInfo {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  private String sizeInch;
-  private String sizeMm;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "category_id")
-  private CategoryEntity category;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "sub_category_id")
-  private SubCategoryEntity subCategory;
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "size_id")
+  private ItemBlueprintDataEntity size;
 
   private Double itemKg;
   private Double weightPerPc;
   private Double totalPc;
-  private Double dozenWeight;
   private Double lowStockWarning;
 
   @Enumerated(EnumType.STRING)

@@ -3,6 +3,7 @@ package com.erp.formsmanagement.domain.repository.master;
 import com.erp.api.mastermanagement.model.StockStatus;
 import com.erp.formsmanagement.domain.entity.master.ItemEntity;
 import com.erp.repository.CoreRepository;
+import jakarta.persistence.criteria.JoinType;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
@@ -22,9 +23,10 @@ public interface ItemRepository extends CoreRepository<ItemEntity, Long> {
             .map(
                 s -> {
                   String like = "%" + s.toLowerCase() + "%";
+                  var sizeJoin = root.join("size", JoinType.LEFT);
                   return cb.or(
-                      cb.like(cb.lower(root.get("sizeInch")), like),
-                      cb.like(cb.lower(root.get("sizeMm")), like));
+                      cb.like(cb.lower(sizeJoin.get("sizeInInch")), like),
+                      cb.like(cb.lower(sizeJoin.get("sizeInMm")), like));
                 })
             .orElse(cb.conjunction());
   }

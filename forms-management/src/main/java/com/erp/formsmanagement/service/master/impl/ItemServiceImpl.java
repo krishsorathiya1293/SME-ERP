@@ -3,14 +3,12 @@ package com.erp.formsmanagement.service.master.impl;
 import com.erp.api.mastermanagement.model.Item;
 import com.erp.api.mastermanagement.model.NewItem;
 import com.erp.api.mastermanagement.model.PaginatedResultItem;
+import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.master.ItemEntity;
+import com.erp.formsmanagement.domain.repository.inventory.ItemBlueprintDataRepository;
 import com.erp.formsmanagement.domain.repository.master.ItemRepository;
-import com.erp.formsmanagement.mapper.master.CategoryMapper;
 import com.erp.formsmanagement.mapper.master.ItemMapper;
-import com.erp.formsmanagement.mapper.master.SubCategoryMapper;
-import com.erp.formsmanagement.service.master.CategoryService;
 import com.erp.formsmanagement.service.master.ItemService;
-import com.erp.formsmanagement.service.master.SubCategoryService;
 import com.erp.service.AbstractSpecificationServiceV1;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
@@ -25,32 +23,24 @@ public class ItemServiceImpl
     implements ItemService {
 
   private final ItemRepository itemRepository;
-  private final CategoryService categoryService;
-  private final SubCategoryService subCategoryService;
-  private final CategoryMapper categoryMapper;
-  private final SubCategoryMapper subCategoryMapper;
+  private final ItemBlueprintDataRepository itemBlueprintDataRepository;
 
   public ItemServiceImpl(
       ItemRepository itemRepository,
       ItemMapper itemMapper,
-      CategoryService categoryService,
-      SubCategoryService subCategoryService,
-      CategoryMapper categoryMapper,
-      SubCategoryMapper subCategoryMapper) {
+      ItemBlueprintDataRepository itemBlueprintDataRepository) {
     super(itemRepository, itemMapper);
     this.itemRepository = itemRepository;
-    this.categoryService = categoryService;
-    this.subCategoryService = subCategoryService;
-    this.categoryMapper = categoryMapper;
-    this.subCategoryMapper = subCategoryMapper;
+    this.itemBlueprintDataRepository = itemBlueprintDataRepository;
   }
 
   @Override
   protected void afterCreate(ItemEntity entity, NewItem request) {
-    entity.setCategory(categoryMapper.toEntity(categoryService.getById(request.getCategoryId())));
-    entity.setSubCategory(
-        subCategoryMapper.toEntity(
-            subCategoryService.getById(request.getCategoryId(), request.getSubCategoryId())));
+    entity.setSize(
+        itemBlueprintDataRepository
+            .findById(request.getSizeId())
+            .orElseThrow(
+                () -> new EntityNotFoundException("Size not found with id: " + request.getSizeId())));
   }
 
   @Override

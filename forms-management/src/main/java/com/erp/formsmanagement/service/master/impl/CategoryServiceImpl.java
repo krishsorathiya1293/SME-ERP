@@ -28,7 +28,7 @@ public class CategoryServiceImpl
     return query
         .search()
         .filter(s -> !s.isBlank())
-        .map(categoryRepository::searchByCategoryOrSubCategory)
+        .map(categoryRepository::findByNameContainingIgnoreCase)
         .orElseGet(categoryRepository::findAll)
         .stream()
         .map(e -> mapper().toDomain(e))

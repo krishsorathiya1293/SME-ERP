@@ -10,11 +10,15 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface ItemMapper extends EntityMapper<ItemEntity, NewItem, Item> {
-  @Mapping(source = "category", target = "itemCategory")
-  @Mapping(source = "subCategory", target = "itemSubCategory")
+  @Mapping(source = "size.id", target = "sizeId")
+  @Mapping(source = "size.sizeInInch", target = "sizeInInch")
+  @Mapping(source = "size.sizeInMm", target = "sizeInMm")
+  @Mapping(source = "size.dozenWeight", target = "dozenWeight")
   Item toDomain(ItemEntity entity);
 
+  @Mapping(target = "size", ignore = true)
   ItemEntity toEntity(NewItem newItem);
 
+  @Mapping(target = "size", ignore = true)
   void updateEntity(@MappingTarget ItemEntity entity, NewItem newItem);
 }

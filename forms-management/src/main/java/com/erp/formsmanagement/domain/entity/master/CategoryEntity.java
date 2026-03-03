@@ -1,16 +1,13 @@
 package com.erp.formsmanagement.domain.entity.master;
 
 import com.erp.audit.AuditInfo;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,9 +27,6 @@ public class CategoryEntity extends AuditInfo {
 
   @Column(unique = true)
   private String name;
-
-  @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<SubCategoryEntity> subCategories;
 
   @Override
   public boolean equals(Object o) {
