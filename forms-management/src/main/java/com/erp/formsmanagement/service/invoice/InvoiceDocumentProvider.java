@@ -2,7 +2,8 @@ package com.erp.formsmanagement.service.invoice;
 
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.InvoiceType;
-import com.erp.service.AbstractPdfDataProvider;
+import com.erp.service.AbstractDocumentProvider;
+import com.erp.service.DocumentDataProvider.DocumentData;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class InvoicePdfProvider extends AbstractPdfDataProvider<InvoiceType> {
+public class InvoiceDocumentProvider extends AbstractDocumentProvider<InvoiceType> {
 
   private final InvoiceService invoiceService;
 
@@ -26,10 +27,10 @@ public class InvoicePdfProvider extends AbstractPdfDataProvider<InvoiceType> {
   }
 
   @Override
-  public PdfData resolve(Long id, String variant) {
+  public DocumentData resolve(Long id, String variant) {
     InvoiceType type = toVariant(variant);
     Invoice invoice = invoiceService.getInvoiceByType(id, variant);
-    return new PdfData(
+    return new DocumentData(
         resolveTemplateName(type),
         Map.of(
             "invoice", invoice,

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Work Chitthi - Avak</title>
+
+    <!-- Kantumruy Pro -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link
+            href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+    />
+    <style>
+        /* --- SAME CSS AS YOUR ORIGINAL FILE --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Kantumruy Pro", Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-weight: 500;
+            padding: 20px;
+        }
+
+        .ticket {
+            width: 297.5px;
+            height: 420.82px;
+            background-color: #ffffff;
+            padding: 15px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+        }
+
+        .header-left {
+            font-size: 12px;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 10px;
+            color: #888888;
+        }
+
+        .header-right div {
+            margin: 2px 0;
+        }
+
+        .section {
+            margin-bottom: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .info-label {
+            margin-right: 8px;
+            min-width: 50px;
+        }
+
+        .info-value {
+            flex: 1;
+            text-decoration: underline;
+        }
+
+        .detail-section {
+            padding-top: 5px;
+            margin-top: 5px;
+        }
+
+        .detail-item {
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .detail-label {
+            display: inline-block;
+            width: 50px;
+            color: #888888;
+        }
+
+        .detail-value {
+            display: inline;
+        }
+
+        .two-column {
+            display: flex;
+            gap: 15px;
+        }
+
+        .col {
+            flex: 1;
+        }
+
+        .col-header {
+            margin-bottom: 4px;
+            text-align: start;
+            padding-bottom: 2px;
+        }
+
+        hr {
+            border: none;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+<div class="ticket">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            Job ID - <span th:text="${job.jobId}">003</span>
+        </div>
+        <div class="header-right">
+            <div>
+                Date:
+                <span th:text="${#temporals.format(job.date,'dd-MM-yyyy')}">03-11-2025</span>
+            </div>
+            <div>
+                Time:
+                <span th:text="${job.time}">13:15</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- From & Party -->
+    <div class="section">
+        <div class="info-row">
+            <div class="info-label">From :</div>
+            <div class="info-value" th:text="${job.fromName}">
+                Ishita Industries / इशिता इंडस्ट्रीज
+            </div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Party Name :</div>
+            <div class="info-value" th:text="${job.partyName}">
+                Maruti Brass / मारुती पीतल
+            </div>
+        </div>
+    </div>
+
+    <!-- Finishing & Sticker -->
+    <div class="section">
+        <div class="info-row">
+            <div class="info-label">Finishing :</div>
+            <div class="info-value" th:text="${job.finishing}">
+                SS + I6
+            </div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">Sticker Qty. :</div>
+            <div class="info-value" th:text="${job.stickerQty}">
+                26
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Two Column Section -->
+    <div class="two-column">
+
+        <!-- Javak Column -->
+        <div class="col">
+            <div class="col-header">Javak</div>
+
+            <div class="detail-section">
+                <div class="detail-label">Sizes</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.javak.size}">
+                    6 X 1.1/8 x 5/32 - 3,600
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Element</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.javak.element}">
+                    2P
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Kg.</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.javak.kg + ' Kg'}">
+                    1009 Kg
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Total Pc.</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.javak.totalPc + ' Pc.'}">
+                    1250 Pc.
+                </div>
+            </div>
+        </div>
+
+        <!-- Aavak Column -->
+        <div class="col">
+            <div class="col-header">Aavak</div>
+
+            <div class="detail-section">
+                <div class="detail-label">Sizes</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.aavak.size}"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Element</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.aavak.element}"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Kg.</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.aavak.kg + ' Kg'}"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Total Pc.</div>
+                <div style="font-size:10px; margin-top:2px;"
+                     th:text="${job.aavak.totalPc + ' Pc.'}"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

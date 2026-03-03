@@ -18,6 +18,10 @@ tags:
     description: Order Endpoints (party-scoped)
   - name: OrderDispatch
     description: Order Dispatch Endpoints (item-scoped)
+  - name: JobWork
+    description: Job Work Endpoints (order-item-scoped)
+  - name: JobWorkReturn
+    description: Job Work Return Endpoints (job-work-scoped)
 
 security:
   - oauth2: [ ]
@@ -372,7 +376,335 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  # -------------------- JOB WORK (order-item-scoped) --------------------
+  /api/v1/order-items/{orderItemId}/job-works:
+    get:
+      operationId: getAllJobWorks
+      tags:
+        - JobWork
+      summary: Get all job works for an order item (paginated)
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - $ref: '#/components/parameters/searchParam'
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
+        - $ref: '#/components/parameters/SortByFields'
+        - $ref: '#/components/parameters/directionParam'
+      responses:
+        '200':
+          description: Paginated job work list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResultJobWork'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      operationId: createJobWork
+      tags:
+        - JobWork
+      summary: Create a job work record for an order item
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewJobWork'
+      responses:
+        '201':
+          description: Job work created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWork'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/order-items/{orderItemId}/job-works/{id}:
+    get:
+      operationId: getJobWorkById
+      tags:
+        - JobWork
+      summary: Get job work by id
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Job work details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWork'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      operationId: updateJobWork
+      tags:
+        - JobWork
+      summary: Update job work
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewJobWork'
+      responses:
+        '200':
+          description: Job work updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWork'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      operationId: deleteJobWork
+      tags:
+        - JobWork
+      summary: Delete job work
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Job work deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/order-items/{orderItemId}/job-works/{id}/status:
+    patch:
+      operationId: updateJobWorkStatus
+      tags:
+        - JobWork
+      summary: Update job work status
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobWorkStatus'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWork'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/order-items/{orderItemId}/job-works/{id}/type:
+    patch:
+      operationId: updateJobWorkType
+      tags:
+        - JobWork
+      summary: Update job work type
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobWorkType'
+      responses:
+        '200':
+          description: Type updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWork'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # -------------------- JOB WORK RETURN (job-work-scoped) --------------------
+  /api/v1/order-items/{orderItemId}/job-works/{jobWorkId}/returns:
+    get:
+      operationId: getAllJobWorkReturns
+      tags:
+        - JobWorkReturn
+      summary: Get all returns for a job work (paginated)
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - $ref: '#/components/parameters/jobWorkIdParam'
+        - $ref: '#/components/parameters/searchParam'
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
+        - $ref: '#/components/parameters/SortByFields'
+        - $ref: '#/components/parameters/directionParam'
+      responses:
+        '200':
+          description: Paginated job work return list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResultJobWorkReturn'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      operationId: createJobWorkReturn
+      tags:
+        - JobWorkReturn
+      summary: Create a job work return
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - $ref: '#/components/parameters/jobWorkIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewJobWorkReturn'
+      responses:
+        '201':
+          description: Job work return created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWorkReturn'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/order-items/{orderItemId}/job-works/{jobWorkId}/returns/{id}:
+    get:
+      operationId: getJobWorkReturnById
+      tags:
+        - JobWorkReturn
+      summary: Get job work return by id
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - $ref: '#/components/parameters/jobWorkIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Job work return details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWorkReturn'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      operationId: updateJobWorkReturn
+      tags:
+        - JobWorkReturn
+      summary: Update job work return
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - $ref: '#/components/parameters/jobWorkIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewJobWorkReturn'
+      responses:
+        '200':
+          description: Job work return updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWorkReturn'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      operationId: deleteJobWorkReturn
+      tags:
+        - JobWorkReturn
+      summary: Delete job work return
+      parameters:
+        - $ref: '#/components/parameters/orderItemIdParam'
+        - $ref: '#/components/parameters/jobWorkIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Job work return deleted
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
 components:
+
 
   securitySchemes:
     oauth2:
@@ -383,6 +715,22 @@ components:
   parameters:
     partyIdParam:
       name: partyId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    orderItemIdParam:
+      name: orderItemId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    jobWorkIdParam:
+      name: jobWorkId
       in: path
       required: true
       schema:
@@ -557,9 +905,6 @@ components:
           type: boolean
         platingType:
           $ref: '#/components/schemas/JobPlatingType'
-        jobWorkNo:
-          type: number
-          format: double
 
     OrderItem:
       type: object
@@ -666,6 +1011,221 @@ components:
       enum:
         - JOB_WORK
         - IN_HOUSE
+
+    ElementType:
+      type: string
+      enum:
+        - PETI
+        - DRUM
+
+    JobWorkStatus:
+      type: string
+      enum:
+        - COMPLETE
+        - PENDING
+        - REJECT
+
+    JobWorkType:
+      type: string
+      enum:
+        - INHOUSE
+        - OUTSIDE
+        - JOB_WORK
+
+    # ---- Job Work ----
+    NewJobWork:
+      required:
+        - partyId
+        - sizeId
+        - jobDate
+        - qtyPc
+      type: object
+      properties:
+        partyId:
+          type: integer
+          format: int64
+          description: ID of an existing party
+        sizeId:
+          type: integer
+          format: int64
+          description: ID of an existing size (ItemBlueprintData)
+        jobDate:
+          type: string
+          format: date
+        qtyPc:
+          type: number
+          format: double
+        qtyKg:
+          type: number
+          format: double
+        finish:
+          type: string
+        elementCount:
+          type: number
+          format: double
+        elementType:
+          $ref: '#/components/schemas/ElementType'
+        stickerQty:
+          type: number
+          format: double
+        status:
+          $ref: '#/components/schemas/JobWorkStatus'
+        jobWorkType:
+          $ref: '#/components/schemas/JobWorkType'
+
+    JobWork:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        party:
+          $ref: '#/components/schemas/JobWorkParty'
+        size:
+          $ref: '#/components/schemas/JobWorkSize'
+        jobDate:
+          type: string
+          format: date
+        qtyPc:
+          type: number
+          format: double
+        qtyKg:
+          type: number
+          format: double
+        finish:
+          type: string
+        elementCount:
+          type: number
+          format: double
+        elementType:
+          $ref: '#/components/schemas/ElementType'
+        stickerQty:
+          type: number
+          format: double
+        status:
+          $ref: '#/components/schemas/JobWorkStatus'
+        jobWorkType:
+          $ref: '#/components/schemas/JobWorkType'
+        jobWorkReturn:
+          $ref: '#/components/schemas/JobWorkReturn'
+        createdAt:
+          type: string
+          format: date-time
+
+    JobWorkParty:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    JobWorkSize:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sizeInInch:
+          type: string
+        sizeInMm:
+          type: string
+
+    PaginatedResultJobWork:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobWork'
+        empty:
+          type: boolean
+        last:
+          type: boolean
+        first:
+          type: boolean
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        size:
+          type: integer
+
+    UpdateJobWorkStatus:
+      required:
+        - status
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/JobWorkStatus'
+
+    UpdateJobWorkType:
+      required:
+        - jobWorkType
+      type: object
+      properties:
+        jobWorkType:
+          $ref: '#/components/schemas/JobWorkType'
+
+    # ---- Job Work Return ----
+    NewJobWorkReturn:
+      required:
+        - returnKg
+      type: object
+      properties:
+        returnKg:
+          type: number
+          format: double
+        ghati:
+          type: number
+          format: double
+        returnElementCount:
+          type: number
+          format: double
+        elementType:
+          $ref: '#/components/schemas/ElementType'
+
+    JobWorkReturn:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        returnKg:
+          type: number
+          format: double
+        ghati:
+          type: number
+          format: double
+        returnElementCount:
+          type: number
+          format: double
+        elementType:
+          $ref: '#/components/schemas/ElementType'
+        createdAt:
+          type: string
+          format: date-time
+
+    PaginatedResultJobWorkReturn:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobWorkReturn'
+        empty:
+          type: boolean
+        last:
+          type: boolean
+        first:
+          type: boolean
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        size:
+          type: integer
 
     ErrorResponse:
       type: object
