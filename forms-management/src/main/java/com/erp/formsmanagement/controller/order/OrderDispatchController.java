@@ -4,27 +4,21 @@ import com.erp.api.ordermanagement.OrderDispatchOrderManagementApi;
 import com.erp.api.ordermanagement.model.NewOrderDispatch;
 import com.erp.api.ordermanagement.model.OrderDispatch;
 import com.erp.api.ordermanagement.model.PaginatedResultOrderDispatch;
-import com.erp.controller.GenericCrudDelegateV2;
-import com.erp.controller.GetAllDelegateV2;
+import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.formsmanagement.service.order.OrderDispatchService;
 import com.erp.util.GetAllQuery;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
-public class OrderDispatchController implements OrderDispatchOrderManagementApi {
+public class OrderDispatchController
+    extends AbstractCrudControllerV2<
+        Long, NewOrderDispatch, OrderDispatch, String, PaginatedResultOrderDispatch>
+    implements OrderDispatchOrderManagementApi {
 
-  private final OrderDispatchService orderDispatchService;
-
-  private GenericCrudDelegateV2<Long, NewOrderDispatch, OrderDispatch, Long> crud() {
-    return new GenericCrudDelegateV2<>(orderDispatchService);
-  }
-
-  private GetAllDelegateV2<Long, String, PaginatedResultOrderDispatch> page() {
-    return new GetAllDelegateV2<>(orderDispatchService);
+  public OrderDispatchController(OrderDispatchService s) {
+    super(s, s);
   }
 
   @Override
@@ -48,8 +42,7 @@ public class OrderDispatchController implements OrderDispatchOrderManagementApi 
       Optional<Integer> size,
       Optional<String> sortByFields,
       Optional<String> direction) {
-    return page().getAll(
-        itemId, GetAllQuery.of(Optional.empty(), search, page, size, sortByFields, direction));
+    return page().getAll(itemId, GetAllQuery.of(Optional.empty(), search, page, size, sortByFields, direction));
   }
 
   @Override

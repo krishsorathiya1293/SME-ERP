@@ -4,27 +4,21 @@ import com.erp.api.invoicemanagement.InvoiceInvoiceManagementApi;
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.api.invoicemanagement.model.PaginatedResultInvoice;
-import com.erp.controller.GenericCrudDelegateV1;
-import com.erp.controller.GetAllDelegateV1;
+import com.erp.controller.AbstractCrudControllerV1;
 import com.erp.formsmanagement.service.invoice.InvoiceService;
 import com.erp.util.GetAllQuery;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
-public class InvoiceController implements InvoiceInvoiceManagementApi {
-  private final InvoiceService invoiceService;
+public class InvoiceController
+    extends AbstractCrudControllerV1<NewInvoice, Invoice, String, PaginatedResultInvoice>
+    implements InvoiceInvoiceManagementApi {
 
-  private GenericCrudDelegateV1<NewInvoice, Invoice, Long> crud() {
-    return new GenericCrudDelegateV1<>(invoiceService);
-  }
-
-  private GetAllDelegateV1<String, PaginatedResultInvoice> page() {
-    return new GetAllDelegateV1<>(invoiceService);
+  public InvoiceController(InvoiceService s) {
+    super(s, s);
   }
 
   @Override

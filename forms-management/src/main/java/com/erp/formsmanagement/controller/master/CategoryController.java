@@ -3,28 +3,21 @@ package com.erp.formsmanagement.controller.master;
 import com.erp.api.mastermanagement.CategoryMasterManagementApi;
 import com.erp.api.mastermanagement.model.Category;
 import com.erp.api.mastermanagement.model.NewCategory;
-import com.erp.controller.GenericCrudDelegateV1;
-import com.erp.controller.GetAllDelegateV1;
+import com.erp.controller.AbstractCrudControllerV1;
 import com.erp.formsmanagement.service.master.CategoryService;
 import com.erp.util.GetAllQuery;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
-public class CategoryController implements CategoryMasterManagementApi {
+public class CategoryController
+    extends AbstractCrudControllerV1<NewCategory, Category, Void, List<Category>>
+    implements CategoryMasterManagementApi {
 
-  private final CategoryService categoryService;
-
-  private GenericCrudDelegateV1<NewCategory, Category, Long> crud() {
-    return new GenericCrudDelegateV1<>(categoryService);
-  }
-
-  private GetAllDelegateV1<Void, List<Category>> page() {
-    return new GetAllDelegateV1<>(categoryService);
+  public CategoryController(CategoryService s) {
+    super(s, s);
   }
 
   @Override

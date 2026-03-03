@@ -14,8 +14,7 @@ import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import com.erp.formsmanagement.mapper.order.OrderMapper;
 import com.erp.formsmanagement.service.order.OrderService;
-import com.erp.mapper.EntityMapper;
-import com.erp.service.AbstractCrudServiceV2;
+import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
@@ -23,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,23 +29,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
-public class OrderServiceImpl extends AbstractCrudServiceV2<OrderEntity, NewOrder, Order, Long>
+public class OrderServiceImpl
+    extends AbstractSpecificationServiceV2<OrderEntity, NewOrder, Order, Long>
     implements OrderService {
 
   private final OrderRepository orderRepository;
-  private final OrderMapper orderMapper;
   private final PartyRepository partyRepository;
 
-  @Override
-  protected JpaRepository<OrderEntity, Long> repository() {
-    return orderRepository;
-  }
-
-  @Override
-  protected EntityMapper<OrderEntity, NewOrder, Order> mapper() {
-    return orderMapper;
+  public OrderServiceImpl(
+      OrderRepository orderRepository,
+      OrderMapper orderMapper,
+      PartyRepository partyRepository) {
+    super(orderRepository, orderMapper);
+    this.orderRepository = orderRepository;
+    this.partyRepository = partyRepository;
   }
 
   @Override
@@ -84,7 +80,7 @@ public class OrderServiceImpl extends AbstractCrudServiceV2<OrderEntity, NewOrde
                 query.page(), query.size(), query.direction(), query.sortBy()));
     return PageMapper.toResult(
         page,
-        orderMapper::toDomain,
+        mapper()::toDomain,
         PaginatedResultOrder::new,
         (response, orders) -> {
           PartyOrdersResponse wrapper = new PartyOrdersResponse();
@@ -97,7 +93,6 @@ public class OrderServiceImpl extends AbstractCrudServiceV2<OrderEntity, NewOrde
   @Override
   @Transactional(readOnly = true)
   public PaginatedPartyOrdersResponse getAll(GetAllQuery<String> query) {
-
     Page<PartyEntity> partyPage =
         partyRepository.findAll(
             PaginationUtils.getPageRequest(
@@ -110,25 +105,20 @@ public class OrderServiceImpl extends AbstractCrudServiceV2<OrderEntity, NewOrde
             .collect(
                 Collectors.groupingBy(
                     oe -> oe.getParty().getId(),
-                    Collectors.mapping(orderMapper::toDomain, Collectors.toList())));
+                    Collectors.mapping(mapper()::toDomain, Collectors.toList())));
+
     return PageMapper.toResult(
         partyPage,
         p -> p,
         PaginatedPartyOrdersResponse::new,
         (response, ignored) -> {
           List<PartyOrdersResponse> data = new ArrayList<>();
-
           for (PartyEntity party : partyPage.getContent()) {
-
             PartyOrdersResponse por = new PartyOrdersResponse();
-
             por.setParty(new OrderParty().id(party.getId()).name(party.getName()));
-
             por.setOrders(ordersByParty.getOrDefault(party.getId(), new ArrayList<>()));
-
             data.add(por);
           }
-
           response.setData(data);
         });
   }

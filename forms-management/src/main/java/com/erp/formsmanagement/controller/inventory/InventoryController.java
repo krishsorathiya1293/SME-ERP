@@ -4,27 +4,21 @@ import com.erp.api.itemmanagement.InventoryItemManagementApi;
 import com.erp.api.itemmanagement.model.Inventory;
 import com.erp.api.itemmanagement.model.NewInventory;
 import com.erp.api.itemmanagement.model.PaginatedResultInventory;
-import com.erp.controller.GenericCrudDelegateV2;
-import com.erp.controller.GetAllDelegateV2;
+import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.formsmanagement.domain.entity.inventory.filter.InventoryFilter;
 import com.erp.formsmanagement.service.inventory.InventoryService;
 import com.erp.util.GetAllQuery;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
-public class InventoryController implements InventoryItemManagementApi {
-  private final InventoryService inventoryService;
+public class InventoryController
+    extends AbstractCrudControllerV2<Long, NewInventory, Inventory, InventoryFilter, PaginatedResultInventory>
+    implements InventoryItemManagementApi {
 
-  private GenericCrudDelegateV2<Long, NewInventory, Inventory, Long> crud() {
-    return new GenericCrudDelegateV2<>(inventoryService);
-  }
-
-  private GetAllDelegateV2<Long, InventoryFilter, PaginatedResultInventory> page() {
-    return new GetAllDelegateV2<>(inventoryService);
+  public InventoryController(InventoryService s) {
+    super(s, s);
   }
 
   @Override
