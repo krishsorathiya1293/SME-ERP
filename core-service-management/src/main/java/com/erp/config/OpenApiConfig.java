@@ -102,4 +102,17 @@ public class OpenApiConfig {
       return data;
     }
   }
+
+  @RestController
+  @RequestMapping("/doc/v3/packing-invoice")
+  public class PackingInvoiceDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("packing-invoice-management.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
 }

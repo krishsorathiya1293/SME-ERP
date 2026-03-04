@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Packing Invoice - Party</title>
+
+    <style>
+        @page {
+            margin: 12mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            color: #222;
+        }
+
+        .main {
+            width: 100%;
+            max-width: 190mm;
+            margin: 0 auto;
+        }
+
+        /* ================= HEADER ================= */
+
+        .top-header {
+            margin-bottom: 25px;
+        }
+
+        .top-header h2 {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .party-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        /* ================= TABLE COMMON ================= */
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #cfd8dc;
+            padding: 8px 6px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f3f6f8;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        td {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        td.text-left {
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        /* ================= ITEMS TABLE ================= */
+
+        .items-table {
+            margin-bottom: 35px;
+        }
+
+        /* ================= SUMMARY ================= */
+
+        .summary-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .summary-table th {
+            background-color: #f3f6f8;
+        }
+
+    </style>
+</head>
+
+<body>
+<div class="main">
+
+    <!-- HEADER -->
+    <div class="top-header">
+        <h2>
+            Invoice ID -
+            <span th:text="${invoice.invoiceNo}">01</span>
+            &nbsp; · &nbsp;
+            <span th:text="${currentDate}">03/03/2026</span>
+        </h2>
+
+        <div class="party-name" th:text="${invoice.party.name}">
+            Elite Company
+        </div>
+    </div>
+
+    <!-- ITEMS TABLE -->
+    <table class="items-table">
+        <thead>
+        <tr>
+            <th style="width:6%">Cartoon<br>No.</th>
+            <th style="width:18%">Size</th>
+            <th style="width:10%">Finish</th>
+            <th style="width:6%">Box</th>
+            <th style="width:6%">Pc.</th>
+            <th style="width:8%">Total Pc</th>
+            <th style="width:8%">Scrap.</th>
+            <th style="width:8%">Laboure</th>
+            <th style="width:8%">Rs/Kg</th>
+            <th style="width:9%">Bill Cal.<br>Doz Weight</th>
+            <th style="width:8%">Rate/Pc.</th>
+            <th style="width:11%">Total Rs.</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="row, stat : ${invoice.items}">
+            <td th:text="${#numbers.formatInteger(stat.count,2)}">01</td>
+            <td class="text-left"
+                th:text="${row.size.sizeInInch + ' - ' + row.size.sizeInMm}">
+                6 X 1.1/8 X 5/32 - 3.600
+            </td>
+            <td th:text="${row.finish}">S.S + 16</td>
+            <td th:text="${row.box}">10</td>
+            <td th:text="${row.pc}">6</td>
+            <td th:text="${row.totalPc}">60</td>
+            <td th:text="${row.scrap}">500</td>
+            <td th:text="${row.laboure}">150</td>
+            <td th:text="${row.rsKg}">650</td>
+            <td th:text="${row.billCalDocWeight}">4.300</td>
+            <td th:text="${row.ratePc}">232.91</td>
+            <td th:text="${row.totalRs}">13975</td>
+        </tr>
+
+        <tr th:if="${#lists.isEmpty(invoice.items)}">
+            <td colspan="12" style="padding:20px;">
+                No cartoon records found.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- SUMMARY -->
+    <div class="summary-title"
+         th:if="${not #lists.isEmpty(invoice.summaryItems)}">
+        Invoice Summary
+    </div>
+
+    <table class="summary-table"
+           th:if="${not #lists.isEmpty(invoice.summaryItems)}">
+
+        <thead>
+        <tr>
+            <th style="width:25%">Size</th>
+            <th style="width:15%">Finish</th>
+            <th style="width:15%">Total Pc</th>
+            <th style="width:15%">Scrap.</th>
+            <th style="width:10%">Rs/Kg</th>
+            <th style="width:10%">Rate/Pc.</th>
+            <th style="width:10%">Total Rs.</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="sumRow : ${invoice.summaryItems}">
+            <td th:text="${sumRow.size.sizeInInch + ' - ' + sumRow.size.sizeInMm}">
+                6 X 1.1/8 X 5/32 - 3.600
+            </td>
+            <td th:text="${sumRow.finish}">S.S + 16</td>
+            <td th:text="${sumRow.totalPc}">60</td>
+            <td th:text="${sumRow.scrap}">500</td>
+            <td th:text="${sumRow.rsKg}">650</td>
+            <td th:text="${sumRow.ratePc}">232.91</td>
+            <td th:text="${#numbers.formatDecimal(sumRow.totalRs,1,'COMMA',2,'POINT')}">
+                13,975.00
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>
