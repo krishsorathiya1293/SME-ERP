@@ -40,12 +40,27 @@ public class JobWorkReturnServiceImpl
 
   @Override
   protected void afterCreate(JobWorkReturnEntity entity, Long jobWorkId, NewJobWorkReturn request) {
-    entity.setJobWork(resolveJobWork(jobWorkId));
+    JobWorkEntity jobWork = resolveJobWork(jobWorkId);
+    validateReturnQuantity(jobWork, 0L, request);
+    entity.setJobWork(jobWork);
   }
 
   @Override
   protected void afterUpdate(JobWorkReturnEntity entity, Long jobWorkId, NewJobWorkReturn request) {
-    entity.setJobWork(resolveJobWork(jobWorkId));
+    JobWorkEntity jobWork = resolveJobWork(jobWorkId);
+    validateReturnQuantity(jobWork, entity.getId(), request);
+    entity.setJobWork(jobWork);
+  }
+
+  private void validateReturnQuantity(JobWorkEntity jobWork, Long excludeId, NewJobWorkReturn request) {
+    if (request.getReturnKg() != null && jobWork.getQtyKg() != null) {
+      double alreadyReturned = jobWorkReturnRepository.sumReturnKgByJobWorkId(jobWork.getId(), excludeId);
+      double total = alreadyReturned + request.getReturnKg();
+      if (total > jobWork.getQtyKg()) {
+        throw new IllegalArgumentException(
+            String.format("Total returned quantity %.2f kg exceeds sent quantity %.2f kg", total, jobWork.getQtyKg()));
+      }
+    }
   }
 
   private JobWorkEntity resolveJobWork(Long jobWorkId) {

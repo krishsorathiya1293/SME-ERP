@@ -141,9 +141,9 @@
        pc=${job.qtyPc != null ? job.qtyPc + ' Pc.' : ''},
 
        retSize=${job.size != null ? job.size.sizeInInch : ''},
-       retElem=${job.jobWorkReturn != null && job.jobWorkReturn.elementType != null ? job.jobWorkReturn.elementType.name() : ''},
-       retKg=${job.jobWorkReturn != null && job.jobWorkReturn.returnKg != null ? job.jobWorkReturn.returnKg + 'Kg' : ''},
-       retPc=${job.jobWorkReturn != null && job.jobWorkReturn.returnElementCount != null ? job.jobWorkReturn.returnElementCount + ' Pc.' : ''}
+       retElem=${!job.jobWorkReturns.isEmpty() && job.jobWorkReturns[0].elementType != null ? job.jobWorkReturns[0].elementType.name() : ''},
+       retKg=${!job.jobWorkReturns.?[returnKg != null].isEmpty() ? #aggregates.sum(job.jobWorkReturns.?[returnKg != null].![returnKg]) + 'Kg' : ''},
+       retPc=${!job.jobWorkReturns.?[returnElementCount != null].isEmpty() ? #aggregates.sum(job.jobWorkReturns.?[returnElementCount != null].![returnElementCount]) + ' Pc.' : ''}
      ">
 
     <div class="header">

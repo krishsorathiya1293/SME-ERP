@@ -6,15 +6,12 @@ import com.erp.api.ordermanagement.model.JobWorkSize;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.mapper.EntityMapper;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring", unmappedSourcePolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring", unmappedSourcePolicy = ReportingPolicy.IGNORE, uses = {JobWorkReturnMapper.class})
 public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, JobWork> {
 
   @Override
@@ -29,7 +26,7 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "orderItem", ignore = true)
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "size", ignore = true)
-  @Mapping(target = "jobWorkReturn", ignore = true)
+  @Mapping(target = "jobWorkReturns", ignore = true)
   JobWorkEntity toEntity(NewJobWork request);
 
   @Override
@@ -37,7 +34,7 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "orderItem", ignore = true)
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "size", ignore = true)
-  @Mapping(target = "jobWorkReturn", ignore = true)
+  @Mapping(target = "jobWorkReturns", ignore = true)
   void updateEntity(@MappingTarget JobWorkEntity entity, NewJobWork request);
 
   // ---------- Custom Mappers ----------
@@ -59,9 +56,4 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
     return s;
   }
 
-  // LocalDateTime → OffsetDateTime converter
-  default OffsetDateTime map(LocalDateTime value) {
-    if (value == null) return null;
-    return value.atOffset(ZoneOffset.UTC);
-  }
 }
