@@ -4,10 +4,13 @@ import com.erp.api.exportmanagement.model.JobWorkFormType;
 import com.erp.config.transliteration.TransliterationService;
 import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.service.AbstractDocumentProvider;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +38,13 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
         jobWorkRepository
             .findById(id)
             .orElseThrow(() -> new EntityNotFoundException("JobWork with ID " + id + " not found"));
+    LocalDate latestReturnDate =
+        entity.getJobWorkReturns().stream()
+            .map(JobWorkReturnEntity::getJobReturnDate)
+            .filter(Objects::nonNull)
+            .max(LocalDate::compareTo)
+            .orElse(null);
+
     Map<String, Object> variables = new HashMap<>();
     variables.put("job", entity);
     variables.put(
@@ -42,6 +52,7 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
         entity.getParty().getName()
             + " / "
             + transliterationService.convertToHindi(entity.getParty().getName()));
+    variables.put("latestReturnDate", latestReturnDate);
     return new DocumentData(resolveTemplateName(type), variables);
   }
 

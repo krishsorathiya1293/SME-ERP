@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,6 +38,7 @@ public class JobWorkReturnEntity extends AuditInfo {
   private Double returnKg;
   private Double ghati;
   private Double returnElementCount;
+  private LocalDate jobReturnDate;
 
   @Enumerated(EnumType.STRING)
   private ElementType elementType;
