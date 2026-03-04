@@ -74,6 +74,8 @@ springdoc:
         url: /doc/v3/client
       - name: Order Management
         url: /doc/v3/orders
+      - name: Packing Invoice
+        url: /doc/v3/packing-invoice
     display-request-duration: true
     doc-expansion: none
 security:

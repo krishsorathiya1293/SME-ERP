@@ -7,14 +7,10 @@ import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.service.CoreServiceV2;
 import com.erp.service.GetAllServiceV2;
-import com.erp.util.GetAllQuery;
 
 public interface JobWorkService
     extends CoreServiceV2<Long, NewJobWork, JobWork, Long>,
-        GetAllServiceV2<Long, Void, PaginatedResultJobWork> {
-
-  @Override
-  PaginatedResultJobWork getAll(Long orderItemId, GetAllQuery<Void> query);
+        GetAllServiceV2<Long, Void, PaginatedResultJobWork> { 
 
   JobWork updateStatus(Long orderItemId, Long id, UpdateJobWorkStatus request);
 

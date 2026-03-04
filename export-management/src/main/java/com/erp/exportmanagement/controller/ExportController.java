@@ -46,4 +46,12 @@ public class ExportController extends AbstractDocumentController
     String filename = "JOBWORK-" + jobWorkFormType + "-" + id + ".png";
     return buildPngResponse(pngBytes, filename);
   }
+
+  @Override
+  public ResponseEntity<Resource> getPackingInvoicePdf(Long id) {
+    byte[] pdfBytes =
+        exportService.getCachedDocument("packing-invoice-party", id, "ALL", DocumentFormat.PDF);
+    String filename = "PACKING-INVOICE-" + id + ".pdf";
+    return buildPdfResponse(pdfBytes, filename);
+  }
 }
