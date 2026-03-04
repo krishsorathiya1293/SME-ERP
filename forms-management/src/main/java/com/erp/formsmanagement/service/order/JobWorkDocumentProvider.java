@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFormType> {
 
   private final JobWorkRepository jobWorkRepository;
+  private final TransliterationService transliterationService;
 
   @Override
   protected Class<JobWorkFormType> variantType() {
@@ -35,6 +36,11 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
             .orElseThrow(() -> new EntityNotFoundException("JobWork with ID " + id + " not found"));
     Map<String, Object> variables = new HashMap<>();
     variables.put("job", entity);
+    variables.put(
+        "party",
+        entity.getParty().getName()
+            + " / "
+            + transliterationService.convertToHindi(entity.getParty().getName()));
     return new DocumentData(resolveTemplateName(type), variables);
   }
 
