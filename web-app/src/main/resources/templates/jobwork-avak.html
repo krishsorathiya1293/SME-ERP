@@ -132,7 +132,6 @@
        jwNo=${job.orderItem != null && job.orderItem.jobWorkNo != null ? #numbers.formatInteger(job.orderItem.jobWorkNo,3) : ''},
        dt=${job.jobDate != null ? #temporals.format(job.jobDate,'dd-MM-yyyy') : ''},
        tm=${#temporals.format(#temporals.createNow(),'HH:mm')},
-       party=${job.party != null ? job.party.name : ''},
        finish=${job.finish != null ? job.finish : ''},
        sticker=${job.orderItem != null && job.orderItem.stickerQty != null ? job.orderItem.stickerQty : ''},
 
