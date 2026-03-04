@@ -398,13 +398,21 @@ components:
             $ref: '#/components/schemas/PackingInvoice'
         totalElements:
           type: integer
-          format: int64
         totalPages:
           type: integer
         page:
           type: integer
         size:
           type: integer
+        empty:
+          type: boolean
+          description: Indicates if the current page is empty
+        first:
+          type: boolean
+          description: Indicates if the current page is the first page
+        last:
+          type: boolean
+          description: Indicates if the current page is the last page
 
     ErrorResponse:
       type: object
