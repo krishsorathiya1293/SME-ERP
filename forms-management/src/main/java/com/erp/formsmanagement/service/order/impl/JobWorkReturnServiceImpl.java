@@ -55,7 +55,8 @@ public class JobWorkReturnServiceImpl
   private void validateReturnQuantity(JobWorkEntity jobWork, Long excludeId, NewJobWorkReturn request) {
     if (request.getReturnKg() != null && jobWork.getQtyKg() != null) {
       double alreadyReturned = jobWorkReturnRepository.sumReturnKgByJobWorkId(jobWork.getId(), excludeId);
-      double total = alreadyReturned + request.getReturnKg();
+      double newReturnKg = request.getReturnKg() + (request.getGhati() != null ? request.getGhati() : 0.0);
+      double total = alreadyReturned + newReturnKg;
       if (total > jobWork.getQtyKg()) {
         throw new IllegalArgumentException(
             String.format("Total returned quantity %.2f kg exceeds sent quantity %.2f kg", total, jobWork.getQtyKg()));

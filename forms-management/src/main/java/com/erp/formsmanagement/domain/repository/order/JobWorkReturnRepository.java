@@ -25,7 +25,7 @@ public interface JobWorkReturnRepository
             .orElse(null);
   }
 
-  @Query("SELECT COALESCE(SUM(r.returnKg), 0.0) FROM JobWorkReturnEntity r WHERE r.jobWork.id = :jobWorkId AND r.id <> :excludeId")
+  @Query("SELECT COALESCE(SUM(COALESCE(r.returnKg, 0.0) + COALESCE(r.ghati, 0.0)), 0.0) FROM JobWorkReturnEntity r WHERE r.jobWork.id = :jobWorkId AND r.id <> :excludeId")
   Double sumReturnKgByJobWorkId(@Param("jobWorkId") Long jobWorkId, @Param("excludeId") Long excludeId);
 
   @Query("SELECT COALESCE(SUM(r.returnElementCount), 0.0) FROM JobWorkReturnEntity r WHERE r.jobWork.id = :jobWorkId AND r.id <> :excludeId")
