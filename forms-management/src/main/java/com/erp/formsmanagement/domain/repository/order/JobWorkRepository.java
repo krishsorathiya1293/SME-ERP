@@ -3,11 +3,9 @@ package com.erp.formsmanagement.domain.repository.order;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import com.erp.repository.CoreRepository;
 
-public interface JobWorkRepository
-    extends JpaRepository<JobWorkEntity, Long>, JpaSpecificationExecutor<JobWorkEntity> {
+public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
 
   default Specification<JobWorkEntity> filterByOrderItemId(Long orderItemId) {
     return (root, query, cb) ->

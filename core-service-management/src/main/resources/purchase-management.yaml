@@ -1,0 +1,447 @@
+openapi: 3.0.3
+
+info:
+  title: Purchase Management API
+  version: 1.0.0
+  description: OpenAPI for Purchase Order management
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: http://3.7.63.123:8080
+    description: Development Server
+  - url: http://13.205.54.102:8080
+    description: Production Server
+
+tags:
+  - name: PurchaseOrder
+    description: Purchase Order Endpoints
+
+security:
+  - oauth2: [ ]
+
+paths:
+  # -------------------- PURCHASE ORDER --------------------
+  /api/v1/purchase-orders:
+    get:
+      operationId: getAllPurchaseOrders
+      tags:
+        - PurchaseOrder
+      summary: Get all purchase orders (paginated)
+      parameters:
+        - $ref: '#/components/parameters/searchParam'
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
+        - $ref: '#/components/parameters/SortByFields'
+        - $ref: '#/components/parameters/directionParam'
+      responses:
+        '200':
+          description: Paginated purchase order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResultPurchaseOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      operationId: createPurchaseOrder
+      tags:
+        - PurchaseOrder
+      summary: Create a purchase order with line items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPurchaseOrder'
+      responses:
+        '201':
+          description: Purchase order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/purchase-orders/{id}:
+    get:
+      operationId: getPurchaseOrderById
+      tags:
+        - PurchaseOrder
+      summary: Get purchase order by ID
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Purchase order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      operationId: updatePurchaseOrder
+      tags:
+        - PurchaseOrder
+      summary: Update purchase order
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPurchaseOrder'
+      responses:
+        '200':
+          description: Purchase order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      operationId: deletePurchaseOrder
+      tags:
+        - PurchaseOrder
+      summary: Delete purchase order
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '204':
+          description: Purchase order deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+
+  securitySchemes:
+    oauth2:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    idParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    pageParam:
+      name: page
+      in: query
+      description: Page number starting from 0
+      schema:
+        type: integer
+        default: 0
+
+    sizeParam:
+      name: size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        default: 10
+
+    directionParam:
+      name: direction
+      in: query
+      description: Sort direction
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+
+    searchParam:
+      name: search
+      in: query
+      description: Search text to filter results
+      schema:
+        type: string
+
+    SortByFields:
+      name: sortByFields
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum:
+          - lastUpdatedAt
+          - createdAt
+          - orderDate
+
+  schemas:
+    # ---- Request ----
+    NewPurchaseOrder:
+      required:
+        - partyId
+        - orderDate
+      type: object
+      properties:
+        partyId:
+          type: integer
+          format: int64
+          description: Seller party ID (from party master)
+        sellerChitthiNo:
+          type: string
+          description: Seller's chitthi/bill reference number
+        sellerChitthiDate:
+          type: string
+          format: date
+          description: Seller's chitthi date
+        orderDate:
+          type: string
+          format: date
+          description: Purchase order date
+        orderTime:
+          type: string
+          description: Purchase order time (HH:mm)
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewPurchaseOrderItem'
+
+    NewPurchaseOrderItem:
+      type: object
+      properties:
+        sizeId:
+          type: integer
+          format: int64
+          description: Size ID from ItemBlueprintDataEntity
+        unitKg:
+          type: number
+          format: double
+          description: Purchase quantity in KG
+        unitType:
+          type: string
+          enum:
+            - KG
+            - PC
+          description: Unit type (e.g. Kgs, Pcs)
+        elementCount:
+          type: number
+          format: double
+          description: Number of elements (Peti / Box)
+        elementType:
+          type: string
+          enum:
+            - WOODEN_PETI
+            - PETI
+            - BAG
+            - HEAVY_PETI
+          description: Element type label (e.g. Peti, Box)
+        scrap:
+          type: number
+          format: double
+        labour:
+          type: number
+          format: double
+        price:
+          type: number
+          format: double
+          description: Rate per unit
+        totalPrice:
+          type: number
+          format: double
+          description: Total purchase price (aavak)
+        javakKgPc:
+          type: number
+          format: double
+          description: Outgoing (javak) quantity in Kg or Pc
+        javakRs:
+          type: number
+          format: double
+          description: Javak rate (Rs per unit)
+        javakTotalRs:
+          type: number
+          format: double
+          description: Total javak amount in Rs
+
+    # ---- Response ----
+    PurchaseOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        party:
+          $ref: '#/components/schemas/PurchaseOrderParty'
+        sellerChitthiNo:
+          type: string
+        sellerChitthiDate:
+          type: string
+          format: date
+        purchaseNo:
+          type: string
+          description: Auto-generated purchase number (e.g. 11/PUR-01-2026)
+        orderDate:
+          type: string
+          format: date
+        orderTime:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseOrderItem'
+        createdAt:
+          type: string
+          format: date-time
+        lastUpdatedAt:
+          type: string
+          format: date-time
+
+    PurchaseOrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        size:
+          $ref: '#/components/schemas/PurchaseOrderSize'
+        unitKg:
+          type: number
+          format: double
+        unitType:
+          type: string
+          enum:
+            - KG
+            - PC
+        elementCount:
+          type: number
+          format: double
+        elementType:
+          type: string
+          enum:
+            - WOODEN_PETI
+            - PETI
+            - BAG
+            - HEAVY_PETI
+        scrap:
+          type: number
+          format: double
+        labour:
+          type: number
+          format: double
+        price:
+          type: number
+          format: double
+        totalPrice:
+          type: number
+          format: double
+        javakKgPc:
+          type: number
+          format: double
+        javakRs:
+          type: number
+          format: double
+        javakTotalRs:
+          type: number
+          format: double
+
+    PurchaseOrderParty:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    PurchaseOrderSize:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sizeInInch:
+          type: string
+        sizeInMm:
+          type: string
+
+    # ---- Paginated Response ----
+    PaginatedResultPurchaseOrder:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseOrder'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        empty:
+          type: boolean
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        detail:
+          type: object
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

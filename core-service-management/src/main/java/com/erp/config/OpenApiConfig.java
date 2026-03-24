@@ -115,4 +115,30 @@ public class OpenApiConfig {
       return data;
     }
   }
+
+  @RestController
+  @RequestMapping("/doc/v3/purchase")
+  public class PurchaseDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("purchase-management.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
+
+  @RestController
+  @RequestMapping("/doc/v3/sales")
+  public class SalesDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("sales-management.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
 }

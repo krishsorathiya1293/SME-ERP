@@ -2,12 +2,9 @@ package com.erp.formsmanagement.domain.repository.packinginvoice;
 
 import com.erp.formsmanagement.domain.entity.packinginvoice.PackingInvoiceEntity;
 import java.time.LocalDate;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import com.erp.repository.CoreRepository;
 
-public interface PackingInvoiceRepository
-    extends JpaRepository<PackingInvoiceEntity, Long>,
-        JpaSpecificationExecutor<PackingInvoiceEntity> {
+public interface PackingInvoiceRepository extends CoreRepository<PackingInvoiceEntity, Long> {
 
   /** Used to auto-generate invoiceNo: count invoices for the same party+date. */
   long countByInvoiceDateAndParty_Id(LocalDate invoiceDate, Long partyId);
