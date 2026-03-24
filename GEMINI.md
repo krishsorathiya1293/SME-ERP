@@ -533,6 +533,72 @@ Simple domestic packing/dispatch invoice.
 
 ---
 
+### 8.5 Purchase Management
+
+#### `PurchaseOrderEntity` — table `purchase_orders`
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Long | |
+| `party` | `@ManyToOne(LAZY)` → `PartyEntity` | Seller party |
+| `sellerChitthiNo` | String | Seller's bill reference |
+| `sellerChitthiDate` | LocalDate | |
+| `purchaseNo` | String | Auto-generated: `{seq}/PUR-{seq}-{year}` |
+| `orderDate` | LocalDate | |
+| `orderTime` | String | HH:mm |
+| `items` | `@OneToMany(CASCADE_ALL)` → `List<PurchaseOrderItemEntity>` | |
+
+#### `PurchaseOrderItemEntity` — table `purchase_order_items`
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Long | |
+| `size` | `@ManyToOne(LAZY)` → `ItemBlueprintDataEntity` | |
+| `unitKg` | Double | Aavak (incoming) quantity in KG |
+| `unitType` | String | e.g., Kgs, Pcs |
+| `elementCount` | Double | Number of elements (Peti/Box) |
+| `elementType` | String | e.g., Peti, Box |
+| `scrap` | Double | |
+| `labour` | Double | |
+| `price` | Double | Rate per unit |
+| `totalPrice` | Double | Total purchase amount (aavak) |
+| `javakKgPc` | Double | Javak (outgoing) quantity |
+| `javakRs` | Double | Javak rate |
+| `javakTotalRs` | Double | Total javak amount |
+
+**API**: `GET/POST /api/v1/purchase-orders`, `GET/PUT/DELETE /api/v1/purchase-orders/{id}`  
+**Swagger Group**: `Purchase Management` → `/doc/v3/purchase`  
+**OpenAPI Package**: `com.erp.api.purchasemanagement`
+
+---
+
+### 8.6 Sales Management
+
+#### `SalesOrderEntity` — table `sales_orders`
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Long | |
+| `party` | `@ManyToOne(LAZY)` → `PartyEntity` | Customer party |
+| `customerChitthiNo` | String | Customer's PO reference |
+| `customerChitthiDate` | LocalDate | |
+| `salesNo` | String | Auto-generated: `{seq}/Sales-{seq}-{year}` |
+| `orderDate` | LocalDate | |
+| `orderTime` | String | HH:mm |
+| `items` | `@OneToMany(CASCADE_ALL)` → `List<SalesOrderItemEntity>` | |
+
+#### `SalesOrderItemEntity` — table `sales_order_items`
+
+Same item structure as `PurchaseOrderItemEntity` — unitKg, unitType, elementCount, elementType, scrap, labour, price, totalPrice, javakKgPc, javakRs, javakTotalRs.
+
+**API**: `GET/POST /api/v1/sales-orders`, `GET/PUT/DELETE /api/v1/sales-orders/{id}`  
+**Swagger Group**: `Sales Management` → `/doc/v3/sales`  
+**OpenAPI Package**: `com.erp.api.salesmanagement`
+
+
+
+---
+
 ## 9. API Design — OpenAPI First
 
 All REST API interfaces are **generated from OpenAPI YAML specs** stored in:

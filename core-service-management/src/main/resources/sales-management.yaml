@@ -1,0 +1,447 @@
+openapi: 3.0.3
+
+info:
+  title: Sales Management API
+  version: 1.0.0
+  description: OpenAPI for Sales Order management
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: http://3.7.63.123:8080
+    description: Development Server
+  - url: http://13.205.54.102:8080
+    description: Production Server
+
+tags:
+  - name: SalesOrder
+    description: Sales Order Endpoints
+
+security:
+  - oauth2: [ ]
+
+paths:
+  # -------------------- SALES ORDER --------------------
+  /api/v1/sales-orders:
+    get:
+      operationId: getAllSalesOrders
+      tags:
+        - SalesOrder
+      summary: Get all sales orders (paginated)
+      parameters:
+        - $ref: '#/components/parameters/searchParam'
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
+        - $ref: '#/components/parameters/SortByFields'
+        - $ref: '#/components/parameters/directionParam'
+      responses:
+        '200':
+          description: Paginated sales order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResultSalesOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      operationId: createSalesOrder
+      tags:
+        - SalesOrder
+      summary: Create a sales order with line items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSalesOrder'
+      responses:
+        '201':
+          description: Sales order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/sales-orders/{id}:
+    get:
+      operationId: getSalesOrderById
+      tags:
+        - SalesOrder
+      summary: Get sales order by ID
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '200':
+          description: Sales order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOrder'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      operationId: updateSalesOrder
+      tags:
+        - SalesOrder
+      summary: Update sales order
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSalesOrder'
+      responses:
+        '200':
+          description: Sales order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      operationId: deleteSalesOrder
+      tags:
+        - SalesOrder
+      summary: Delete sales order
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '204':
+          description: Sales order deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+
+  securitySchemes:
+    oauth2:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    idParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    pageParam:
+      name: page
+      in: query
+      description: Page number starting from 0
+      schema:
+        type: integer
+        default: 0
+
+    sizeParam:
+      name: size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        default: 10
+
+    directionParam:
+      name: direction
+      in: query
+      description: Sort direction
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+
+    searchParam:
+      name: search
+      in: query
+      description: Search text to filter results
+      schema:
+        type: string
+
+    SortByFields:
+      name: sortByFields
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum:
+          - lastUpdatedAt
+          - createdAt
+          - orderDate
+
+  schemas:
+    # ---- Request ----
+    NewSalesOrder:
+      required:
+        - partyId
+        - orderDate
+      type: object
+      properties:
+        partyId:
+          type: integer
+          format: int64
+          description: Customer party ID (from party master)
+        customerChitthiNo:
+          type: string
+          description: Customer's chitthi/PO reference number
+        customerChitthiDate:
+          type: string
+          format: date
+          description: Customer's chitthi date
+        orderDate:
+          type: string
+          format: date
+          description: Sales order date
+        orderTime:
+          type: string
+          description: Sales order time (HH:mm)
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewSalesOrderItem'
+
+    NewSalesOrderItem:
+      type: object
+      properties:
+        sizeId:
+          type: integer
+          format: int64
+          description: Size ID from ItemBlueprintDataEntity
+        unitKg:
+          type: number
+          format: double
+          description: Sales quantity in KG
+        unitType:
+          type: string
+          enum:
+            - KG
+            - PC
+          description: Unit type (e.g. Kgs, Pcs)
+        elementCount:
+          type: number
+          format: double
+          description: Number of elements (Peti / Box)
+        elementType:
+          type: string
+          enum:
+            - WOODEN_PETI
+            - PETI
+            - BAG
+            - HEAVY_PETI
+          description: Element type label (e.g. Peti, Box)
+        scrap:
+          type: number
+          format: double
+        labour:
+          type: number
+          format: double
+        price:
+          type: number
+          format: double
+          description: Rate per unit
+        totalPrice:
+          type: number
+          format: double
+          description: Total sales price (aavak)
+        javakKgPc:
+          type: number
+          format: double
+          description: Outgoing (javak) quantity in Kg or Pc
+        javakRs:
+          type: number
+          format: double
+          description: Javak rate (Rs per unit)
+        javakTotalRs:
+          type: number
+          format: double
+          description: Total javak amount in Rs
+
+    # ---- Response ----
+    SalesOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        party:
+          $ref: '#/components/schemas/SalesOrderParty'
+        customerChitthiNo:
+          type: string
+        customerChitthiDate:
+          type: string
+          format: date
+        salesNo:
+          type: string
+          description: Auto-generated sales number (e.g. 11/Sales-01-2026)
+        orderDate:
+          type: string
+          format: date
+        orderTime:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesOrderItem'
+        createdAt:
+          type: string
+          format: date-time
+        lastUpdatedAt:
+          type: string
+          format: date-time
+
+    SalesOrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        size:
+          $ref: '#/components/schemas/SalesOrderSize'
+        unitKg:
+          type: number
+          format: double
+        unitType:
+          type: string
+          enum:
+            - KG
+            - PC
+        elementCount:
+          type: number
+          format: double
+        elementType:
+          type: string
+          enum:
+            - WOODEN_PETI
+            - PETI
+            - BAG
+            - HEAVY_PETI
+        scrap:
+          type: number
+          format: double
+        labour:
+          type: number
+          format: double
+        price:
+          type: number
+          format: double
+        totalPrice:
+          type: number
+          format: double
+        javakKgPc:
+          type: number
+          format: double
+        javakRs:
+          type: number
+          format: double
+        javakTotalRs:
+          type: number
+          format: double
+
+    SalesOrderParty:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    SalesOrderSize:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sizeInInch:
+          type: string
+        sizeInMm:
+          type: string
+
+    # ---- Paginated Response ----
+    PaginatedResultSalesOrder:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesOrder'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        empty:
+          type: boolean
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        detail:
+          type: object
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
