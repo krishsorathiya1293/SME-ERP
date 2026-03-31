@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Outside Job Work Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        @page { margin: 20px; size: A4 portrait; }
+        body { font-family: "Kantumruy Pro", sans-serif; font-size: 11px; color: #333; margin: 0; padding: 20px; }
+        .header-title { font-size: 18px; font-weight: 600; color: #000; margin-bottom: 5px; }
+        .header-subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+        th, td { border: 1px solid #eee; padding: 6px; text-align: center; }
+        th { background: #f9f9f9; font-weight: 600; color: #555; }
+        .totals { margin-top: 20px; display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; }
+        .text-left { text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="header-title" th:text="${partyName}">Party Name</div>
+    <div class="header-subtitle">
+        Outside Job Work | <span th:text="${#temporals.format(startDate, 'dd-MM-yyyy')}"></span> to <span th:text="${#temporals.format(endDate, 'dd-MM-yyyy')}"></span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>C.No</th>
+                <th>Size</th>
+                <th>PCS</th>
+                <th>Kg Out</th>
+                <th>Finish</th>
+                <th>Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="jw : ${records}">
+                <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate, 'dd-MM-yyyy') : ''}"></td>
+                <td th:text="${jw.chitthiNo != null ? jw.chitthiNo : ''}"></td>
+                <td class="text-left" th:text="${jw.size != null ? jw.size.sizeInInch : ''}"></td>
+                <td th:text="${jw.qtyPc != null ? jw.qtyPc : 0}"></td>
+                <td th:text="${jw.qtyKg != null ? jw.qtyKg : 0}"></td>
+                <td th:text="${jw.finish != null ? jw.finish : ''}"></td>
+                <td th:text="${jw.jobWorkType != null ? jw.jobWorkType.name() : ''}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="header-title" style="font-size: 14px; margin-top: 30px;">Aavak (Returns)</div>
+    <table>
+        <thead>
+            <tr>
+                <th>C.No</th>
+                <th>Return Date</th>
+                <th>Return Kg</th>
+                <th>Return PCS</th>
+                <th>Ghati</th>
+            </tr>
+        </thead>
+        <tbody th:each="jw : ${records}">
+            <tr th:each="ret : ${jw.jobWorkReturns}">
+                <td th:text="${jw.chitthiNo != null ? jw.chitthiNo : ''}"></td>
+                <td th:text="${ret.returnDate != null ? #temporals.format(ret.returnDate, 'dd-MM-yyyy') : ''}"></td>
+                <td th:text="${ret.returnKg != null ? ret.returnKg : 0}"></td>
+                <td th:text="${ret.returnPc != null ? ret.returnPc : 0}"></td>
+                <td th:text="${ret.ghati != null ? ret.ghati : 0}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div>Total Return Kg: <span style="color:red;" th:text="${totalReturnKg}"></span></div>
+        <div>Total Ghati: <span style="color:red;" th:text="${totalGhati}"></span></div>
+    </div>
+</body>
+</html>

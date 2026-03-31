@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gres Filling Chitthi</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"/>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        @page {
+            margin: 0;
+            size: 297.5px 420.82px;
+        }
+
+        html, body {
+            width: 297.5px;
+            height: 420.82px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: "Kantumruy Pro", Arial, sans-serif;
+            font-weight: 500;
+            position: relative;
+            color: #111;
+        }
+
+        .ticket {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 297.5px;
+            height: 420.82px;
+            padding: 18px 18px 12px 18px;
+            font-size: 11px;
+            line-height: 1.35;
+            box-sizing: border-box;
+        }
+
+        .header {
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        .h-left {
+            float: left;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .h-right {
+            float: right;
+            text-align: right;
+            font-size: 10px;
+            color: #7e7e7e;
+            line-height: 1.35;
+        }
+
+        .h-right .row {
+            margin: 2px 0;
+        }
+
+        .info {
+            margin-top: 6px;
+        }
+
+        .info-row {
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .lbl {
+            float: left;
+            width: 80px;
+            color: #3a3a3a;
+        }
+
+        .val {
+            float: left;
+            width: 178px;
+            border-bottom: 1px solid #3a3a3a;
+            padding-bottom: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .section-title {
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 11px;
+            color: #111;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 10px;
+        }
+
+        .items-table th {
+            text-align: left;
+            color: #8a8a8a;
+            font-weight: 500;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .items-table td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .returns-section {
+            margin-top: 16px;
+        }
+
+        .return-row {
+            overflow: hidden;
+            margin-top: 8px;
+            font-size: 10px;
+        }
+
+        .rcol {
+            float: left;
+            width: 33%;
+        }
+
+        .rlabel {
+            color: #8a8a8a;
+        }
+
+        .rvalue {
+            margin-top: 3px;
+        }
+
+        .total-ghati {
+            margin-top: 14px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="ticket"
+     th:with="
+       dt=${gres.chitthiDate != null ? #temporals.format(gres.chitthiDate,'dd-MM-yyyy') : ''},
+       tm=${gres.orderTime != null ? gres.orderTime : #temporals.format(#temporals.createNow(),'HH:mm')},
+       chitthiNo=${gres.chitthiNo != null ? gres.chitthiNo : ''},
+       totalReturnKg=${!gres.returns.?[returnKg != null].isEmpty() ? #aggregates.sum(gres.returns.?[returnKg != null].![returnKg]) : 0},
+       totalGhati=${!gres.returns.?[ghati != null].isEmpty() ? #aggregates.sum(gres.returns.?[ghati != null].![ghati]) : 0}
+     ">
+
+    <div class="header">
+        <div class="h-left">Gres Filling</div>
+        <div class="h-right">
+            <div class="row">Chitthi: <span th:text="${chitthiNo}"></span></div>
+            <div class="row">Date: <span th:text="${dt}"></span></div>
+            <div class="row">Time: <span th:text="${tm}"></span></div>
+        </div>
+    </div>
+
+    <div class="info">
+        <div class="info-row">
+            <div class="lbl">Vendor :</div>
+            <div class="val" th:text="${party}">Vendor Name</div>
+        </div>
+    </div>
+
+    <!-- Javak (sent out) items -->
+    <div class="section-title">Javak</div>
+
+    <table class="items-table">
+        <thead>
+        <tr>
+            <th>Size</th>
+            <th>Kg / Pcs</th>
+            <th>Element</th>
+            <th>Net Wt</th>
+            <th>Rate/Kg</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item : ${gres.items}">
+            <td th:text="${item.size != null ? item.size.sizeInInch : '--'}"></td>
+            <td th:text="${item.unitKg != null ? item.unitKg + (item.unitType != null ? ' ' + item.unitType : '') : '--'}"></td>
+            <td th:text="${item.elementCount != null ? item.elementCount + (item.elementType != null ? ' ' + item.elementType.name() : '') : '--'}"></td>
+            <td th:text="${item.netWeight != null ? item.netWeight + 'Kg' : '--'}"></td>
+            <td th:text="${item.ratePerKg != null ? item.ratePerKg : '--'}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Aavak (returns) summary -->
+    <div class="section-title" th:if="${!gres.returns.isEmpty()}">Aavak</div>
+
+    <div class="returns-section" th:if="${!gres.returns.isEmpty()}">
+        <div class="return-row" th:each="ret : ${gres.returns}">
+            <div class="rcol">
+                <div class="rlabel">Return Kg</div>
+                <div class="rvalue" th:text="${ret.returnKg != null ? ret.returnKg + 'Kg' : '--'}"></div>
+            </div>
+            <div class="rcol">
+                <div class="rlabel">Ghati</div>
+                <div class="rvalue" th:text="${ret.ghati != null ? ret.ghati : '--'}"></div>
+            </div>
+            <div class="rcol">
+                <div class="rlabel">Date</div>
+                <div class="rvalue" th:text="${ret.returnDate != null ? #temporals.format(ret.returnDate,'dd-MM-yy') : '--'}"></div>
+            </div>
+        </div>
+
+        <div class="total-ghati">
+            Total Ghati: <span th:text="${totalGhati}">0</span> KG
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

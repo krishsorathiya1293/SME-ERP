@@ -1,7 +1,6 @@
-package com.erp.formsmanagement.domain.entity.order;
+package com.erp.formsmanagement.domain.entity.gres;
 
 import com.erp.audit.AuditInfo;
-import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -15,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -30,56 +28,43 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "job_works")
+@Table(name = "gres_fillings")
 @EntityListeners(AuditingEntityListener.class)
-public class JobWorkEntity extends AuditInfo {
+public class GresFillingEntity extends AuditInfo {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "order_item_id", nullable = false, unique = true)
-  private OrderItemEntity orderItem;
-
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "party_id", nullable = false)
   private PartyEntity party;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "size_id", nullable = false)
-  private ItemBlueprintDataEntity size;
-
-  private LocalDate jobDate;
-  private Double qtyPc;
-  private Double qtyKg;
-  private String finish;
-  private Double elementCount;
-
-  @Enumerated(EnumType.STRING)
-  private ElementType elementType;
-
-  @Enumerated(EnumType.STRING)
-  private JobWorkStatus status;
-
-  @Enumerated(EnumType.STRING)
-  private JobWorkType jobWorkType;
 
   private String chitthiNo;
   private LocalDate chitthiDate;
   private String orderTime;
 
+  @Enumerated(EnumType.STRING)
+  private GresFillingStatus status;
+
   @OneToMany(
-      mappedBy = "jobWork",
+      mappedBy = "gresFilling",
       cascade = CascadeType.ALL,
       orphanRemoval = true,
       fetch = FetchType.LAZY)
-  private List<JobWorkReturnEntity> jobWorkReturns = new ArrayList<>();
+  private List<GresFillingItemEntity> items = new ArrayList<>();
+
+  @OneToMany(
+      mappedBy = "gresFilling",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      fetch = FetchType.LAZY)
+  private List<GresFillingReturnEntity> returns = new ArrayList<>();
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof JobWorkEntity e)) return false;
+    if (!(o instanceof GresFillingEntity e)) return false;
     return id != null && id.equals(e.id);
   }
 

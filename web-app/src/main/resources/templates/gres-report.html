@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gres Filling Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        @page { margin: 20px; size: A4 portrait; }
+        body { font-family: "Kantumruy Pro", sans-serif; font-size: 11px; color: #333; margin: 0; padding: 20px; }
+        .header-title { font-size: 18px; font-weight: 600; color: #000; margin-bottom: 5px; }
+        .header-subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+        th, td { border: 1px solid #eee; padding: 6px; text-align: center; }
+        th { background: #f9f9f9; font-weight: 600; color: #555; }
+        .row-date { font-weight: 600; text-align: left; background: #fafafa; }
+        .totals { margin-top: 20px; display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="header-title" th:text="${partyName}">Party Name</div>
+    <div class="header-subtitle">
+        Gres Filling | <span th:text="${#temporals.format(startDate, 'dd-MM-yyyy')}"></span> to <span th:text="${#temporals.format(endDate, 'dd-MM-yyyy')}"></span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>C.No</th>
+                <th>Size</th>
+                <th>Element (PCS)</th>
+                <th>Weight (Kg)</th>
+                <th>Net Kg</th>
+                <th>Rate</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody th:each="gres : ${records}">
+            <tr th:each="item, stat : ${gres.items}">
+                <td th:if="${stat.index == 0}" th:rowspan="${gres.items.size()}" th:text="${gres.chitthiDate != null ? #temporals.format(gres.chitthiDate, 'dd-MM-yyyy') : ''}"></td>
+                <td th:if="${stat.index == 0}" th:rowspan="${gres.items.size()}" th:text="${gres.chitthiNo}"></td>
+                <td class="text-left" th:text="${item.size != null ? item.size.sizeInInch : ''}"></td>
+                <td th:text="${item.elementCount != null ? item.elementCount : 0}"></td>
+                <td th:text="${item.unitKg != null ? item.unitKg : 0}"></td>
+                <td th:text="${item.netWeight != null ? item.netWeight : 0}"></td>
+                <td th:text="${item.ratePerKg != null ? item.ratePerKg : 0}"></td>
+                <td th:text="${item.totalAmount != null ? item.totalAmount : 0}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="header-title" style="font-size: 14px; margin-top: 30px;">Aavak (Returns)</div>
+    <table>
+        <thead>
+            <tr>
+                <th>C.No</th>
+                <th>Return Date</th>
+                <th>Return Kg</th>
+                <th>Ghati</th>
+            </tr>
+        </thead>
+        <tbody th:each="gres : ${records}">
+            <tr th:each="ret : ${gres.returns}">
+                <td th:text="${gres.chitthiNo}"></td>
+                <td th:text="${ret.returnDate != null ? #temporals.format(ret.returnDate, 'dd-MM-yyyy') : ''}"></td>
+                <td th:text="${ret.returnKg != null ? ret.returnKg : 0}"></td>
+                <td th:text="${ret.ghati != null ? ret.ghati : 0}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div>Total Net Kg: <span style="color:red;" th:text="${totalNetWeight}"></span></div>
+        <div>Total Ghati: <span style="color:red;" th:text="${totalGhati}"></span></div>
+        <div>Total Amount: <span style="color:red;" th:text="${totalAmount}"></span></div>
+    </div>
+</body>
+</html>

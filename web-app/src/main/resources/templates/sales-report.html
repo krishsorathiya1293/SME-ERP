@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sales Order Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        @page { margin: 20px; size: A4 portrait; }
+        body { font-family: "Kantumruy Pro", sans-serif; font-size: 11px; color: #333; margin: 0; padding: 20px; }
+        .header-title { font-size: 18px; font-weight: 600; color: #000; margin-bottom: 5px; }
+        .header-subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+        th, td { border: 1px solid #eee; padding: 6px; text-align: center; }
+        th { background: #f9f9f9; font-weight: 600; color: #555; }
+        .totals { margin-top: 20px; display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; }
+        .text-left { text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="header-title" th:text="${partyName}">Party Name</div>
+    <div class="header-subtitle">
+        Sales Bill Report | <span th:text="${#temporals.format(startDate, 'dd-MM-yyyy')}"></span> to <span th:text="${#temporals.format(endDate, 'dd-MM-yyyy')}"></span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Sales No</th>
+                <th>Cust C.No</th>
+                <th>Size</th>
+                <th>Qty</th>
+                <th>Elements</th>
+                <th>Rate</th>
+                <th>Total Amt</th>
+                <th>Javak Info</th>
+            </tr>
+        </thead>
+        <tbody th:each="so : ${records}">
+            <tr th:each="item, stat : ${so.items}">
+                <td th:if="${stat.index == 0}" th:rowspan="${so.items.size()}" th:text="${so.orderDate != null ? #temporals.format(so.orderDate, 'dd-MM-yyyy') : ''}"></td>
+                <td th:if="${stat.index == 0}" th:rowspan="${so.items.size()}" th:text="${so.salesNo}"></td>
+                <td th:if="${stat.index == 0}" th:rowspan="${so.items.size()}" th:text="${so.customerChitthiNo}"></td>
+                
+                <td class="text-left" th:text="${item.size != null ? item.size.sizeInInch : ''}"></td>
+                <td th:text="${item.unitKg != null ? item.unitKg + ' ' + (item.unitType != null ? item.unitType : '') : 0}"></td>
+                <td th:text="${item.elementCount != null ? item.elementCount + ' ' + (item.elementType != null ? item.elementType : '') : 0}"></td>
+                <td th:text="${item.price != null ? item.price : 0}"></td>
+                <td th:text="${item.totalPrice != null ? item.totalPrice : 0}"></td>
+                
+                <td>
+                    <div th:if="${item.javakKgPc != null && item.javakKgPc > 0}">
+                        Javak: [[${item.javakKgPc}]] @ [[${item.javakRs}]] = [[${item.javakTotalRs}]]
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div>Total Sales Amount: <span style="color:red;" th:text="${totalSalesAmount}"></span> Rs</div>
+        <div>Total Javak Amount: <span style="color:red;" th:text="${totalJavakAmount}"></span> Rs</div>
+    </div>
+</body>
+</html>

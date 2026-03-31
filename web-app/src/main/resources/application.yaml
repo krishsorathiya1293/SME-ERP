@@ -80,6 +80,8 @@ springdoc:
         url: /doc/v3/purchase
       - name: Sales Management
         url: /doc/v3/sales
+      - name: Gres Management
+        url: /doc/v3/gres
     display-request-duration: true
     doc-expansion: none
 security:

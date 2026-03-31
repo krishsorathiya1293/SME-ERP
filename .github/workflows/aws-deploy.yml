@@ -8,14 +8,13 @@ on:
         required: true
         type: choice
         options:
-          - dev
           - prod
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    environment: ${{ inputs.environment }}
+    environment: prod
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,13 +32,8 @@ jobs:
       - name: Set deploy target
         id: target
         run: |
-          if [ "${{ inputs.environment }}" = "prod" ]; then
-            echo "host=${{ secrets.PROD_EC2_IP }}" >> $GITHUB_OUTPUT
-            echo "env=prod" >> $GITHUB_OUTPUT
-          else
-            echo "host=${{ secrets.DEV_EC2_IP }}" >> $GITHUB_OUTPUT
-            echo "env=dev" >> $GITHUB_OUTPUT
-          fi
+          echo "host=${{ secrets.PROD_EC2_IP }}" >> $GITHUB_OUTPUT
+          echo "env=prod" >> $GITHUB_OUTPUT
 
       - name: Copy JAR to server
         uses: appleboy/scp-action@v0.1.7
@@ -82,4 +76,4 @@ jobs:
             exit 1
 
       - name: Notify success
-        run: echo "Deployed to ${{ steps.target.outputs.env }} successfully"
+        run: echo "Deployed to prod successfully"

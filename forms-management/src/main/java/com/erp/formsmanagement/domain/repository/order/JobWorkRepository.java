@@ -1,6 +1,8 @@
 package com.erp.formsmanagement.domain.repository.order;
 
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 import com.erp.repository.CoreRepository;
@@ -26,4 +28,7 @@ public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
                             cb.lower(root.get("finish")), "%" + s.toLowerCase() + "%")))
             .orElse(null);
   }
+
+  List<JobWorkEntity> findByPartyIdAndJobDateBetweenOrderByJobDateAsc(
+      Long partyId, LocalDate startDate, LocalDate endDate);
 }
