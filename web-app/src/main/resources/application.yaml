@@ -1,3 +1,9 @@
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1024
+
 spring:
   application:
     name: SME-ERP
@@ -7,8 +13,8 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 30
-      minimum-idle: 10
+      maximum-pool-size: 5
+      minimum-idle: 2
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
@@ -16,7 +22,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate.default_schema: sme_erp
   flyway:
