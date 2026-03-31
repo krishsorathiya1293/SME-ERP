@@ -1072,6 +1072,16 @@ components:
           $ref: '#/components/schemas/JobWorkStatus'
         jobWorkType:
           $ref: '#/components/schemas/JobWorkType'
+        chitthiNo:
+          type: string
+          description: Chitthi/bill reference number
+        chitthiDate:
+          type: string
+          format: date
+          description: Chitthi date
+        orderTime:
+          type: string
+          description: Order time (HH:mm)
 
     JobWork:
       type: object
@@ -1113,6 +1123,13 @@ components:
         createdAt:
           type: string
           format: date-time
+        chitthiNo:
+          type: string
+        chitthiDate:
+          type: string
+          format: date
+        orderTime:
+          type: string
 
     JobWorkParty:
       type: object

@@ -131,8 +131,9 @@
 <div class="ticket"
      th:with="
        jwNo=${job.orderItem != null && job.orderItem.jobWorkNo != null ? #numbers.formatInteger(job.orderItem.jobWorkNo,3) : ''},
-       dt=${job.jobDate != null ? #temporals.format(job.jobDate,'dd-MM-yyyy') : ''},
-       tm=${#temporals.format(#temporals.createNow(),'HH:mm')},
+       dt=${job.chitthiDate != null ? #temporals.format(job.chitthiDate,'dd-MM-yyyy') : (job.jobDate != null ? #temporals.format(job.jobDate,'dd-MM-yyyy') : '')},
+       tm=${job.orderTime != null ? job.orderTime : #temporals.format(#temporals.createNow(),'HH:mm')},
+       chitthiNo=${job.chitthiNo != null ? job.chitthiNo : ''},
        finish=${job.finish != null ? job.finish : ''},
        sticker=${job.orderItem != null && job.orderItem.stickerQty != null ? job.orderItem.stickerQty : ''},
        sizeText=${job.size != null ? job.size.sizeInInch : ''},
@@ -144,6 +145,7 @@
     <div class="header">
         <div class="h-left">Job ID - <span th:text="${jwNo}">001</span></div>
         <div class="h-right">
+            <div class="row">Chitthi: <span th:text="${chitthiNo}"></span></div>
             <div class="row">Date: <span th:text="${dt}">03-11-2025</span></div>
             <div class="row">Time: <span th:text="${tm}">13:15</span></div>
         </div>
