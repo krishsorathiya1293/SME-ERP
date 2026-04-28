@@ -44,6 +44,7 @@ jobs:
           source: "web-app/target/web-app-1.0.0-SNAPSHOT.jar"
           target: "/tmp/"
           strip_components: 2
+          debug: true
 
       - name: Deploy and restart app
         uses: appleboy/ssh-action@v1.0.3
