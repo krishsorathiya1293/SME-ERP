@@ -19,6 +19,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.util.HtmlUtils;
 
@@ -98,11 +99,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ErrorResponse> handleConflict(
       HttpServletRequest req, DataIntegrityViolationException ex) {
-    Throwable root = ex.getRootCause();
     String sqlState = null;
-    if (root instanceof org.hibernate.exception.ConstraintViolationException cve
+    // getCause() gives Hibernate's ConstraintViolationException; getRootCause() goes deeper to SQLException
+    if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException cve
         && cve.getSQLException() != null) {
       sqlState = cve.getSQLException().getSQLState();
+    } else if (ex.getRootCause() instanceof java.sql.SQLException sqle) {
+      sqlState = sqle.getSQLState();
     }
     boolean isUniqueViolation = "23505".equals(sqlState);
     boolean isForeignKeyViolation = "23503".equals(sqlState);
@@ -110,10 +113,27 @@ public class GlobalExceptionHandler {
     String message;
     if (isUniqueViolation) {
       message = "Duplicate value already exists";
+    } else if (isForeignKeyViolation) {
+      message = "Cannot delete: this party is referenced by existing records (invoices, orders, etc.)";
     } else {
-      if (isForeignKeyViolation) message = "Cannot delete. This record is used in another service";
-      else message = "Data integrity violation";
+      message = "Data integrity violation";
     }
+    return handle(req, ex, spec, message);
+  }
+
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<ErrorResponse> handleResponseStatus(
+      HttpServletRequest req, ResponseStatusException ex) {
+    String message = ex.getReason() != null ? ex.getReason() : ex.getMessage();
+    int statusValue = ex.getStatusCode().value();
+    ErrorSpec spec =
+        switch (statusValue) {
+          case 400 -> BAD_REQUEST;
+          case 404 -> NOT_FOUND;
+          case 409 -> CONFLICT;
+          case 422 -> UNPROCESSABLE;
+          default -> INTERNAL_ERROR;
+        };
     return handle(req, ex, spec, message);
   }
 

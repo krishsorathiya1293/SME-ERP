@@ -746,10 +746,10 @@ components:
 
         createdAt:
           type: string
-          format: date
+          format: date-time
         updatedAt:
           type: string
-          format: date
+          format: date-time
 
     PaginatedResultInventory:
       type: object

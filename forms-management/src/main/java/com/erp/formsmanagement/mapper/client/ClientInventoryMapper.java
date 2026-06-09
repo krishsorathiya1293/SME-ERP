@@ -24,6 +24,8 @@ public interface ClientInventoryMapper
   @Mapping(source = "party.name", target = "client.name")
   @Mapping(source = "size", target = "size")
   @Mapping(target = "isOverridden", expression = "java(true)")
+  @Mapping(target = "createdAt", expression = "java(map(entity.getCreatedAt()))")
+  @Mapping(target = "lastUpdatedAt", expression = "java(map(entity.getLastUpdatedAt()))")
   ClientInventory toDomain(ClientInventoryEntity entity);
 
   @Mapping(target = "party", ignore = true)

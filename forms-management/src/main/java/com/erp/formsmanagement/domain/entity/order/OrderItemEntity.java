@@ -2,7 +2,6 @@ package com.erp.formsmanagement.domain.entity.order;
 
 import com.erp.audit.AuditInfo;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -15,6 +14,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
+import org.hibernate.annotations.Formula;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -50,10 +51,13 @@ public class OrderItemEntity extends AuditInfo {
   private Double pcPerCartoon;
   private Double stickerQty;
 
-  @OneToOne(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
-  private OrderDispatchEntity dispatch;
-
   private Double pendingPc;
+
+  @Formula("(SELECT COALESCE(SUM(d.dispatch_pcs), 0) FROM sme_erp.order_dispatch d WHERE d.order_item_id = id)")
+  private Double totalDispatchedPc;
+
+  @Formula("(SELECT MAX(d.dispatch_date) FROM sme_erp.order_dispatch d WHERE d.order_item_id = id)")
+  private LocalDate lastDispatchDate;
   private Boolean jobActionDone;
 
   @ToString.Exclude
