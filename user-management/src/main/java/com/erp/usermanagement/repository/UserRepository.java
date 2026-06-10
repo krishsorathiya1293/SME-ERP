@@ -35,4 +35,38 @@ public interface UserRepository extends CoreRepository<UserEntity, Long> {
    * @return Page of users matching the search criteria
    */
   Page<UserEntity> findByUserEmailContainingIgnoreCase(String email, Pageable pageable);
+
+  /**
+   * Find user by username (login identifier).
+   *
+   * @param username The username to search for
+   * @return Optional containing user if found
+   */
+  Optional<UserEntity> findByUsername(String username);
+
+  /**
+   * Find user by username OR email, used for login so existing accounts can keep signing in with
+   * either identifier.
+   *
+   * @param username The username to search for
+   * @param userEmail The email to search for
+   * @return Optional containing user if found
+   */
+  Optional<UserEntity> findByUsernameOrUserEmail(String username, String userEmail);
+
+  /**
+   * Check if user exists with given username.
+   *
+   * @param username The username to check
+   * @return true if user exists, false otherwise
+   */
+  boolean existsByUsername(String username);
+
+  /**
+   * Find the user account linked to a given party.
+   *
+   * @param partyId The party id to search for
+   * @return Optional containing user if found
+   */
+  Optional<UserEntity> findByPartyId(Long partyId);
 }

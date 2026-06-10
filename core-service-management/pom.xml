@@ -310,6 +310,41 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>client-portal-management-code-gen</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <skipValidateSpec>true</skipValidateSpec>
+                            <inputSpec>${project.basedir}/src/main/resources/client-portal-management.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <apiPackage>com.erp.api.clientportalmanagement</apiPackage>
+                            <modelPackage>com.erp.api.clientportalmanagement.model</modelPackage>
+                            <apiNameSuffix>ClientPortalManagementApi</apiNameSuffix>
+                            <generateApiDocumentation>true</generateApiDocumentation>
+                            <configOptions>
+                                <openApiNullable>false</openApiNullable>
+                                <interfaceOnly>true</interfaceOnly>
+                                <library>spring-boot</library>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <delegatePattern>false</delegatePattern>
+                                <disallowAdditionalPropertiesIfNotPresent>true
+                                </disallowAdditionalPropertiesIfNotPresent>
+                                <documentationProvider>none</documentationProvider>
+                                <ensureUniqueParameters>true</ensureUniqueParameters>
+                                <requestMappingMode>none</requestMappingMode>
+                                <returnSuccessCode>true</returnSuccessCode>
+                                <serializableModel>false</serializableModel>
+                                <sortParamsByRequiredFlag>true</sortParamsByRequiredFlag>
+                                <useOptional>true</useOptional>
+                                <useResponseEntity>true</useResponseEntity>
+                                <useSwaggerUI>false</useSwaggerUI>
+                                <useTags>true</useTags>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>packing-invoice-management-code-gen</id>
                         <goals>
                             <goal>generate</goal>

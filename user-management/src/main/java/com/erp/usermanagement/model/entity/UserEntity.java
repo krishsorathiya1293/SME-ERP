@@ -26,8 +26,17 @@ public class UserEntity extends AuditInfo {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(nullable = false, unique = true)
+  private String username;
+
   private String userEmail;
   private String password;
+
+  private String initialPassword;
+
+  /** Links this user to a party (CLIENT users only). Null for ADMIN users. */
+  @Column(unique = true)
+  private Long partyId;
 
   @Enumerated(EnumType.STRING)
   private UserGroup userGroup;

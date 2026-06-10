@@ -7,9 +7,13 @@ import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.mapper.master.PartyMapper;
 import com.erp.formsmanagement.service.master.PartyService;
 import com.erp.service.AbstractSpecificationServiceV1;
+import com.erp.usermanagement.service.UserService;
 import com.erp.util.GetAllQuery;
+import com.erp.wrappers.CreateOne;
+import com.erp.wrappers.CreateResult;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PartyServiceImpl
@@ -17,10 +21,21 @@ public class PartyServiceImpl
     implements PartyService {
 
   private final PartyRepository partyRepository;
+  private final UserService userService;
 
-  public PartyServiceImpl(PartyRepository partyRepository, PartyMapper partyMapper) {
+  public PartyServiceImpl(
+      PartyRepository partyRepository, PartyMapper partyMapper, UserService userService) {
     super(partyRepository, partyMapper);
     this.partyRepository = partyRepository;
+    this.userService = userService;
+  }
+
+  @Override
+  @Transactional
+  public CreateResult<Party> save(NewParty request) {
+    PartyEntity savedEntity = partyRepository.save(mapper().toEntity(request));
+    userService.registerClientUser(savedEntity.getId(), savedEntity.getName());
+    return new CreateOne<>(mapper().toDomain(savedEntity));
   }
 
   @Override

@@ -5,6 +5,8 @@ import com.erp.repository.CoreRepository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 public interface OrderRepository extends CoreRepository<OrderEntity, Long> {
@@ -20,4 +22,6 @@ public interface OrderRepository extends CoreRepository<OrderEntity, Long> {
   }
 
   List<OrderEntity> findByParty_IdIn(Collection<Long> partyIds);
+
+  Page<OrderEntity> findByParty_Id(Long partyId, Pageable pageable);
 }

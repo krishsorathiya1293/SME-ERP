@@ -8,7 +8,8 @@ import lombok.Getter;
  */
 @Getter
 public enum UserGroup {
-  ADMIN("Admin");
+  ADMIN("Admin"),
+  CLIENT("Client");
 
   private final String value;
 

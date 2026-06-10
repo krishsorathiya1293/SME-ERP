@@ -154,4 +154,17 @@ public class OpenApiConfig {
       return data;
     }
   }
+
+  @RestController
+  @RequestMapping("/doc/v3/client-portal")
+  public class ClientPortalDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("client-portal-management.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
 }

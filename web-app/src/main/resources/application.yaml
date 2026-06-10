@@ -22,7 +22,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: false
+    show-sql: true
     properties:
       hibernate.default_schema: sme_erp
   flyway:
@@ -88,6 +88,8 @@ springdoc:
         url: /doc/v3/sales
       - name: Gres Management
         url: /doc/v3/gres
+      - name: Client Portal
+        url: /doc/v3/client-portal
     display-request-duration: true
     doc-expansion: none
 security:

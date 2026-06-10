@@ -25,9 +25,11 @@ public class DatabaseUserDetailsService implements UserDetailsService {
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
     UserEntity user =
         userRepository
-            .findByUserEmail(username)
+            .findByUsernameOrUserEmail(username, username)
             .orElseThrow(
-                () -> new UsernameNotFoundException("User not found with email: " + username));
+                () ->
+                    new UsernameNotFoundException(
+                        "User not found with username or email: " + username));
 
     if (Boolean.FALSE.equals(user.getEnabled())) {
       throw new UsernameNotFoundException("User account is disabled");
@@ -35,7 +37,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
     String authority = "ROLE_" + user.getUserGroup().name();
 
     return User.builder()
-        .username(user.getUserEmail())
+        .username(user.getUsername())
         .password(user.getPassword())
         .authorities(Collections.singletonList(new SimpleGrantedAuthority(authority)))
         .accountExpired(false)

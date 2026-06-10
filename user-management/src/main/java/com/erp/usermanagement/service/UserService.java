@@ -2,11 +2,13 @@ package com.erp.usermanagement.service;
 
 import com.erp.api.usermanagement.model.PaginatedResultUser;
 import com.erp.api.usermanagement.model.User;
+import com.erp.exception.EntityNotFoundException;
 import com.erp.usermanagement.mapper.UserMapper;
 import com.erp.usermanagement.model.entity.UserEntity;
 import com.erp.usermanagement.model.entity.UserGroup;
 import com.erp.usermanagement.repository.UserRepository;
 import com.erp.util.PaginationUtils;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserService {
 
+  private static final String DEFAULT_CLIENT_USERNAME = "client";
+  private static final int MAX_USERNAME_BASE_LENGTH = 20;
+  private static final String PASSWORD_CHARS =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  private static final int GENERATED_PASSWORD_LENGTH = 8;
+  private static final SecureRandom RANDOM = new SecureRandom();
+
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final UserMapper userMapper;
@@ -37,6 +46,7 @@ public class UserService {
 
     UserEntity user =
         UserEntity.builder()
+            .username(email)
             .userEmail(email)
             .password(passwordEncoder.encode(password))
             .userGroup(UserGroup.fromValue(userGroup))
@@ -44,6 +54,105 @@ public class UserService {
             .build();
 
     return userRepository.save(user);
+  }
+
+  /**
+   * Auto-create a CLIENT user account for a newly created party. Generates a unique login
+   * username derived from the party's name and a random password; the email and other profile
+   * fields remain empty until the client fills them in. The plaintext password is retained
+   * (encrypted at rest) so the admin can download it for the party until the client changes it.
+   */
+  @Transactional
+  public UserEntity registerClientUser(Long partyId, String partyName) {
+    String username = generateClientUsername(partyName);
+    String rawPassword = generateRandomPassword();
+
+    UserEntity user =
+        UserEntity.builder()
+            .username(username)
+            .partyId(partyId)
+            .password(passwordEncoder.encode(rawPassword))
+            .initialPassword(rawPassword)
+            .userGroup(UserGroup.CLIENT)
+            .enabled(true)
+            .build();
+
+    return userRepository.save(user);
+  }
+
+  /**
+   * Change a user's password after verifying their current password. Clears the stored initial
+   * password so the account no longer shows up as "pending" in the admin credentials export.
+   */
+  @Transactional
+  public void changePassword(Long userId, String currentPassword, String newPassword) {
+    UserEntity user = getUserById(userId);
+    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+      throw new IllegalArgumentException("Current password is incorrect");
+    }
+    user.setPassword(passwordEncoder.encode(newPassword));
+    user.setInitialPassword(null);
+    userRepository.save(user);
+  }
+
+  /**
+   * Regenerate the login credentials for the CLIENT user linked to the given party. Returns the
+   * updated user entity with the new plaintext password set as the initial password.
+   */
+  @Transactional
+  public UserEntity resetClientCredentials(Long partyId) {
+    UserEntity user =
+        userRepository
+            .findByPartyId(partyId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(
+                        "No client account found for party id: " + partyId));
+
+    String rawPassword = generateRandomPassword();
+    user.setPassword(passwordEncoder.encode(rawPassword));
+    user.setInitialPassword(rawPassword);
+    return userRepository.save(user);
+  }
+
+  /**
+   * Build a unique username derived from the party's name (e.g. "Acme Trading Co." -&gt;
+   * "acmetradingco"). If the slugified name is blank, falls back to "client". If the resulting
+   * username is already taken, a numeric suffix is appended until it is unique.
+   */
+  private String generateClientUsername(String partyName) {
+    String base = slugify(partyName);
+    if (base.isBlank()) {
+      base = DEFAULT_CLIENT_USERNAME;
+    }
+
+    String username = base;
+    int suffix = 1;
+    while (userRepository.existsByUsername(username)) {
+      suffix++;
+      username = base + suffix;
+    }
+    return username;
+  }
+
+  /** Lowercase, strip everything but letters/digits, and cap the length. */
+  private String slugify(String value) {
+    if (value == null) {
+      return "";
+    }
+    String slug = value.trim().toLowerCase().replaceAll("[^a-z0-9]+", "");
+    if (slug.length() > MAX_USERNAME_BASE_LENGTH) {
+      slug = slug.substring(0, MAX_USERNAME_BASE_LENGTH);
+    }
+    return slug;
+  }
+
+  private String generateRandomPassword() {
+    StringBuilder sb = new StringBuilder(GENERATED_PASSWORD_LENGTH);
+    for (int i = 0; i < GENERATED_PASSWORD_LENGTH; i++) {
+      sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+    }
+    return sb.toString();
   }
 
   /** Get user by ID. */

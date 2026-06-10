@@ -16,6 +16,8 @@ public interface UserMapper {
 
   @Mapping(source = "userEmail", target = "email")
   @Mapping(source = "userGroup", target = "userGroup", qualifiedByName = "mapUserGroup")
+  @Mapping(source = "username", target = "username")
+  @Mapping(source = "partyId", target = "partyId")
   User toUserResponse(UserEntity user);
 
   List<User> toUserResponseList(List<UserEntity> users);

@@ -58,6 +58,10 @@ public class OrderItemEntity extends AuditInfo {
 
   @Formula("(SELECT MAX(d.dispatch_date) FROM sme_erp.order_dispatch d WHERE d.order_item_id = id)")
   private LocalDate lastDispatchDate;
+
+  @OneToOne(mappedBy = "orderItem", fetch = FetchType.LAZY)
+  private JobWorkEntity jobWork;
+
   private Boolean jobActionDone;
 
   @ToString.Exclude
