@@ -65,7 +65,7 @@ public interface ClientInventoryMapper
     dto.setBoxPerCarton(inv.getBoxPerCarton());
     dto.setPcsPerCarton(inv.getPcsPerCarton());
     dto.setCartonWeight(inv.getCartonWeight());
-    dto.setSssatinlacq(inv.getSssatinlacq());
+    dto.setSssatinlacq(inv.getSs());
     dto.setAntiq(inv.getAntiq());
     dto.setSidegold(inv.getSidegold());
     dto.setZblack(inv.getZblack());

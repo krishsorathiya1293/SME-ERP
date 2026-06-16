@@ -30,9 +30,10 @@ public class InventoryEntity extends AuditInfo {
   private Integer boxPerCarton;
   private Integer pcsPerCarton;
   private Double cartonWeight;
-  private Double sssatinlacq;
+  private Double ss;
   private Double antiq;
   private Double sidegold;
+  private Double sartinlacq;
   private Double zblack;
   private Double grblack;
   private Double mattss;

@@ -31,6 +31,7 @@ public class ItemBlueprintDataEntity extends AuditInfo {
   private String sizeInInch;
   private String sizeInMm;
   private Double dozenWeight;
+  private Double pcsWeight;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "item_name_inventory_id", nullable = false)

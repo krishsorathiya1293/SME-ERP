@@ -1,0 +1,1 @@
+ALTER TABLE size_inventory ADD COLUMN pcs_weight DOUBLE PRECISION;

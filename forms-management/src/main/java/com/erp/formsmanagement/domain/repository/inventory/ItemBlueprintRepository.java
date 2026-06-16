@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface ItemBlueprintRepository extends CoreRepository<ItemBlueprintEntity, Long> {
   Optional<ItemBlueprintEntity> findByItemName(String itemName);
+
+  Optional<ItemBlueprintEntity> findByItemNameIgnoreCase(String itemName);
 }
