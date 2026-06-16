@@ -68,6 +68,7 @@ public interface ClientInventoryMapper
     dto.setSssatinlacq(inv.getSs());
     dto.setAntiq(inv.getAntiq());
     dto.setSidegold(inv.getSidegold());
+    dto.setSartinlacq(inv.getSartinlacq());
     dto.setZblack(inv.getZblack());
     dto.setGrblack(inv.getGrblack());
     dto.setMattss(inv.getMattss());
@@ -90,6 +91,7 @@ public interface ClientInventoryMapper
     dto.setSizeInInch(size.getSizeInInch());
     dto.setSizeInMm(size.getSizeInMm());
     dto.setDozenWeight(size.getDozenWeight());
+    dto.setPcsWeight(size.getPcsWeight());
     if (size.getItem() != null) {
       IdName item = new IdName();
       item.setId(size.getItem().getId());

@@ -46,6 +46,7 @@ public class ClientInventoryEntity extends AuditInfo {
   private Double sssatinlacq;
   private Double antiq;
   private Double sidegold;
+  private Double sartinlacq;
   private Double zblack;
   private Double grblack;
   private Double mattss;

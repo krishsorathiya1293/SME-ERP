@@ -24,23 +24,21 @@ paths:
   /api/v1/clients/{clientId}/inventory:
     get:
       tags: [ ClientInventory ]
-      summary: Get all inventory overrides for a client
+      summary: Get all inventory for a client (base + overrides)
       operationId: getInventoryByClient
       parameters:
         - $ref: '#/components/parameters/clientId'
         - $ref: '#/components/parameters/sizeId'
         - $ref: '#/components/parameters/searchParam'
-        - $ref: '#/components/parameters/pageParam'
-        - $ref: '#/components/parameters/sizeParam'
-        - $ref: '#/components/parameters/SortByFields'
-        - $ref: '#/components/parameters/directionParam'
       responses:
         '200':
-          description: Paginated inventory list for client
+          description: All inventory items for client
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedResultClientInventory'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClientInventory'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -67,6 +65,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientInventory'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # -------------------- CLIENT INVENTORY IMPORT --------------------
+  /api/v1/clients/{clientId}/inventory/import:
+    post:
+      tags: [ ClientInventory ]
+      summary: Import client inventory overrides from Excel
+      operationId: importClientInventory
+      parameters:
+        - $ref: '#/components/parameters/clientId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ file ]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientInventoryImportResult'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -174,46 +205,12 @@ components:
         type: integer
         format: int64
 
-    pageParam:
-      name: page
-      in: query
-      description: Page number starting from 0
-      schema:
-        type: integer
-        default: 0
-
-    sizeParam:
-      name: size
-      in: query
-      description: Number of items per page
-      schema:
-        type: integer
-        default: 10
-
-    directionParam:
-      name: direction
-      in: query
-      description: Sort direction
-      schema:
-        type: string
-        enum: [ ASC, DESC ]
-
     searchParam:
       name: search
       in: query
       description: Search text to filter results
       schema:
         type: string
-
-    SortByFields:
-      name: sortByFields
-      in: query
-      description: Field to sort by
-      schema:
-        type: string
-        enum:
-          - lastUpdatedAt
-          - createdAt
 
   schemas:
 
@@ -255,6 +252,9 @@ components:
           type: number
           format: double
         sidegold:
+          type: number
+          format: double
+        sartinlacq:
           type: number
           format: double
         zblack:
@@ -318,6 +318,9 @@ components:
         sidegold:
           type: number
           format: double
+        sartinlacq:
+          type: number
+          format: double
         zblack:
           type: number
           format: double
@@ -370,28 +373,21 @@ components:
         dozenWeight:
           type: number
           format: double
+        pcsWeight:
+          type: number
+          format: double
         item:
           $ref: '#/components/schemas/IdName'
 
-    PaginatedResultClientInventory:
+    ClientInventoryImportResult:
       type: object
       properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ClientInventory'
-        empty:
-          type: boolean
-        last:
-          type: boolean
-        first:
-          type: boolean
-        totalPages:
+        rowsImported:
           type: integer
-        totalElements:
+        rowsSkipped:
           type: integer
-        size:
-          type: integer
+        message:
+          type: string
 
     ErrorResponse:
       type: object

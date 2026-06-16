@@ -9,4 +9,7 @@ import java.util.Optional;
 public interface ItemBlueprintDataRepository extends CoreRepository<ItemBlueprintDataEntity, Long> {
   Optional<ItemBlueprintDataEntity> findByItem_IdAndSizeInInchAndSizeInMm(
       Long itemId, String sizeInInch, String sizeInMm);
+
+  Optional<ItemBlueprintDataEntity> findFirstBySizeInInchAndSizeInMm(
+      String sizeInInch, String sizeInMm);
 }
