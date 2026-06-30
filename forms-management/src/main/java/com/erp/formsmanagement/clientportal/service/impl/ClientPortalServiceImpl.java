@@ -183,11 +183,17 @@ public class ClientPortalServiceImpl implements ClientPortalService {
             ? List.<CatalogItemSize>of()
             : item.getSizes().stream()
                 .map(
-                    s ->
-                        new CatalogItemSize()
+                    s -> {
+                      var cs = new CatalogItemSize()
                             .id(s.getId())
                             .sizeInInch(s.getSizeInInch())
-                            .sizeInMm(s.getSizeInMm()))
+                            .sizeInMm(s.getSizeInMm());
+                      if (s.getInventory() != null) {
+                        cs.pcsPerBox(s.getInventory().getPcsPerBox());
+                        cs.pcsPerCarton(s.getInventory().getPcsPerCarton());
+                      }
+                      return cs;
+                    })
                 .toList();
 
     return new CatalogItem()

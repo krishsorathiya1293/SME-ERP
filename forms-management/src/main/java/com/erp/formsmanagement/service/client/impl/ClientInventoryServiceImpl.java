@@ -8,15 +8,13 @@ import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.repository.client.ClientInventoryRepository;
-import com.erp.formsmanagement.domain.repository.inventory.InventoryRepository;
 import com.erp.formsmanagement.domain.repository.inventory.ItemBlueprintDataRepository;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.mapper.client.ClientInventoryMapper;
 import com.erp.formsmanagement.service.client.ClientInventoryService;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +24,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClientInventoryServiceImpl implements ClientInventoryService {
 
   private final ClientInventoryRepository clientInventoryRepository;
-  private final InventoryRepository inventoryRepository;
   private final PartyRepository partyRepository;
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
   private final ClientInventoryMapper clientInventoryMapper;
 
   public ClientInventoryServiceImpl(
       ClientInventoryRepository clientInventoryRepository,
-      InventoryRepository inventoryRepository,
       PartyRepository partyRepository,
       ItemBlueprintDataRepository itemBlueprintDataRepository,
       ClientInventoryMapper clientInventoryMapper) {
     this.clientInventoryRepository = clientInventoryRepository;
-    this.inventoryRepository = inventoryRepository;
     this.partyRepository = partyRepository;
     this.itemBlueprintDataRepository = itemBlueprintDataRepository;
     this.clientInventoryMapper = clientInventoryMapper;
@@ -48,31 +43,51 @@ public class ClientInventoryServiceImpl implements ClientInventoryService {
   @Transactional(readOnly = true)
   public List<ClientInventory> getAll(
       Long clientId, Optional<Long> sizeId, Optional<String> search) {
-    PartyEntity client =
-        partyRepository
-            .findById(clientId)
-            .orElseThrow(
-                () -> new EntityNotFoundException("Client (Party) not found with id: " + clientId));
+    if (!partyRepository.existsById(clientId)) {
+      throw new EntityNotFoundException("Client (Party) not found with id: " + clientId);
+    }
 
-    Specification<InventoryEntity> spec =
-        Specification.where(inventoryRepository.filterBySearch(search))
-            .and(inventoryRepository.filterBySizeId(sizeId));
+    Specification<ClientInventoryEntity> spec =
+        Specification.where(clientInventoryRepository.filterByClientId(clientId))
+            .and(clientInventoryRepository.filterBySearch(search));
 
-    List<InventoryEntity> allInventory = inventoryRepository.findAll(spec);
-
-    Map<Long, ClientInventoryEntity> overridesBySizeId =
-        clientInventoryRepository.findByParty_Id(clientId).stream()
-            .collect(Collectors.toMap(e -> e.getSize().getId(), e -> e));
-
-    return allInventory.stream()
-        .map(inv -> {
-          Long invSizeId = inv.getSize().getId();
-          ClientInventoryEntity override = overridesBySizeId.get(invSizeId);
-          return override != null
-              ? clientInventoryMapper.toDomain(override)
-              : clientInventoryMapper.fromBaseInventory(inv, client);
-        })
+    return clientInventoryRepository.findAll(spec).stream()
+        .filter(this::differsFromBase)
+        .map(clientInventoryMapper::toDomain)
         .toList();
+  }
+
+  /**
+   * A client inventory row is only "customized" when at least one of its non-null <b>pricing</b>
+   * values differs from the corresponding base inventory value. Packing fields (pcsPerBox,
+   * boxPerCarton, pcsPerCarton, cartonWeight) are ignored here — the import copies them in for
+   * every row, so they are not a reliable signal of a deliberate price customization. A null client
+   * field means "inherit base" and is never a difference. Rows with no base inventory are always
+   * considered custom.
+   */
+  private boolean differsFromBase(ClientInventoryEntity ci) {
+    InventoryEntity base = ci.getSize() == null ? null : ci.getSize().getInventory();
+    if (base == null) {
+      return true;
+    }
+    return overrides(ci.getSssatinlacq(), base.getSs())
+        || overrides(ci.getAntiq(), base.getAntiq())
+        || overrides(ci.getSidegold(), base.getSidegold())
+        || overrides(ci.getSartinlacq(), base.getSartinlacq())
+        || overrides(ci.getZblack(), base.getZblack())
+        || overrides(ci.getGrblack(), base.getGrblack())
+        || overrides(ci.getMattss(), base.getMattss())
+        || overrides(ci.getMattantiq(), base.getMattantiq())
+        || overrides(ci.getPvdrose(), base.getPvdrose())
+        || overrides(ci.getPvdgold(), base.getPvdgold())
+        || overrides(ci.getPvdblack(), base.getPvdblack())
+        || overrides(ci.getRosegold(), base.getRosegold())
+        || overrides(ci.getClearlacq(), base.getClearlacq());
+  }
+
+  /** True when the client supplied a non-null value that differs from the base value. */
+  private boolean overrides(Object clientValue, Object baseValue) {
+    return clientValue != null && !Objects.equals(clientValue, baseValue);
   }
 
   @Override

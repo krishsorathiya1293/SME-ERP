@@ -668,6 +668,12 @@ components:
           type: string
         sizeInMm:
           type: string
+        pcsPerBox:
+          type: integer
+          description: Number of pieces per box (from inventory master)
+        pcsPerCarton:
+          type: integer
+          description: Total pieces per carton (from inventory master)
 
     CatalogItem:
       type: object
