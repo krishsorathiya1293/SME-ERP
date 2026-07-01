@@ -12,4 +12,7 @@ public interface ItemBlueprintDataRepository extends CoreRepository<ItemBlueprin
 
   Optional<ItemBlueprintDataEntity> findFirstBySizeInInchAndSizeInMm(
       String sizeInInch, String sizeInMm);
+
+  Optional<ItemBlueprintDataEntity> findFirstByItem_ItemNameAndSizeInInchAndSizeInMm(
+      String itemName, String sizeInInch, String sizeInMm);
 }

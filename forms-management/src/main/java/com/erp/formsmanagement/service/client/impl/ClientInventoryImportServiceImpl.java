@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ClientInventoryImportServiceImpl implements ClientInventoryImportService {
 
   // Column indices (0-based), row 0 = header, data starts at row 1
+  private static final int COL_ITEM_NAME      = 0;   // "Doz." group label, merged across its sizes
   private static final int COL_SIZE_IN_INCH   = 1;
   private static final int COL_SIZE_IN_MM     = 2;
   // col 3 = Doz. Weight, col 4 = PCS Weight → skip (stock master owns these)
@@ -77,9 +78,16 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
     try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
       Sheet sheet = workbook.getSheetAt(0);
 
+      // Item name ("Doz.") is a merged cell spanning its sizes — it appears only on the first row
+      // of each group, so carry the last-seen value forward to the rows below it.
+      String currentItemName = null;
+
       for (int i = 1; i <= sheet.getLastRowNum(); i++) {
         Row row = sheet.getRow(i);
         if (row == null) continue;
+
+        String itemName = readTextCell(row.getCell(COL_ITEM_NAME));
+        if (itemName != null) currentItemName = itemName;
 
         String sizeInInch = readTextCell(row.getCell(COL_SIZE_IN_INCH));
         String sizeInMm   = readTextCell(row.getCell(COL_SIZE_IN_MM));
@@ -89,9 +97,13 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
         String inch = sizeInInch != null ? sizeInInch : "";
         String mm   = sizeInMm   != null ? sizeInMm   : "";
 
-        ItemBlueprintDataEntity size = itemBlueprintDataRepository
-            .findFirstBySizeInInchAndSizeInMm(inch, mm)
-            .orElse(null);
+        // Match on item name (Doz.) + inch + mm, so a size shared by multiple items binds to the
+        // correct one. Rows with no resolvable item name cannot be matched.
+        ItemBlueprintDataEntity size = currentItemName == null
+            ? null
+            : itemBlueprintDataRepository
+                .findFirstByItem_ItemNameAndSizeInInchAndSizeInMm(currentItemName, inch, mm)
+                .orElse(null);
 
         if (size == null) {
           rowsSkipped++;
