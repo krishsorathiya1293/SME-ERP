@@ -14,16 +14,17 @@ public final class ClientPortalConstants {
    */
   public static final List<String> FINISH_OPTIONS =
       List.of(
-          "S.S & Sartin Lacq",
-          "ANTQ",
+          "S.S.",
+          "Antq.",
           "Side Gold",
-          "Z-Black.",
-          "Gr. Black.",
-          "Matt S.S",
-          "Matt ANTQ",
-          "PVD Rose",
+          "Sartin Lacqur",
+          "Z Black",
+          "Gr. Black",
+          "Matt S.S.",
+          "Matt Antq.",
+          "PVD Rose Gold",
           "PVD Gold",
           "PVD Black",
           "Rose Gold",
-          "Clear Lacq.");
+          "Clear Lacqur");
 }
