@@ -69,4 +69,12 @@ public interface UserRepository extends CoreRepository<UserEntity, Long> {
    * @return Optional containing user if found
    */
   Optional<UserEntity> findByPartyId(Long partyId);
+
+  /**
+   * Find the group-level client account linked to a given party group.
+   *
+   * @param groupId The party group id to search for
+   * @return Optional containing user if found
+   */
+  Optional<UserEntity> findByGroupId(Long groupId);
 }

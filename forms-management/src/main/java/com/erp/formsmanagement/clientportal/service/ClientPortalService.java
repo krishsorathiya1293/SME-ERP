@@ -3,6 +3,7 @@ package com.erp.formsmanagement.clientportal.service;
 import com.erp.api.clientportalmanagement.model.CatalogItem;
 import com.erp.api.clientportalmanagement.model.ChangePasswordRequest;
 import com.erp.api.clientportalmanagement.model.ClientProfile;
+import com.erp.api.clientportalmanagement.model.Company;
 import com.erp.api.clientportalmanagement.model.NewOrderRequest;
 import com.erp.api.clientportalmanagement.model.OrderRequest;
 import com.erp.api.clientportalmanagement.model.PaginatedResultClientOrder;
@@ -14,6 +15,8 @@ import java.util.Optional;
 public interface ClientPortalService {
 
   ClientProfile getMyProfile();
+
+  List<Company> getMyCompanies();
 
   ClientProfile updateMyProfile(UpdateClientProfileRequest request);
 

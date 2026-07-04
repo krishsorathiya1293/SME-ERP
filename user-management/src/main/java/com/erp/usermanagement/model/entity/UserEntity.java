@@ -34,9 +34,19 @@ public class UserEntity extends AuditInfo {
 
   private String initialPassword;
 
-  /** Links this user to a party (CLIENT users only). Null for ADMIN users. */
+  /**
+   * Links this user to a single party (standalone CLIENT users). Null for ADMIN users and for
+   * group-level CLIENT logins (which use {@link #groupId} instead).
+   */
   @Column(unique = true)
   private Long partyId;
+
+  /**
+   * Links this user to a party group (the group-level "party admin" CLIENT login). Null for ADMIN
+   * users and for standalone CLIENT users (which use {@link #partyId} instead).
+   */
+  @Column(unique = true)
+  private Long groupId;
 
   @Enumerated(EnumType.STRING)
   private UserGroup userGroup;

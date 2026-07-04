@@ -116,6 +116,66 @@ public class UserService {
   }
 
   /**
+   * Auto-create the single group-level CLIENT login for a newly created party group. The credential
+   * is shared across all the group's member companies; the client picks which company to act as
+   * after logging in. Mirrors {@link #registerClientUser} but links to a group instead of a party.
+   */
+  @Transactional
+  public UserEntity registerGroupUser(Long groupId, String groupName) {
+    String username = generateClientUsername(groupName);
+    String rawPassword = generateRandomPassword();
+
+    UserEntity user =
+        UserEntity.builder()
+            .username(username)
+            .groupId(groupId)
+            .password(passwordEncoder.encode(rawPassword))
+            .initialPassword(rawPassword)
+            .userGroup(UserGroup.CLIENT)
+            .enabled(true)
+            .build();
+
+    return userRepository.save(user);
+  }
+
+  /**
+   * Regenerate the login credentials for the group-level CLIENT login linked to the given party
+   * group. Returns the updated user entity with the new plaintext password set as the initial
+   * password.
+   */
+  @Transactional
+  public UserEntity resetGroupCredentials(Long groupId) {
+    UserEntity user =
+        userRepository
+            .findByGroupId(groupId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(
+                        "No group account found for group id: " + groupId));
+
+    String rawPassword = generateRandomPassword();
+    user.setPassword(passwordEncoder.encode(rawPassword));
+    user.setInitialPassword(rawPassword);
+    return userRepository.save(user);
+  }
+
+  /**
+   * Enable or disable the standalone CLIENT login linked to a party. Used when a party joins a group
+   * (its own login is disabled in favour of the group login) or leaves one (re-enabled). No-op when
+   * the party has no linked user.
+   */
+  @Transactional
+  public void setPartyUserEnabled(Long partyId, boolean enabled) {
+    userRepository
+        .findByPartyId(partyId)
+        .ifPresent(
+            user -> {
+              user.setEnabled(enabled);
+              userRepository.save(user);
+            });
+  }
+
+  /**
    * Build a unique username derived from the party's name (e.g. "Acme Trading Co." -&gt;
    * "acmetradingco"). If the slugified name is blank, falls back to "client". If the resulting
    * username is already taken, a numeric suffix is appended until it is unique.

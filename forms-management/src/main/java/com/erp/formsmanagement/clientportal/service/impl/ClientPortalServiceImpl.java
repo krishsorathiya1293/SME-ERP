@@ -6,6 +6,7 @@ import com.erp.api.clientportalmanagement.model.ChangePasswordRequest;
 import com.erp.api.clientportalmanagement.model.ClientOrder;
 import com.erp.api.clientportalmanagement.model.ClientOrderItem;
 import com.erp.api.clientportalmanagement.model.ClientProfile;
+import com.erp.api.clientportalmanagement.model.Company;
 import com.erp.api.clientportalmanagement.model.NewOrderRequest;
 import com.erp.api.clientportalmanagement.model.NewOrderRequestItem;
 import com.erp.api.clientportalmanagement.model.OrderRequest;
@@ -22,9 +23,11 @@ import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequest
 import com.erp.formsmanagement.clientportal.mapper.ClientOrderRequestMapper;
 import com.erp.formsmanagement.clientportal.service.ClientPortalService;
 import com.erp.formsmanagement.clientportal.service.CurrentClientProvider;
+import com.erp.formsmanagement.domain.entity.client.ClientInventoryEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
+import com.erp.formsmanagement.domain.repository.client.ClientInventoryRepository;
 import com.erp.formsmanagement.domain.repository.inventory.ItemBlueprintDataRepository;
 import com.erp.formsmanagement.domain.repository.inventory.ItemBlueprintRepository;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
@@ -37,7 +40,9 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +59,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   private final UserService userService;
   private final ItemBlueprintRepository itemBlueprintRepository;
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
+  private final ClientInventoryRepository clientInventoryRepository;
   private final ClientOrderRequestRepository clientOrderRequestRepository;
   private final ClientOrderRequestMapper clientOrderRequestMapper;
 
@@ -61,15 +67,23 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   @Transactional(readOnly = true)
   public ClientProfile getMyProfile() {
     UserEntity user = currentClientProvider.getCurrentUser();
-    PartyEntity party = getParty(user);
+    PartyEntity party = getActiveParty();
     return toClientProfile(user, party);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<Company> getMyCompanies() {
+    return currentClientProvider.accessibleParties().stream()
+        .map(p -> new Company().partyId(p.getId()).partyName(p.getName()))
+        .toList();
   }
 
   @Override
   @Transactional
   public ClientProfile updateMyProfile(UpdateClientProfileRequest request) {
     UserEntity user = currentClientProvider.getCurrentUser();
-    PartyEntity party = getParty(user);
+    PartyEntity party = getActiveParty();
 
     if (request.getEmail() != null) {
       party.setEmail(request.getEmail());
@@ -96,9 +110,9 @@ public class ClientPortalServiceImpl implements ClientPortalService {
       Optional<Integer> size,
       Optional<String> sortBy,
       Optional<String> sortDirection) {
-    UserEntity user = currentClientProvider.getCurrentUser();
+    Long partyId = currentClientProvider.getActivePartyId();
     Pageable pageable = PaginationUtils.getPageRequest(page, size, sortDirection, sortBy);
-    Page<OrderEntity> orders = orderRepository.findByParty_Id(user.getPartyId(), pageable);
+    Page<OrderEntity> orders = orderRepository.findByParty_Id(partyId, pageable);
 
     var data = orders.getContent().stream().map(this::toClientOrder).toList();
 
@@ -115,14 +129,32 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   @Override
   @Transactional(readOnly = true)
   public List<CatalogItem> getMyCatalog() {
-    return itemBlueprintRepository.findAll().stream().map(this::toCatalogItem).toList();
+    Long partyId = currentClientProvider.getActivePartyId();
+
+    // A client_inventory row exists only for the specific sizes the admin has assigned/sells to this
+    // client, and it carries that client's own packing (pcs/box, pcs/carton) from the client
+    // management sheet. If the client has any such rows, restrict the catalog to exactly those sizes
+    // and use their per-client packing. If none are configured, we sell everything, so fall back to
+    // the full catalog with the stock-master packing.
+    Map<Long, ClientInventoryEntity> clientPackingBySizeId =
+        clientInventoryRepository.findByParty_Id(partyId).stream()
+            .collect(Collectors.toMap(ci -> ci.getSize().getId(), ci -> ci, (a, b) -> a));
+
+    if (clientPackingBySizeId.isEmpty()) {
+      return itemBlueprintRepository.findAll().stream().map(item -> toCatalogItem(item, null)).toList();
+    }
+
+    return itemBlueprintRepository.findAll().stream()
+        .map(item -> toCatalogItem(item, clientPackingBySizeId))
+        .filter(catalogItem -> !catalogItem.getSizes().isEmpty())
+        .toList();
   }
 
   @Override
   @Transactional
   public OrderRequest submitOrderRequest(NewOrderRequest request) {
     UserEntity user = currentClientProvider.getCurrentUser();
-    PartyEntity party = getParty(user);
+    PartyEntity party = getActiveParty();
 
     ClientOrderRequestEntity entity = new ClientOrderRequestEntity();
     entity.setParty(party);
@@ -143,9 +175,10 @@ public class ClientPortalServiceImpl implements ClientPortalService {
       Optional<String> sortBy,
       Optional<String> sortDirection) {
     UserEntity user = currentClientProvider.getCurrentUser();
+    Long partyId = currentClientProvider.getActivePartyId();
     Pageable pageable = PaginationUtils.getPageRequest(page, size, sortDirection, sortBy);
     Page<ClientOrderRequestEntity> requests =
-        clientOrderRequestRepository.findByParty_Id(user.getPartyId(), pageable);
+        clientOrderRequestRepository.findByParty_Id(partyId, pageable);
 
     return PageMapper.toResult(
         requests,
@@ -177,21 +210,21 @@ public class ClientPortalServiceImpl implements ClientPortalService {
     return item;
   }
 
-  private CatalogItem toCatalogItem(com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintEntity item) {
+  private CatalogItem toCatalogItem(
+      com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintEntity item,
+      Map<Long, ClientInventoryEntity> clientPackingBySizeId) {
     var sizes =
         item.getSizes() == null
             ? List.<CatalogItemSize>of()
             : item.getSizes().stream()
+                .filter(s -> clientPackingBySizeId == null || clientPackingBySizeId.containsKey(s.getId()))
                 .map(
                     s -> {
                       var cs = new CatalogItemSize()
                             .id(s.getId())
                             .sizeInInch(s.getSizeInInch())
                             .sizeInMm(s.getSizeInMm());
-                      if (s.getInventory() != null) {
-                        cs.pcsPerBox(s.getInventory().getPcsPerBox());
-                        cs.pcsPerCarton(s.getInventory().getPcsPerCarton());
-                      }
+                      applyPacking(cs, s, clientPackingBySizeId);
                       return cs;
                     })
                 .toList();
@@ -204,11 +237,37 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         .platings(ClientPortalConstants.FINISH_OPTIONS);
   }
 
-  private PartyEntity getParty(UserEntity user) {
+  /**
+   * Sets the box/carton packing for a catalog size. For a client-specific catalog the packing comes
+   * from that client's client_inventory row (the client management sheet); a blank client cell falls
+   * back to the stock-master inventory so the Box/Carton unit is not lost. For the full catalog
+   * (clientPackingBySizeId == null) the stock-master packing is used.
+   */
+  private void applyPacking(
+      CatalogItemSize cs,
+      com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity size,
+      Map<Long, ClientInventoryEntity> clientPackingBySizeId) {
+    var base = size.getInventory();
+    Integer basePcsPerBox = base == null ? null : base.getPcsPerBox();
+    Integer basePcsPerCarton = base == null ? null : base.getPcsPerCarton();
+
+    if (clientPackingBySizeId == null) {
+      cs.pcsPerBox(basePcsPerBox);
+      cs.pcsPerCarton(basePcsPerCarton);
+      return;
+    }
+
+    ClientInventoryEntity ci = clientPackingBySizeId.get(size.getId());
+    cs.pcsPerBox(ci != null && ci.getPcsPerBox() != null ? ci.getPcsPerBox() : basePcsPerBox);
+    cs.pcsPerCarton(
+        ci != null && ci.getPcsPerCarton() != null ? ci.getPcsPerCarton() : basePcsPerCarton);
+  }
+
+  private PartyEntity getActiveParty() {
+    Long partyId = currentClientProvider.getActivePartyId();
     return partyRepository
-        .findById(user.getPartyId())
-        .orElseThrow(
-            () -> new EntityNotFoundException("Party not found with id: " + user.getPartyId()));
+        .findById(partyId)
+        .orElseThrow(() -> new EntityNotFoundException("Party not found with id: " + partyId));
   }
 
   private ClientProfile toClientProfile(UserEntity user, PartyEntity party) {

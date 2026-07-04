@@ -4,6 +4,7 @@ import com.erp.api.clientportalmanagement.ClientClientPortalManagementApi;
 import com.erp.api.clientportalmanagement.model.CatalogItem;
 import com.erp.api.clientportalmanagement.model.ChangePasswordRequest;
 import com.erp.api.clientportalmanagement.model.ClientProfile;
+import com.erp.api.clientportalmanagement.model.Company;
 import com.erp.api.clientportalmanagement.model.NewOrderRequest;
 import com.erp.api.clientportalmanagement.model.OrderRequest;
 import com.erp.api.clientportalmanagement.model.PaginatedResultClientOrder;
@@ -28,6 +29,11 @@ public class ClientPortalController implements ClientClientPortalManagementApi {
   @Override
   public ResponseEntity<ClientProfile> getMyProfile() {
     return ResponseEntity.ok(clientPortalService.getMyProfile());
+  }
+
+  @Override
+  public ResponseEntity<List<Company>> getMyCompanies() {
+    return ResponseEntity.ok(clientPortalService.getMyCompanies());
   }
 
   @Override

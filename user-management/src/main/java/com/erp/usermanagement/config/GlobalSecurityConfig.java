@@ -74,8 +74,10 @@ public class GlobalSecurityConfig {
       config.setAllowedMethods(mapping.getAllowedMethods());
       config.setAllowCredentials(mapping.getAllowCredentials());
 
-      // Ensure headers are allowed for JWT
-      config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Cache-Control"));
+      // Ensure headers are allowed for JWT, plus X-Party-Id used by group logins to select the
+      // company/party they are currently acting as.
+      config.setAllowedHeaders(
+          java.util.List.of("Authorization", "Content-Type", "Cache-Control", "X-Party-Id"));
       config.setExposedHeaders(java.util.List.of("Authorization")); // Important for some frontends
 
       source.registerCorsConfiguration(mapping.getPath(), config);

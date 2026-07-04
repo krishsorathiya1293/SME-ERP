@@ -529,6 +529,13 @@ components:
           type: string
         partyType:
           $ref: '#/components/schemas/PartyType'
+        groupId:
+          type: integer
+          format: int64
+          description: Party group this party belongs to, if any (shared login across companies)
+        groupName:
+          type: string
+          description: Name of the party group this party belongs to, if any
 
     PartyType:
       type: string
