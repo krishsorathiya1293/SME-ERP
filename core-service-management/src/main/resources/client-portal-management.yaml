@@ -168,7 +168,7 @@ paths:
         - PartyGroup
       operationId: setPartyGroupParties
       summary: Set the member companies/parties of a group (Admin only)
-      description: Replaces the group's membership with the given parties. Parties added to the group have their own standalone login disabled; parties removed from the group have theirs re-enabled.
+      description: Replaces the group's membership with the given parties. Each party keeps its own login working; the group login is an additional shared way to reach all member companies.
       parameters:
         - name: groupId
           in: path
@@ -204,7 +204,7 @@ paths:
         - PartyGroup
       operationId: assignPartyGroup
       summary: Assign a party to a group, or remove it from its group (Admin only)
-      description: When a groupId is given, the party joins that group and its own standalone login is disabled (the group login takes over). When groupId is null, the party leaves its group and its standalone login is re-enabled.
+      description: When a groupId is given, the party joins that group so it can also be reached via the shared group login. When groupId is null, the party leaves its group. The party's own login keeps working either way.
       parameters:
         - name: partyId
           in: path

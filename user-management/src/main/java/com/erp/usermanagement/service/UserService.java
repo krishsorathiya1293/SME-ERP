@@ -160,22 +160,6 @@ public class UserService {
   }
 
   /**
-   * Enable or disable the standalone CLIENT login linked to a party. Used when a party joins a group
-   * (its own login is disabled in favour of the group login) or leaves one (re-enabled). No-op when
-   * the party has no linked user.
-   */
-  @Transactional
-  public void setPartyUserEnabled(Long partyId, boolean enabled) {
-    userRepository
-        .findByPartyId(partyId)
-        .ifPresent(
-            user -> {
-              user.setEnabled(enabled);
-              userRepository.save(user);
-            });
-  }
-
-  /**
    * Build a unique username derived from the party's name (e.g. "Acme Trading Co." -&gt;
    * "acmetradingco"). If the slugified name is blank, falls back to "client". If the resulting
    * username is already taken, a numeric suffix is appended until it is unique.

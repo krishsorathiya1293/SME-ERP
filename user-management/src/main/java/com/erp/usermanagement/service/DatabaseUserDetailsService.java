@@ -31,9 +31,9 @@ public class DatabaseUserDetailsService implements UserDetailsService {
                     new UsernameNotFoundException(
                         "User not found with username or email: " + username));
 
-    if (Boolean.FALSE.equals(user.getEnabled())) {
-      throw new UsernameNotFoundException("User account is disabled");
-    }
+    // Note: we intentionally do NOT throw here for a disabled account. The `.disabled(...)` flag
+    // below makes Spring raise a DisabledException, which the exception handler turns into a clear
+    // "login is disabled" message instead of the generic "invalid username or password".
     String authority = "ROLE_" + user.getUserGroup().name();
 
     return User.builder()

@@ -57,16 +57,16 @@ public class PartyGroupServiceImpl implements PartyGroupService {
     PartyGroupEntity group = getGroup(groupId);
     Set<Long> desired = new HashSet<>(request.getPartyIds());
 
-    // Detach parties that are no longer members and restore their standalone login.
+    // Detach parties that are no longer members.
     for (PartyEntity current : partyRepository.findByGroupId(groupId)) {
       if (!desired.contains(current.getId())) {
         current.setGroupId(null);
         partyRepository.save(current);
-        userService.setPartyUserEnabled(current.getId(), true);
       }
     }
 
-    // Attach the desired parties and disable their standalone login (group login takes over).
+    // Attach the desired parties. Each party keeps its own login working; the group login is an
+    // additional way to reach all member companies.
     for (Long partyId : desired) {
       PartyEntity party =
           partyRepository
@@ -79,7 +79,6 @@ public class PartyGroupServiceImpl implements PartyGroupService {
       }
       party.setGroupId(groupId);
       partyRepository.save(party);
-      userService.setPartyUserEnabled(partyId, false);
     }
 
     return toDomain(group);
@@ -93,19 +92,12 @@ public class PartyGroupServiceImpl implements PartyGroupService {
             .findById(partyId)
             .orElseThrow(() -> new EntityNotFoundException("Party not found with id: " + partyId));
 
-    if (groupId == null) {
-      // Leave the group and restore the party's own standalone login.
-      party.setGroupId(null);
-      partyRepository.save(party);
-      userService.setPartyUserEnabled(partyId, true);
-      return;
+    if (groupId != null) {
+      getGroup(groupId); // validate the target group exists
     }
-
-    getGroup(groupId); // validate the target group exists
+    // The party keeps its own login regardless; the group login is an additional shared access path.
     party.setGroupId(groupId);
     partyRepository.save(party);
-    // The group login takes over; disable this party's own standalone login.
-    userService.setPartyUserEnabled(partyId, false);
   }
 
   @Override

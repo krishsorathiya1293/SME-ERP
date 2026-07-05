@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -94,6 +95,15 @@ public class GlobalExceptionHandler {
         ex instanceof BadCredentialsException ? "Invalid username or password" : "Access denied";
 
     return handle(req, ex, spec, message);
+  }
+
+  @ExceptionHandler(DisabledException.class)
+  public ResponseEntity<ErrorResponse> handleDisabled(HttpServletRequest req, DisabledException ex) {
+    return handle(
+        req,
+        ex,
+        UNAUTHORIZED,
+        "This login is disabled. If this company belongs to a group, use the group login instead.");
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)
