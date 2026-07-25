@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Work Chitthi - Javak (A8)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        @page { margin: 0; size: 52mm 74mm; }
+
+        html, body {
+            width: 52mm;
+            height: 74mm;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: "Kantumruy Pro", Arial, sans-serif;
+            font-weight: 500;
+            color: #241C17;
+            font-size: 5.4px;
+            line-height: 1.25;
+        }
+
+        .ticket {
+            width: 49mm;
+            height: 71mm;
+            margin: 1.5mm;
+            border: 1pt solid #241C17;
+            overflow: hidden;
+        }
+
+        .frame { width: 100%; border-collapse: collapse; }
+
+        .logo-band { background: #FFFFFF; text-align: center; padding: 0.8mm 0 0.6mm 0; }
+        .logo-band img { height: 3.8mm; width: auto; }
+
+        .printout-band {
+            background: #241C17;
+            color: #FFFFFF;
+            text-align: center;
+            font-weight: 700;
+            font-size: 6.5px;
+            letter-spacing: 1.2px;
+            padding: 0.7mm 0;
+        }
+
+        .title-band {
+            background: #E8A736;
+            color: #241C17;
+            text-align: center;
+            font-weight: 700;
+            font-size: 7px;
+            padding: 0.9mm 0;
+            border-top: 0.6pt solid #241C17;
+            border-bottom: 0.8pt solid #241C17;
+        }
+
+        table.meta { width: 100%; border-collapse: collapse; background: #FDF3E0; }
+        table.meta td {
+            padding: 0.7mm 1.4mm;
+            font-size: 5.4px;
+            border-bottom: 0.6pt solid #E2D3B4;
+        }
+        table.meta td.r { text-align: right; }
+        .job-no { font-size: 7px; font-weight: 700; color: #B87813; }
+        .meta-k { color: #7A6E5F; }
+        .meta-v { font-weight: 700; }
+
+        table.info { width: 100%; border-collapse: collapse; }
+        table.info td {
+            padding: 0.7mm 1.4mm;
+            vertical-align: top;
+            border-bottom: 0.4pt solid #EDE6DA;
+        }
+        table.info td.k {
+            width: 13mm;
+            color: #7A6E5F;
+            font-size: 5.2px;
+            background: #FAF7F1;
+            border-right: 0.4pt solid #EDE6DA;
+        }
+        table.info td.v { font-weight: 700; font-size: 5.4px; word-break: break-word; }
+
+        table.chips { width: 100%; border-collapse: collapse; }
+        table.chips td {
+            width: 50%;
+            padding: 0.6mm 1.4mm;
+            font-size: 5px;
+            border-bottom: 0.4pt solid #EDE6DA;
+        }
+        td.chip-pcs { background: #EAF3FB; border-right: 0.4pt solid #EDE6DA; }
+        td.chip-sti { background: #F3EEFA; }
+        .chip-k { color: #6B6259; }
+        .chip-v { font-weight: 700; font-size: 6px; color: #1B4F7A; }
+        .chip-v2 { font-weight: 700; font-size: 6px; color: #5B3E8F; }
+
+        table.ja { width: 100%; border-collapse: collapse; border-top: 0.8pt solid #241C17; }
+        table.ja th {
+            font-size: 6px;
+            font-weight: 700;
+            padding: 0.7mm 0;
+            color: #FFFFFF;
+            letter-spacing: 0.4px;
+            background: #1B6CA8;
+        }
+        table.ja td.col { padding: 0.9mm 1.4mm; vertical-align: top; background: #F2F8FD; }
+        /* Stretch the data block to fill the label; In-Side carries an extra info row
+           plus the totals chips, so it gets a shorter block to stay inside 74mm. */
+        table.ja.roomy td.col { height: 28mm; }
+        table.ja.compact td.col { height: 15mm; }
+
+        .fr { margin-bottom: 1.2mm; }
+        .fr .fk { color: #6B6259; font-size: 5px; }
+        .fr .fv { font-weight: 700; font-size: 5.6px; }
+        .fr.net { margin-bottom: 0; padding-top: 0.8mm; border-top: 0.4pt dashed #B9C6D2; }
+        .fr.net .fv { color: #14507E; font-size: 6.8px; }
+
+        .footer {
+            background: #E8A736;
+            border-top: 0.8pt solid #241C17;
+            text-align: center;
+            padding: 0.7mm 0;
+            font-size: 4.8px;
+            font-weight: 700;
+            color: #241C17;
+        }
+    </style>
+</head>
+
+<body>
+<div class="ticket"
+     th:with="
+       jwNo=${job.orderItem != null and job.orderItem.jobWorkNo != null ? #numbers.formatInteger(job.orderItem.jobWorkNo,3) : '—'},
+       dt=${job.chitthiDate != null ? #temporals.format(job.chitthiDate,'d-M-yy') : (job.jobDate != null ? #temporals.format(job.jobDate,'d-M-yy') : '—')},
+       tm=${job.orderTime != null ? job.orderTime : #temporals.format(#temporals.createNow(),'HH:mm')},
+       jwType=${job.jobWorkType != null ? job.jobWorkType.name() : ''},
+       titleText=${jwType == 'OUTSIDE' ? 'Out Side Job Work' : (jwType == 'INHOUSE' ? 'In Side Job Work' : 'Job Work')},
+       sizeText=${job.size != null ? job.size.sizeInInch : '—'},
+       petiLabel=${job.elementType != null ? job.elementType.value : 'Peti'},
+       peti=${job.elementCount != null ? #numbers.formatDecimal(job.elementCount,1,2) : '—'},
+       grossKg=${job.grossKg != null ? #numbers.formatDecimal(job.grossKg,1,3) + ' Kg' : '—'},
+       netKg=${job.qtyKg != null ? #numbers.formatDecimal(job.qtyKg,1,3) + ' kg' : '—'}
+     ">
+
+    <table class="frame">
+        <tr><td class="logo-band"><img th:src="${companyLogoMarkDataUri}" alt="Ishita Industries"/></td></tr>
+        <tr><td class="printout-band">PRINT OUT</td></tr>
+        <tr><td class="title-band" th:text="${titleText}">Out Side Job Work</td></tr>
+
+        <tr><td style="padding:0;">
+            <table class="meta">
+                <tr>
+                    <td><span class="meta-k">Job No.</span> <span class="job-no" th:text="${jwNo}">003</span></td>
+                    <td class="r">
+                        <span class="meta-v" th:text="${dt}">20-7-26</span><br/>
+                        <span class="meta-v" th:text="${tm}">5.00 pm</span>
+                    </td>
+                </tr>
+            </table>
+        </td></tr>
+
+        <tr><td style="padding:0;">
+            <table class="info">
+                <tr>
+                    <td class="k">From :-</td>
+                    <td class="v">Ishita Industries</td>
+                </tr>
+                <tr>
+                    <td class="k">To :-</td>
+                    <td class="v" th:text="${jwType == 'INHOUSE'} ? 'In Side' : ${partyPlain}">Ziya Process</td>
+                </tr>
+                <tr th:if="${jwType == 'INHOUSE'}">
+                    <td class="k">Party :-</td>
+                    <td class="v" th:text="${partyTri}">Velvet / वेल्वेट / વેલ્વેટ</td>
+                </tr>
+                <tr>
+                    <td class="k">Finish :-</td>
+                    <td class="v" th:text="${finishTri}">Z - Black / ज़ेड ब्लैक / ઝેડ બ્લેક</td>
+                </tr>
+                <tr>
+                    <td class="k">Size :-</td>
+                    <td class="v" th:text="${sizeText}">5x1.1/8x5/32</td>
+                </tr>
+            </table>
+        </td></tr>
+
+        <tr th:if="${jwType == 'INHOUSE'}"><td style="padding:0;">
+            <table class="chips">
+                <tr>
+                    <td class="chip-pcs"><span class="chip-k">Total Pcs</span><br/>
+                        <span class="chip-v" th:text="${job.qtyPc != null ? #numbers.formatDecimal(job.qtyPc,1,0) : '—'}">497</span></td>
+                    <td class="chip-sti"><span class="chip-k">Total Sti</span><br/>
+                        <span class="chip-v2" th:text="${job.stickerQty != null ? #numbers.formatDecimal(job.stickerQty,1,0) : '—'}">99</span></td>
+                </tr>
+            </table>
+        </td></tr>
+
+        <tr><td style="padding:0;">
+            <table class="ja" th:classappend="${jwType == 'INHOUSE'} ? 'compact' : 'roomy'">
+                <tr><th>JAVAK</th></tr>
+                <tr>
+                    <td class="col">
+                        <div class="fr"><div class="fk" th:text="${petiLabel}">Peti</div><div class="fv" th:text="${peti}">5</div></div>
+                        <div class="fr"><div class="fk">Kg</div><div class="fv" th:text="${grossKg}">150.150 Kg</div></div>
+                        <div class="fr net"><div class="fk">Net Kg</div><div class="fv" th:text="${netKg}">145.150 kg</div></div>
+                    </td>
+                </tr>
+            </table>
+        </td></tr>
+
+        <tr><td class="footer">ISHITA INDUSTRIES</td></tr>
+    </table>
+
+</div>
+</body>
+</html>

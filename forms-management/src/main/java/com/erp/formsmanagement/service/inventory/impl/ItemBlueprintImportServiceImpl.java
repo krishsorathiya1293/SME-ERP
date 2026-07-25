@@ -218,7 +218,9 @@ public class ItemBlueprintImportServiceImpl implements ItemBlueprintImportServic
       type = cell.getCachedFormulaResultType();
     }
     if (type != CellType.NUMERIC) return null;
-    return cell.getNumericCellValue();
+    // Excel formulas like dozenWeight/12 produce long repeating decimals (e.g.
+    // 0.07916666666666666) that look broken wherever they're displayed downstream.
+    return Math.round(cell.getNumericCellValue() * 1000) / 1000d;
   }
 
   private Integer readIntegerCell(Cell cell) {

@@ -12,10 +12,16 @@ import org.springframework.stereotype.Component;
 public class Base64Assets {
 
   private final String companyLogo;
+
+  /** Same logo cropped to its content box — for small formats (stickers) where padding wastes space. */
+  private final String companyLogoMark;
+
   private final String stamp;
 
   public Base64Assets() {
     this.companyLogo = "data:image/png;base64," + readB64("assets/base64/company-logo.png.b64");
+    this.companyLogoMark =
+        "data:image/png;base64," + readB64("assets/base64/company-logo-mark.png.b64");
     this.stamp = "data:image/jpeg;base64," + readB64("assets/base64/stamp.jpg.b64");
   }
 

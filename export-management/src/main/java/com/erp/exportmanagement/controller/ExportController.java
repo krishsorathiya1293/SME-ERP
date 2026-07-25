@@ -6,6 +6,7 @@ import com.erp.api.exportmanagement.ExportExportManagementApi;
 import com.erp.api.exportmanagement.model.GresFillingFormType;
 import com.erp.api.exportmanagement.model.InvoiceType;
 import com.erp.api.exportmanagement.model.JobWorkFormType;
+import com.erp.api.exportmanagement.model.PaperSize;
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.controller.AbstractDocumentController;
 import com.erp.exportmanagement.service.ExportService;
@@ -13,6 +14,7 @@ import com.erp.exportmanagement.service.ReportExportService;
 import com.erp.formsmanagement.service.invoice.InvoiceService;
 import com.erp.service.DocumentFormat;
 import java.time.LocalDate;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -43,11 +45,13 @@ public class ExportController extends AbstractDocumentController
   }
 
   @Override
-  public ResponseEntity<Resource> getJobWorkPng(Long id, JobWorkFormType jobWorkFormType) {
+  public ResponseEntity<Resource> getJobWorkPng(
+      Long id, JobWorkFormType jobWorkFormType, Optional<PaperSize> paperSize) {
+    PaperSize size = paperSize.orElse(PaperSize.A6);
     byte[] pngBytes =
         exportService.getCachedDocument(
-            "job-work", id, String.valueOf(jobWorkFormType), DocumentFormat.PNG);
-    String filename = "JOBWORK-" + jobWorkFormType + "-" + id + ".png";
+            "job-work", id, jobWorkFormType + "_" + size, DocumentFormat.PNG);
+    String filename = "JOBWORK-" + jobWorkFormType + "-" + size + "-" + id + ".png";
     return buildPngResponse(pngBytes, filename);
   }
 

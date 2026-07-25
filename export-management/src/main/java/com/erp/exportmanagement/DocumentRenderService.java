@@ -39,6 +39,8 @@ public class DocumentRenderService {
     addFont(fontProvider, "/fonts/KantumruyPro-Light.ttf");
     addFont(fontProvider, "/fonts/NotoSans-Regular.ttf");
     addFont(fontProvider, "/fonts/NotoSans-Bold.ttf");
+    addFont(fontProvider, "/fonts/NotoSansGujarati-Regular.ttf");
+    addFont(fontProvider, "/fonts/NotoSansGujarati-Bold.ttf");
 
     props.setFontProvider(fontProvider);
     return props;
@@ -60,6 +62,7 @@ public class DocumentRenderService {
       String templateName, Map<String, Object> variables, DocumentFormat format) {
     Map<String, Object> vars = new HashMap<>(variables);
     vars.putIfAbsent("companyLogoDataUri", base64Assets.getCompanyLogo());
+    vars.putIfAbsent("companyLogoMarkDataUri", base64Assets.getCompanyLogoMark());
     vars.putIfAbsent("stampDataUri", base64Assets.getStamp());
     Context context = new Context();
     context.setVariables(vars);

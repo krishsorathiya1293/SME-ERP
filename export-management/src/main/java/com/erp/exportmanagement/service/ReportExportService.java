@@ -2,6 +2,7 @@ package com.erp.exportmanagement.service;
 
 import com.erp.formsmanagement.domain.entity.gres.GresFillingEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkType;
 import com.erp.formsmanagement.domain.entity.purchase.PurchaseOrderEntity;
 import com.erp.formsmanagement.domain.entity.sales.SalesOrderEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
@@ -74,25 +75,20 @@ public class ReportExportService {
     PartyEntity party = getParty(partyId);
     List<JobWorkEntity> records = jobWorkRepository.findByPartyIdAndJobDateBetweenOrderByJobDateAsc(partyId, startDate, endDate);
 
-    double totalReturnKg = 0;
-    double totalGhati = 0;
-
-    for (JobWorkEntity jw : records) {
-      if (jw.getJobWorkReturns() != null) {
-        for (var ret : jw.getJobWorkReturns()) {
-          totalReturnKg += (ret.getReturnKg() != null ? ret.getReturnKg() : 0);
-          totalGhati += (ret.getGhati() != null ? ret.getGhati() : 0);
-        }
-      }
-    }
+    List<JobWorkEntity> outsideRecords =
+        records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.OUTSIDE).toList();
+    List<JobWorkEntity> insideRecords =
+        records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.INHOUSE).toList();
+    List<JobWorkEntity> plainJobWorkRecords =
+        records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.JOB_WORK).toList();
 
     Map<String, Object> variables = new HashMap<>();
     variables.put("partyName", party.getName());
     variables.put("startDate", startDate);
     variables.put("endDate", endDate);
-    variables.put("records", records);
-    variables.put("totalReturnKg", totalReturnKg);
-    variables.put("totalGhati", totalGhati);
+    variables.put("outsideRecords", outsideRecords);
+    variables.put("insideRecords", insideRecords);
+    variables.put("plainJobWorkRecords", plainJobWorkRecords);
 
     return documentRenderService.renderDocument("jobwork-report", variables, DocumentFormat.PDF).getByteArray();
   }
