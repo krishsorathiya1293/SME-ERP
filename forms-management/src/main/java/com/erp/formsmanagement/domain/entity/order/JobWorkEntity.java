@@ -59,6 +59,23 @@ public class JobWorkEntity extends AuditInfo {
   @Enumerated(EnumType.STRING)
   private ElementType elementType;
 
+  /** Tare weight of a single Peti/Drum (kg). Net Kg = grossKg - elementCount * petiWeightKg. */
+  private Double petiWeightKg;
+
+  /** Total weighed gross kg for this shipment (weighed once, as sent to the job worker). */
+  private Double grossKg;
+
+  /** Auto: qtyPc / size's pcsPerBox rate. */
+  private Double stickerQty;
+
+  /** Auto: stickerQty / size's boxPerCarton rate. */
+  private Double totalCarton;
+
+  private Double ratePerKg;
+
+  /** Auto: qtyKg * ratePerKg. */
+  private Double totalRate;
+
   @Enumerated(EnumType.STRING)
   private JobWorkStatus status;
 

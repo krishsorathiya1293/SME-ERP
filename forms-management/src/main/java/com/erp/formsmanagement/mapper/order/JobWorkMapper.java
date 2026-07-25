@@ -18,7 +18,6 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "party", expression = "java(toParty(entity))")
   @Mapping(target = "size", expression = "java(toSize(entity))")
   @Mapping(target = "createdAt", source = "createdAt")
-  @Mapping(target = "stickerQty", source = "orderItem.stickerQty")
   JobWork toDomain(JobWorkEntity entity);
 
   @Override
@@ -48,12 +47,7 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   }
 
   default JobWorkSize toSize(JobWorkEntity entity) {
-    if (entity.getSize() == null) return null;
-    JobWorkSize s = new JobWorkSize();
-    s.setId(entity.getSize().getId());
-    s.setSizeInInch(entity.getSize().getSizeInInch());
-    s.setSizeInMm(entity.getSize().getSizeInMm());
-    return s;
+    return SizeContextMapper.toJobWorkSize(entity.getSize());
   }
 
 }

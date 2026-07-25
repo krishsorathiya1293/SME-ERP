@@ -2,6 +2,7 @@ package com.erp.formsmanagement.mapper.order;
 
 import com.erp.api.ordermanagement.model.NewOrderItem;
 import com.erp.api.ordermanagement.model.OrderItem;
+import com.erp.api.ordermanagement.model.OrderItemSize;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.mapper.EntityMapper;
@@ -23,9 +24,14 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
   @Mapping(target = "itemSize", ignore = true)
   void updateEntity(@MappingTarget OrderItemEntity entity, NewOrderItem newOrderItem);
 
+  @Mapping(target = "itemSize", expression = "java(toItemSize(entity))")
   OrderItem toDomain(OrderItemEntity entity);
 
   List<OrderItem> toDomainList(List<OrderItemEntity> entities);
+
+  default OrderItemSize toItemSize(OrderItemEntity entity) {
+    return SizeContextMapper.toOrderItemSize(entity.getItemSize());
+  }
 
   @AfterMapping
   default void setItemSizeRef(@MappingTarget OrderItemEntity entity, NewOrderItem source) {

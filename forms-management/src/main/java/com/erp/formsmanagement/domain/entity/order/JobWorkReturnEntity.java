@@ -35,6 +35,13 @@ public class JobWorkReturnEntity extends AuditInfo {
   @JoinColumn(name = "job_work_id", nullable = false)
   private JobWorkEntity jobWork;
 
+  /** Tare weight of a single Peti/Drum (kg) for this return. */
+  private Double petiWeightKg;
+
+  /** Total weighed gross kg for this return (weighed once, as received back). */
+  private Double grossKg;
+
+  /** Auto: grossKg - returnElementCount * petiWeightKg. */
   private Double returnKg;
   private Double ghati;
   private Double returnElementCount;

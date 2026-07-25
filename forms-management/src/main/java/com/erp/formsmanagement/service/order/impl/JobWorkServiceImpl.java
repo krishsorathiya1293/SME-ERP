@@ -7,6 +7,7 @@ import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.constant.Constant;
 import com.erp.exception.EntityNotFoundException;
+import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
@@ -114,6 +115,66 @@ public class JobWorkServiceImpl
                     new EntityNotFoundException(
                         String.format(Constant.ENTITY_NOT_FOUND, request.getSizeId())));
     entity.setSize(size);
+
+    computeCalculatedFields(entity, request.getPcsWeight());
+  }
+
+  /**
+   * Follows the client's Out-Side/In-Side Job-Work excel. The piece count comes from the order
+   * ({@code qtyPc}); the shop enters the Peti count + tare weight per Peti and the rate. Everything
+   * else is derived from those plus the item's own master rates (pcsWeight / pcsPerBox /
+   * boxPerCarton):
+   *
+   * <ul>
+   *   <li>Net Kg = Gross Kg − Peti count &times; 1-Peti tare
+   *   <li>Total Pcs = Net Kg / 1-pc weight (1-pc weight fetched from item, editable per job work)
+   *   <li>Sticker Qty = Total Pcs / pcsPerBox (one sticker per box)
+   *   <li>Total Carton = Sticker Qty / boxPerCarton
+   *   <li>Total Rate = Net Kg &times; Rate/Kg
+   * </ul>
+   *
+   * @param requestPcsWeight the (possibly user-edited) 1-pc weight from the payload; falls back to
+   *     the item's own {@code pcsWeight} when not supplied.
+   */
+  private void computeCalculatedFields(JobWorkEntity entity, Double requestPcsWeight) {
+    double grossKg = entity.getGrossKg() != null ? entity.getGrossKg() : 0.0;
+    double elementCount = entity.getElementCount() != null ? entity.getElementCount() : 0.0;
+    double petiWeightKg = entity.getPetiWeightKg() != null ? entity.getPetiWeightKg() : 0.0;
+
+    // Net Kg = gross weighed − empty Peti/Drum tare
+    double netKg = Math.max(0.0, round3(grossKg - (elementCount * petiWeightKg)));
+    entity.setQtyKg(netKg);
+
+    ItemBlueprintDataEntity size = entity.getSize();
+    Double pcsWeight = requestPcsWeight != null ? requestPcsWeight : (size != null ? size.getPcsWeight() : null);
+    Double totalPcs = (pcsWeight != null && pcsWeight > 0) ? netKg / pcsWeight : null;
+    entity.setQtyPc(totalPcs);
+
+    InventoryEntity inventory = size != null ? size.getInventory() : null;
+    Double stickerQty =
+        (totalPcs != null
+                && inventory != null
+                && inventory.getPcsPerBox() != null
+                && inventory.getPcsPerBox() > 0)
+            ? totalPcs / inventory.getPcsPerBox()
+            : null;
+    entity.setStickerQty(stickerQty);
+
+    Double totalCarton =
+        (stickerQty != null
+                && inventory != null
+                && inventory.getBoxPerCarton() != null
+                && inventory.getBoxPerCarton() > 0)
+            ? stickerQty / inventory.getBoxPerCarton()
+            : null;
+    entity.setTotalCarton(totalCarton);
+
+    Double ratePerKg = entity.getRatePerKg();
+    entity.setTotalRate(ratePerKg != null ? round3(netKg * ratePerKg) : null);
+  }
+
+  private static double round3(double value) {
+    return Math.round(value * 1000.0) / 1000.0;
   }
 
   @Override

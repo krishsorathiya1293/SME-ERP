@@ -41,21 +41,31 @@ public class JobWorkReturnServiceImpl
   @Override
   protected void afterCreate(JobWorkReturnEntity entity, Long jobWorkId, NewJobWorkReturn request) {
     JobWorkEntity jobWork = resolveJobWork(jobWorkId);
-    validateReturnQuantity(jobWork, 0L, request);
+    computeReturnKg(entity);
+    validateReturnQuantity(jobWork, entity, 0L);
     entity.setJobWork(jobWork);
   }
 
   @Override
   protected void afterUpdate(JobWorkReturnEntity entity, Long jobWorkId, NewJobWorkReturn request) {
     JobWorkEntity jobWork = resolveJobWork(jobWorkId);
-    validateReturnQuantity(jobWork, entity.getId(), request);
+    computeReturnKg(entity);
+    validateReturnQuantity(jobWork, entity, entity.getId());
     entity.setJobWork(jobWork);
   }
 
-  private void validateReturnQuantity(JobWorkEntity jobWork, Long excludeId, NewJobWorkReturn request) {
-    if (request.getReturnKg() != null && jobWork.getQtyKg() != null) {
+  /** Net Kg = grossKg (weighed once) - returnElementCount * petiWeightKg, matching the excel. */
+  private void computeReturnKg(JobWorkReturnEntity entity) {
+    double grossKg = entity.getGrossKg() != null ? entity.getGrossKg() : 0.0;
+    double count = entity.getReturnElementCount() != null ? entity.getReturnElementCount() : 0.0;
+    double petiWeightKg = entity.getPetiWeightKg() != null ? entity.getPetiWeightKg() : 0.0;
+    entity.setReturnKg(Math.max(0.0, grossKg - (count * petiWeightKg)));
+  }
+
+  private void validateReturnQuantity(JobWorkEntity jobWork, JobWorkReturnEntity entity, Long excludeId) {
+    if (entity.getReturnKg() != null && jobWork.getQtyKg() != null) {
       double alreadyReturned = jobWorkReturnRepository.sumReturnKgByJobWorkId(jobWork.getId(), excludeId);
-      double newReturnKg = request.getReturnKg() + (request.getGhati() != null ? request.getGhati() : 0.0);
+      double newReturnKg = entity.getReturnKg() + (entity.getGhati() != null ? entity.getGhati() : 0.0);
       double total = alreadyReturned + newReturnKg;
       if (total > jobWork.getQtyKg()) {
         throw new IllegalArgumentException(
