@@ -14,7 +14,9 @@ import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,6 +42,13 @@ public class JobWorkController
   @PostMapping("/api/v1/job-works/manual")
   public ResponseEntity<JobWork> createManualJobWork(@RequestBody NewJobWork newJobWork) {
     return ResponseEntity.status(HttpStatus.CREATED).body(jobWorkService.createManual(newJobWork));
+  }
+
+  /** Update a Manual job work — not tied to any order item. */
+  @PutMapping("/api/v1/job-works/manual/{id}")
+  public ResponseEntity<JobWork> updateManualJobWork(
+      @PathVariable Long id, @RequestBody NewJobWork newJobWork) {
+    return ResponseEntity.ok(jobWorkService.updateManual(id, newJobWork));
   }
 
   /**

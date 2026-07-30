@@ -266,7 +266,28 @@ public class JobWorkServiceImpl
   @Transactional
   public JobWork createManual(NewJobWork request) {
     JobWorkEntity entity = new JobWorkEntity();
+    applyManualFields(entity, request);
+    entity.setJobWorkType(
+        request.getJobWorkType() != null
+            ? JobWorkType.valueOf(request.getJobWorkType().name())
+            : JobWorkType.MANUAL);
+    return mapper().toDomain(jobWorkRepository.save(entity));
+  }
 
+  @Override
+  @Transactional
+  public JobWork updateManual(Long id, NewJobWork request) {
+    JobWorkEntity entity =
+        jobWorkRepository
+            .findById(id)
+            .orElseThrow(
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
+    applyManualFields(entity, request);
+    return mapper().toDomain(jobWorkRepository.save(entity));
+  }
+
+  /** Populates the fields a Manual job work carries — no order item is ever linked. */
+  private void applyManualFields(JobWorkEntity entity, NewJobWork request) {
     PartyEntity party =
         partyRepository
             .findById(request.getPartyId())
@@ -295,20 +316,15 @@ public class JobWorkServiceImpl
     entity.setPetiWeightKg(request.getPetiWeightKg());
     entity.setGrossKg(request.getGrossKg());
     entity.setRatePerKg(request.getRatePerKg());
-    entity.setStatus(
-        request.getStatus() != null
-            ? JobWorkStatus.valueOf(request.getStatus().name())
-            : JobWorkStatus.PENDING);
-    entity.setJobWorkType(
-        request.getJobWorkType() != null
-            ? JobWorkType.valueOf(request.getJobWorkType().name())
-            : JobWorkType.MANUAL);
+    if (request.getStatus() != null) {
+      entity.setStatus(JobWorkStatus.valueOf(request.getStatus().name()));
+    } else if (entity.getStatus() == null) {
+      entity.setStatus(JobWorkStatus.PENDING);
+    }
     entity.setChitthiNo(request.getChitthiNo());
     entity.setChitthiDate(request.getChitthiDate());
     entity.setOrderTime(request.getOrderTime());
 
     computeCalculatedFields(entity, request);
-
-    return mapper().toDomain(jobWorkRepository.save(entity));
   }
 }

@@ -21,6 +21,9 @@ public interface JobWorkService
   /** Create a job work that is NOT tied to any order item (Manual mode). */
   JobWork createManual(NewJobWork request);
 
+  /** Update a job work that is NOT tied to any order item (Manual mode). */
+  JobWork updateManual(Long id, NewJobWork request);
+
   /**
    * Global listing across every order item, for the dashboard / plating pages.
    * {@code type} filters by JobWorkType; pass null for all.
