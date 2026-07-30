@@ -5,6 +5,8 @@ import com.erp.repository.CoreRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface GresFillingRepository extends CoreRepository<GresFillingEntity, Long> {
 
@@ -25,4 +27,7 @@ public interface GresFillingRepository extends CoreRepository<GresFillingEntity,
 
   List<GresFillingEntity> findByPartyIdAndChitthiDateBetweenOrderByChitthiDateAsc(
       Long partyId, java.time.LocalDate startDate, java.time.LocalDate endDate);
+
+  @Query("SELECT MAX(g.chNoSerial) FROM GresFillingEntity g WHERE g.chNoYearMonth = :yearMonth")
+  Integer findMaxChNoSerialForYearMonth(@Param("yearMonth") String yearMonth);
 }

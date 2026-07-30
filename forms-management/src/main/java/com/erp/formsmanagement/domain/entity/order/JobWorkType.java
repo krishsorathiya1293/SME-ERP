@@ -6,7 +6,8 @@ import lombok.Getter;
 public enum JobWorkType {
   INHOUSE("In House"),
   OUTSIDE("Outside"),
-  JOB_WORK("Job Work");
+  JOB_WORK("Job Work"),
+  MANUAL("Manual");
 
   private final String value;
 

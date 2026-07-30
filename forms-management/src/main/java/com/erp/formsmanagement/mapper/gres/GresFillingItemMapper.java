@@ -21,10 +21,15 @@ public interface GresFillingItemMapper {
 
   default GresFillingSize toSize(GresFillingItemEntity entity) {
     if (entity.getSize() == null) return null;
+    var sz = entity.getSize();
     GresFillingSize s = new GresFillingSize();
-    s.setId(entity.getSize().getId());
-    s.setSizeInInch(entity.getSize().getSizeInInch());
-    s.setSizeInMm(entity.getSize().getSizeInMm());
+    s.setId(sz.getId());
+    s.setSizeInInch(sz.getSizeInInch());
+    s.setSizeInMm(sz.getSizeInMm());
+    if (sz.getItem() != null) {
+      s.setItemId(sz.getItem().getId());
+      s.setItemName(sz.getItem().getItemName());
+    }
     return s;
   }
 }

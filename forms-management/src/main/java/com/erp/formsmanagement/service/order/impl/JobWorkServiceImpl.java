@@ -10,6 +10,7 @@ import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
+import com.erp.formsmanagement.domain.entity.order.ElementType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
 import com.erp.formsmanagement.domain.entity.order.JobWorkType;
@@ -116,7 +117,7 @@ public class JobWorkServiceImpl
                         String.format(Constant.ENTITY_NOT_FOUND, request.getSizeId())));
     entity.setSize(size);
 
-    computeCalculatedFields(entity, request.getPcsWeight());
+    computeCalculatedFields(entity, request);
   }
 
   /**
@@ -136,7 +137,7 @@ public class JobWorkServiceImpl
    * @param requestPcsWeight the (possibly user-edited) 1-pc weight from the payload; falls back to
    *     the item's own {@code pcsWeight} when not supplied.
    */
-  private void computeCalculatedFields(JobWorkEntity entity, Double requestPcsWeight) {
+  private void computeCalculatedFields(JobWorkEntity entity, NewJobWork request) {
     double grossKg = entity.getGrossKg() != null ? entity.getGrossKg() : 0.0;
     double elementCount = entity.getElementCount() != null ? entity.getElementCount() : 0.0;
     double petiWeightKg = entity.getPetiWeightKg() != null ? entity.getPetiWeightKg() : 0.0;
@@ -146,31 +147,49 @@ public class JobWorkServiceImpl
     entity.setQtyKg(netKg);
 
     ItemBlueprintDataEntity size = entity.getSize();
-    Double pcsWeight = requestPcsWeight != null ? requestPcsWeight : (size != null ? size.getPcsWeight() : null);
+    Double pcsWeight =
+        request.getPcsWeight() != null ? request.getPcsWeight() : (size != null ? size.getPcsWeight() : null);
     Double totalPcs = (pcsWeight != null && pcsWeight > 0) ? netKg / pcsWeight : null;
     entity.setQtyPc(totalPcs);
 
+    // Packing rates precedence: order item (already client-resolved at order creation) >
+    // request (manual mode, client-resolved on the client) > size's item-master inventory.
+    OrderItemEntity orderItem = entity.getOrderItem();
     InventoryEntity inventory = size != null ? size.getInventory() : null;
+    Double pcsPerBox =
+        firstPositive(
+            orderItem != null ? orderItem.getPcPerBox() : null,
+            request.getPcsPerBox(),
+            inventory != null && inventory.getPcsPerBox() != null
+                ? inventory.getPcsPerBox().doubleValue()
+                : null);
+    Double boxPerCarton =
+        firstPositive(
+            orderItem != null ? orderItem.getBoxPerCartoon() : null,
+            request.getBoxPerCarton(),
+            inventory != null && inventory.getBoxPerCarton() != null
+                ? inventory.getBoxPerCarton().doubleValue()
+                : null);
+
     Double stickerQty =
-        (totalPcs != null
-                && inventory != null
-                && inventory.getPcsPerBox() != null
-                && inventory.getPcsPerBox() > 0)
-            ? totalPcs / inventory.getPcsPerBox()
-            : null;
+        (totalPcs != null && pcsPerBox != null && pcsPerBox > 0) ? totalPcs / pcsPerBox : null;
     entity.setStickerQty(stickerQty);
 
     Double totalCarton =
-        (stickerQty != null
-                && inventory != null
-                && inventory.getBoxPerCarton() != null
-                && inventory.getBoxPerCarton() > 0)
-            ? stickerQty / inventory.getBoxPerCarton()
+        (stickerQty != null && boxPerCarton != null && boxPerCarton > 0)
+            ? stickerQty / boxPerCarton
             : null;
     entity.setTotalCarton(totalCarton);
 
     Double ratePerKg = entity.getRatePerKg();
     entity.setTotalRate(ratePerKg != null ? round3(netKg * ratePerKg) : null);
+  }
+
+  private static Double firstPositive(Double... values) {
+    for (Double v : values) {
+      if (v != null && v > 0) return v;
+    }
+    return null;
   }
 
   private static double round3(double value) {
@@ -183,6 +202,26 @@ public class JobWorkServiceImpl
     Specification<JobWorkEntity> spec =
         Specification.where(jobWorkRepository.filterByOrderItemId(orderItemId))
             .and(jobWorkRepository.filterBySearch(query.search()));
+
+    Page<JobWorkEntity> results =
+        jobWorkRepository.findAll(
+            spec,
+            PaginationUtils.getPageRequest(
+                query.page(), query.size(), query.direction(), query.sortBy()));
+
+    return PageMapper.toResult(
+        results, mapper()::toDomain, PaginatedResultJobWork::new, PaginatedResultJobWork::setData);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public PaginatedResultJobWork getAllGlobal(JobWorkType type, GetAllQuery<Void> query) {
+    Specification<JobWorkEntity> spec = jobWorkRepository.filterBySearch(query.search());
+    if (type != null) {
+      Specification<JobWorkEntity> typeSpec =
+          (root, q, cb) -> cb.equal(root.get("jobWorkType"), type);
+      spec = spec == null ? typeSpec : spec.and(typeSpec);
+    }
 
     Page<JobWorkEntity> results =
         jobWorkRepository.findAll(
@@ -216,5 +255,60 @@ public class JobWorkServiceImpl
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     entity.setJobWorkType(JobWorkType.valueOf(request.getJobWorkType().name()));
     return mapper().toDomain(entity);
+  }
+
+  /**
+   * Manual job work: not tied to any order item. The user picks the party + item/size from the
+   * masters and enters the weighing/rate. All derived fields are computed the same way as an
+   * order-based job work.
+   */
+  @Override
+  @Transactional
+  public JobWork createManual(NewJobWork request) {
+    JobWorkEntity entity = new JobWorkEntity();
+
+    PartyEntity party =
+        partyRepository
+            .findById(request.getPartyId())
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(
+                        String.format(Constant.ENTITY_NOT_FOUND, request.getPartyId())));
+    entity.setParty(party);
+
+    ItemBlueprintDataEntity size =
+        itemBlueprintDataRepository
+            .findById(request.getSizeId())
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(
+                        String.format(Constant.ENTITY_NOT_FOUND, request.getSizeId())));
+    entity.setSize(size);
+
+    entity.setJobDate(request.getJobDate());
+    entity.setFinish(request.getFinish());
+    entity.setElementCount(request.getElementCount());
+    entity.setElementType(
+        request.getElementType() != null
+            ? ElementType.valueOf(request.getElementType().name())
+            : null);
+    entity.setPetiWeightKg(request.getPetiWeightKg());
+    entity.setGrossKg(request.getGrossKg());
+    entity.setRatePerKg(request.getRatePerKg());
+    entity.setStatus(
+        request.getStatus() != null
+            ? JobWorkStatus.valueOf(request.getStatus().name())
+            : JobWorkStatus.PENDING);
+    entity.setJobWorkType(
+        request.getJobWorkType() != null
+            ? JobWorkType.valueOf(request.getJobWorkType().name())
+            : JobWorkType.MANUAL);
+    entity.setChitthiNo(request.getChitthiNo());
+    entity.setChitthiDate(request.getChitthiDate());
+    entity.setOrderTime(request.getOrderTime());
+
+    computeCalculatedFields(entity, request);
+
+    return mapper().toDomain(jobWorkRepository.save(entity));
   }
 }

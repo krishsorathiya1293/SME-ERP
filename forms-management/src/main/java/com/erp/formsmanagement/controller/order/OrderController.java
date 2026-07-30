@@ -7,10 +7,16 @@ import com.erp.api.ordermanagement.model.PaginatedPartyOrdersResponse;
 import com.erp.api.ordermanagement.model.PaginatedResultOrder;
 import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.controller.GetAllDelegateV1;
+import com.erp.formsmanagement.mapper.order.OrderMapper;
+import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import com.erp.formsmanagement.service.order.OrderService;
 import com.erp.util.GetAllQuery;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -19,10 +25,29 @@ public class OrderController
     implements OrderOrderManagementApi {
 
   private final GetAllDelegateV1<String, PaginatedPartyOrdersResponse> partyOrdersPage;
+  private final OrderRepository orderRepository;
+  private final OrderMapper orderMapper;
 
-  public OrderController(OrderService s) {
+  public OrderController(OrderService s, OrderRepository orderRepository, OrderMapper orderMapper) {
     super(s, s);
     this.partyOrdersPage = new GetAllDelegateV1<>(s);
+    this.orderRepository = orderRepository;
+    this.orderMapper = orderMapper;
+  }
+
+  /**
+   * Global orders listing — flat list across every party. Backs the operations
+   * dashboard's Orders KPIs and charts.
+   */
+  @GetMapping("/api/v1/orders")
+  public ResponseEntity<List<Order>> getAllOrdersGlobal(
+      @RequestParam(required = false) Integer page,
+      @RequestParam(required = false) Integer size) {
+    int p = page != null ? page : 0;
+    int sz = size != null ? size : 500;
+    var pageResult = orderRepository.findAll(PageRequest.of(p, sz));
+    return ResponseEntity.ok(
+        pageResult.getContent().stream().map(orderMapper::toDomain).toList());
   }
 
   @Override

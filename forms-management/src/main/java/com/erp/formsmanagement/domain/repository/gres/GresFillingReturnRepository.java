@@ -4,6 +4,8 @@ import com.erp.formsmanagement.domain.entity.gres.GresFillingReturnEntity;
 import com.erp.repository.CoreRepository;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface GresFillingReturnRepository extends CoreRepository<GresFillingReturnEntity, Long> {
 
@@ -23,4 +25,14 @@ public interface GresFillingReturnRepository extends CoreRepository<GresFillingR
                         "%" + s.toLowerCase() + "%"))
             .orElse(null);
   }
+
+  /**
+   * Total net Kg already returned against a Gres record, excluding one row (used
+   * when editing so the row's own contribution isn't double-counted).
+   */
+  @Query(
+      "SELECT COALESCE(SUM(r.returnKg), 0) FROM GresFillingReturnEntity r "
+          + "WHERE r.gresFilling.id = :gresFillingId AND (:excludeId = 0 OR r.id <> :excludeId)")
+  double sumReturnKgByGresFillingId(
+      @Param("gresFillingId") Long gresFillingId, @Param("excludeId") Long excludeId);
 }

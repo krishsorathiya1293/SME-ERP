@@ -44,6 +44,10 @@ public class GresFillingEntity extends AuditInfo {
   private LocalDate chitthiDate;
   private String orderTime;
 
+  // Monthly-reset serial: display is String.format("%03d", chNoSerial), scoped to chNoYearMonth.
+  private Integer chNoSerial;
+  private String chNoYearMonth; // "YYYY-MM"
+
   @Enumerated(EnumType.STRING)
   private GresFillingStatus status;
 

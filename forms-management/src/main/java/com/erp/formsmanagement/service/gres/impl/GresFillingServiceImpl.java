@@ -23,8 +23,7 @@ import com.erp.service.AbstractSpecificationServiceV1;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
-import java.time.LocalDateTime;
-import java.time.Year;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -70,10 +69,48 @@ public class GresFillingServiceImpl
     linkRelations(entity, request);
   }
 
+  /**
+   * Assigns a monthly-reset Ch. No. per the client's Excel spec ("001" that starts at 1 each
+   * calendar month). We keep the pair (year-month, serial) unique in the DB, and set the display
+   * chitthiNo to the zero-padded serial for convenience.
+   */
   private void assignChitthiNo(GresFillingEntity entity) {
-    long count = gresFillingRepository.count() + 1;
-    int year = Year.now().getValue();
-    entity.setChitthiNo(String.format("%02d/Gres.Fill/%d", count, year));
+    LocalDate date = entity.getChitthiDate() != null ? entity.getChitthiDate() : LocalDate.now();
+    String yearMonth = String.format("%04d-%02d", date.getYear(), date.getMonthValue());
+    Integer max = gresFillingRepository.findMaxChNoSerialForYearMonth(yearMonth);
+    int next = (max == null ? 0 : max) + 1;
+    entity.setChNoYearMonth(yearMonth);
+    entity.setChNoSerial(next);
+    entity.setChitthiNo(String.format("%03d", next));
+  }
+
+  private static Double round3(Double value) {
+    if (value == null) return null;
+    return Math.round(value * 1000.0) / 1000.0;
+  }
+
+  /**
+   * Excel formula: Net Kg = Gross Kg − Peti count × 1-Peti tare weight;
+   * Total Rate = Net Kg × Rate/Kg (rounded to integer per the printout).
+   * Runs on every save so the numbers can't drift from the inputs.
+   */
+  private void computeItemTotals(GresFillingItemEntity item) {
+    Double gross = item.getUnitKg();
+    Double count = item.getElementCount();
+    Double tare = item.getPetiWeightKg();
+    if (gross != null && count != null && tare != null) {
+      double net = Math.max(0.0, gross - count * tare);
+      item.setNetWeight(round3(net));
+    } else if (gross != null && (count == null || tare == null)) {
+      // If we only have gross, fall back to it as net (user hasn't entered Peti yet).
+      item.setNetWeight(round3(gross));
+    }
+
+    Double net = item.getNetWeight();
+    Double rate = item.getRatePerKg();
+    if (net != null && rate != null) {
+      item.setTotalAmount((double) Math.round(net * rate));
+    }
   }
 
   private void linkRelations(GresFillingEntity entity, NewGresFilling request) {
@@ -86,9 +123,10 @@ public class GresFillingServiceImpl
                         String.format(Constant.ENTITY_NOT_FOUND, request.getPartyId())));
     entity.setParty(party);
 
-    // Sync items
-    entity.getItems().clear();
+    // Sync items only when the caller sent an items list. A missing list means
+    // "leave existing items alone" (e.g. status-only updates from the card).
     if (request.getItems() != null) {
+      entity.getItems().clear();
       List<GresFillingItemEntity> itemEntities = new ArrayList<>();
       for (NewGresFillingItem newItem : request.getItems()) {
         GresFillingItemEntity itemEntity = gresFillingItemMapper.toEntity(newItem);
@@ -106,6 +144,7 @@ public class GresFillingServiceImpl
         if (newItem.getElementType() != null) {
           itemEntity.setElementType(GresElementType.valueOf(newItem.getElementType().name()));
         }
+        computeItemTotals(itemEntity);
         itemEntities.add(itemEntity);
       }
       entity.getItems().addAll(itemEntities);

@@ -2,27 +2,15 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Gres Filling Chitthi</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"/>
-
+    <title>Gres Job Work - Print Out</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        @page {
-            margin: 0;
-            size: 297.5px 420.82px;
-        }
+        @page { margin: 0; size: 105mm 148mm; }
 
         html, body {
-            width: 297.5px;
-            height: 420.82px;
+            width: 105mm;
+            height: 148mm;
             background: #fff;
             overflow: hidden;
         }
@@ -30,125 +18,119 @@
         body {
             font-family: "Kantumruy Pro", Arial, sans-serif;
             font-weight: 500;
-            position: relative;
-            color: #111;
+            color: #241C17;
+            font-size: 10px;
+            line-height: 1.3;
         }
 
         .ticket {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 297.5px;
-            height: 420.82px;
-            padding: 18px 18px 12px 18px;
-            font-size: 11px;
-            line-height: 1.35;
-            box-sizing: border-box;
-        }
-
-        .header {
+            width: 100mm;
+            height: 143mm;
+            margin: 2.5mm;
+            border: 1.6pt solid #241C17;
             overflow: hidden;
-            margin-bottom: 14px;
         }
 
-        .h-left {
-            float: left;
-            font-size: 12px;
-            font-weight: 600;
+        .frame { width: 100%; border-collapse: collapse; }
+
+        .logo-band { background: #FFFFFF; text-align: center; padding: 1.6mm 0 1.2mm 0; }
+        .logo-band img { height: 7.5mm; width: auto; }
+
+        .printout-band {
+            background: #241C17;
+            color: #FFFFFF;
+            text-align: center;
+            font-weight: 700;
+            font-size: 12.5px;
+            letter-spacing: 2px;
+            padding: 1.5mm 0;
         }
 
-        .h-right {
-            float: right;
-            text-align: right;
+        .title-band {
+            background: #E8A736;
+            color: #241C17;
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.4px;
+            padding: 1.8mm 0;
+            border-top: 1pt solid #241C17;
+            border-bottom: 1.2pt solid #241C17;
+        }
+
+        table.meta { width: 100%; border-collapse: collapse; background: #FDF3E0; }
+        table.meta td {
+            padding: 1.5mm 2.5mm;
             font-size: 10px;
-            color: #7e7e7e;
-            line-height: 1.35;
+            border-bottom: 1pt solid #E2D3B4;
         }
+        table.meta td.r { text-align: right; }
+        .job-no { font-size: 13px; font-weight: 700; color: #B87813; }
+        .meta-k { color: #7A6E5F; }
+        .meta-v { font-weight: 700; }
 
-        .h-right .row {
-            margin: 2px 0;
-        }
-
-        .info {
-            margin-top: 6px;
-        }
-
-        .info-row {
-            overflow: hidden;
-            margin: 8px 0;
-        }
-
-        .lbl {
-            float: left;
-            width: 80px;
-            color: #3a3a3a;
-        }
-
-        .val {
-            float: left;
-            width: 178px;
-            border-bottom: 1px solid #3a3a3a;
-            padding-bottom: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .section-title {
-            margin-top: 20px;
-            font-weight: 600;
-            font-size: 11px;
-            color: #111;
-        }
-
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 10px;
-        }
-
-        .items-table th {
-            text-align: left;
-            color: #8a8a8a;
-            font-weight: 500;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #ccc;
-        }
-
-        .items-table td {
-            padding: 4px 0;
+        table.info { width: 100%; border-collapse: collapse; }
+        table.info td {
+            padding: 1.5mm 2.5mm;
             vertical-align: top;
+            border-bottom: 0.6pt solid #EDE6DA;
         }
-
-        .returns-section {
-            margin-top: 16px;
+        table.info td.k {
+            width: 27mm;
+            color: #7A6E5F;
+            font-size: 9.5px;
+            background: #FAF7F1;
+            border-right: 0.6pt solid #EDE6DA;
         }
+        table.info td.v { font-weight: 700; font-size: 10px; word-break: break-word; }
 
-        .return-row {
-            overflow: hidden;
-            margin-top: 8px;
-            font-size: 10px;
+        table.ja { width: 100%; border-collapse: collapse; border-top: 1.2pt solid #241C17; }
+        table.ja th {
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 1.5mm 0;
+            color: #FFFFFF;
+            letter-spacing: 0.6px;
         }
-
-        .rcol {
-            float: left;
-            width: 33%;
+        th.h-javak { background: #1B6CA8; border-right: 1pt solid #241C17; }
+        th.h-aavak { background: #17875A; }
+        table.ja td.col {
+            width: 50%;
+            padding: 1.6mm 2.5mm;
+            vertical-align: top;
+            height: 24mm;
         }
+        td.c-javak { background: #F2F8FD; border-right: 1pt solid #241C17; }
+        td.c-aavak { background: #F0F9F4; }
 
-        .rlabel {
-            color: #8a8a8a;
+        .fr { margin-bottom: 1.6mm; }
+        .fr .fk { color: #6B6259; font-size: 9px; }
+        .fr .fv { font-weight: 700; font-size: 10.5px; }
+        .fr.net { margin-bottom: 0; padding-top: 1mm; border-top: 0.6pt dashed #B9C6D2; }
+        .fr.net .fk { font-size: 9px; }
+        .net-javak .fv { color: #14507E; font-size: 12.5px; }
+        .net-aavak .fv { color: #10653F; font-size: 12.5px; }
+
+        table.rate { width: 100%; border-collapse: collapse; border-top: 1.2pt solid #241C17; }
+        table.rate td {
+            padding: 1.6mm 2.5mm;
+            font-size: 10.5px;
+            border-bottom: 0.6pt solid #EDE6DA;
         }
+        table.rate td.k { color: #7A6E5F; width: 30mm; background: #FAF7F1; border-right: 0.6pt solid #EDE6DA; }
+        table.rate td.v { font-weight: 700; }
+        table.rate td.total-v { font-weight: 700; color: #B87813; font-size: 13px; text-align: right; }
+        table.rate td.total-k { color: #241C17; font-weight: 700; background: #FDF3E0; border-right: 0.6pt solid #EDE6DA; }
 
-        .rvalue {
-            margin-top: 3px;
-        }
-
-        .total-ghati {
-            margin-top: 14px;
-            text-align: right;
-            font-weight: 600;
-            font-size: 11px;
+        .footer {
+            background: #E8A736;
+            border-top: 1.2pt solid #241C17;
+            text-align: center;
+            padding: 1.4mm 0;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #241C17;
+            letter-spacing: 0.3px;
         }
     </style>
 </head>
@@ -156,76 +138,96 @@
 <body>
 <div class="ticket"
      th:with="
-       dt=${gres.chitthiDate != null ? #temporals.format(gres.chitthiDate,'dd-MM-yyyy') : ''},
+       jobNo=${gres.chNoSerial != null ? #numbers.formatInteger(gres.chNoSerial,3) : (gres.chitthiNo != null ? gres.chitthiNo : '—')},
+       dt=${gres.chitthiDate != null ? #temporals.format(gres.chitthiDate,'d-M-yy') : '—'},
        tm=${gres.orderTime != null ? gres.orderTime : #temporals.format(#temporals.createNow(),'HH:mm')},
-       chitthiNo=${gres.chitthiNo != null ? gres.chitthiNo : ''},
-       totalReturnKg=${!gres.returns.?[returnKg != null].isEmpty() ? #aggregates.sum(gres.returns.?[returnKg != null].![returnKg]) : 0},
-       totalGhati=${!gres.returns.?[ghati != null].isEmpty() ? #aggregates.sum(gres.returns.?[ghati != null].![ghati]) : 0}
+       firstItem=${!gres.items.isEmpty() ? gres.items[0] : null},
+       itemName=${firstItem != null and firstItem.size != null and firstItem.size.item != null ? firstItem.size.item.itemName : '—'},
+       sizeText=${firstItem != null and firstItem.size != null ? firstItem.size.sizeInInch : '—'},
+       peti=${firstItem != null and firstItem.elementCount != null ? #numbers.formatDecimal(firstItem.elementCount,1,0) : '—'},
+       grossKg=${firstItem != null and firstItem.unitKg != null ? #numbers.formatDecimal(firstItem.unitKg,1,3) + ' Kg' : '—'},
+       netKg=${firstItem != null and firstItem.netWeight != null ? #numbers.formatDecimal(firstItem.netWeight,1,3) + ' kg' : '—'},
+       ratePerKg=${firstItem != null and firstItem.ratePerKg != null ? #numbers.formatDecimal(firstItem.ratePerKg,1,2) : '—'},
+       totalRate=${firstItem != null and firstItem.totalAmount != null ? #numbers.formatDecimal(firstItem.totalAmount,1,0) : '—'},
+       retPeti=${!gres.returns.?[returnElementCount != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(gres.returns.?[returnElementCount != null].![returnElementCount]),1,0) : '—'},
+       retGrossKg=${!gres.returns.?[grossKg != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(gres.returns.?[grossKg != null].![grossKg]),1,3) + ' Kg' : '—'},
+       retNetKg=${!gres.returns.?[returnKg != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(gres.returns.?[returnKg != null].![returnKg]),1,3) + ' kg' : '—'}
      ">
 
-    <div class="header">
-        <div class="h-left">Gres Filling</div>
-        <div class="h-right">
-            <div class="row">Chitthi: <span th:text="${chitthiNo}"></span></div>
-            <div class="row">Date: <span th:text="${dt}"></span></div>
-            <div class="row">Time: <span th:text="${tm}"></span></div>
-        </div>
-    </div>
+    <table class="frame">
+        <tr><td class="logo-band"><img th:src="${companyLogoMarkDataUri}" alt="Ishita Industries"/></td></tr>
+        <tr><td class="printout-band">PRINT OUT</td></tr>
+        <tr><td class="title-band">Out Side Gris Job Work</td></tr>
 
-    <div class="info">
-        <div class="info-row">
-            <div class="lbl">Vendor :</div>
-            <div class="val" th:text="${party}">Vendor Name</div>
-        </div>
-    </div>
+        <tr><td style="padding:0;">
+            <table class="meta">
+                <tr>
+                    <td><span class="meta-k">Job No.</span> <span class="job-no" th:text="${jobNo}">001</span></td>
+                    <td class="r">
+                        <span class="meta-k">Date :-</span> <span class="meta-v" th:text="${dt}">20-7-26</span><br/>
+                        <span class="meta-k">Time :-</span> <span class="meta-v" th:text="${tm}">5.00 pm</span>
+                    </td>
+                </tr>
+            </table>
+        </td></tr>
 
-    <!-- Javak (sent out) items -->
-    <div class="section-title">Javak</div>
+        <tr><td style="padding:0;">
+            <table class="info">
+                <tr>
+                    <td class="k">From :-</td>
+                    <td class="v">Ishita Industries</td>
+                </tr>
+                <tr>
+                    <td class="k">To :-</td>
+                    <td class="v" th:text="${gres.party != null ? gres.party.name : '—'}">Rajan Virani</td>
+                </tr>
+                <tr>
+                    <td class="k">Item Name :-</td>
+                    <td class="v" th:text="${itemName}">3.600 - 1.1/8x5/32</td>
+                </tr>
+                <tr>
+                    <td class="k">Size :-</td>
+                    <td class="v" th:text="${sizeText}">5x1.1/8x5/32</td>
+                </tr>
+            </table>
+        </td></tr>
 
-    <table class="items-table">
-        <thead>
-        <tr>
-            <th>Size</th>
-            <th>Kg / Pcs</th>
-            <th>Element</th>
-            <th>Net Wt</th>
-            <th>Rate/Kg</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="item : ${gres.items}">
-            <td th:text="${item.size != null ? item.size.sizeInInch : '--'}"></td>
-            <td th:text="${item.unitKg != null ? item.unitKg + (item.unitType != null ? ' ' + item.unitType : '') : '--'}"></td>
-            <td th:text="${item.elementCount != null ? item.elementCount + (item.elementType != null ? ' ' + item.elementType.name() : '') : '--'}"></td>
-            <td th:text="${item.netWeight != null ? item.netWeight + 'Kg' : '--'}"></td>
-            <td th:text="${item.ratePerKg != null ? item.ratePerKg : '--'}"></td>
-        </tr>
-        </tbody>
+        <tr><td style="padding:0;">
+            <table class="ja">
+                <tr>
+                    <th class="h-javak">Javak</th>
+                    <th class="h-aavak">Aavak</th>
+                </tr>
+                <tr>
+                    <td class="col c-javak">
+                        <div class="fr"><div class="fk">Peti :-</div><div class="fv" th:text="${peti}">5</div></div>
+                        <div class="fr"><div class="fk">Kg :-</div><div class="fv" th:text="${grossKg}">150.150 Kg</div></div>
+                        <div class="fr net net-javak"><div class="fk">Net Kg :-</div><div class="fv" th:text="${netKg}">145.150 kg</div></div>
+                    </td>
+                    <td class="col c-aavak">
+                        <div class="fr"><div class="fk">Peti :-</div><div class="fv" th:text="${retPeti}">5</div></div>
+                        <div class="fr"><div class="fk">Kgs :-</div><div class="fv" th:text="${retGrossKg}">153.000 Kg</div></div>
+                        <div class="fr net net-aavak"><div class="fk">Net Kg :-</div><div class="fv" th:text="${retNetKg}">148.000 Kg</div></div>
+                    </td>
+                </tr>
+            </table>
+        </td></tr>
+
+        <tr><td style="padding:0;">
+            <table class="rate">
+                <tr>
+                    <td class="k">Rate / Kg :-</td>
+                    <td class="v" th:text="${ratePerKg}">5</td>
+                </tr>
+                <tr>
+                    <td class="total-k">Total Rate :-</td>
+                    <td class="total-v" th:text="${totalRate}">726</td>
+                </tr>
+            </table>
+        </td></tr>
+
+        <tr><td class="footer">ISHITA INDUSTRIES &nbsp;•&nbsp; Precision Customise Components &amp; Fasteners</td></tr>
     </table>
-
-    <!-- Aavak (returns) summary -->
-    <div class="section-title" th:if="${!gres.returns.isEmpty()}">Aavak</div>
-
-    <div class="returns-section" th:if="${!gres.returns.isEmpty()}">
-        <div class="return-row" th:each="ret : ${gres.returns}">
-            <div class="rcol">
-                <div class="rlabel">Return Kg</div>
-                <div class="rvalue" th:text="${ret.returnKg != null ? ret.returnKg + 'Kg' : '--'}"></div>
-            </div>
-            <div class="rcol">
-                <div class="rlabel">Ghati</div>
-                <div class="rvalue" th:text="${ret.ghati != null ? ret.ghati : '--'}"></div>
-            </div>
-            <div class="rcol">
-                <div class="rlabel">Date</div>
-                <div class="rvalue" th:text="${ret.returnDate != null ? #temporals.format(ret.returnDate,'dd-MM-yy') : '--'}"></div>
-            </div>
-        </div>
-
-        <div class="total-ghati">
-            Total Ghati: <span th:text="${totalGhati}">0</span> KG
-        </div>
-    </div>
 
 </div>
 </body>

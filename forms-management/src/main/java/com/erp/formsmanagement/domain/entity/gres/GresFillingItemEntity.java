@@ -35,13 +35,14 @@ public class GresFillingItemEntity {
   @JoinColumn(name = "size_id")
   private ItemBlueprintDataEntity size;
 
-  private Double unitKg;
+  private Double unitKg; // Gross Kg (client's Excel: "Kgs :- 150.150 Kg")
   private String unitType;
   private Double elementCount;
 
   @Enumerated(EnumType.STRING)
   private GresElementType elementType;
 
+  private Double petiWeightKg; // Tare per Peti (Excel: "1 Peti Weight :- 1 Kg")
   private Double netWeight;
   private Double ratePerKg;
   private Double totalAmount;

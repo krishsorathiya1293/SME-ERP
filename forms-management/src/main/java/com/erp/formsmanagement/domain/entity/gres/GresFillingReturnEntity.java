@@ -35,7 +35,13 @@ public class GresFillingReturnEntity extends AuditInfo {
   @JoinColumn(name = "gres_filling_id", nullable = false)
   private GresFillingEntity gresFilling;
 
+  // Gross weight the vendor sent back (Excel "Kgs :- 153.000 Kg"). Manual entry.
+  private Double grossKg;
+  // Tare per Peti in Kg (Excel "1 Peti Weight :- 1 Kg"). Manual entry.
+  private Double petiWeightKg;
+  // Net returned Kg — server-computed from grossKg - returnElementCount * petiWeightKg.
   private Double returnKg;
+  // Diff between return net and the job's own net (positive = returned more).
   private Double ghati;
   private Double returnElementCount;
 

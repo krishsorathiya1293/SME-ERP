@@ -48,6 +48,7 @@ public class GresFillingReturnServiceImpl
     if (request.getElementType() != null) {
       entity.setElementType(GresElementType.valueOf(request.getElementType().name()));
     }
+    recompute(entity, gresFilling);
   }
 
   @Override
@@ -57,6 +58,38 @@ public class GresFillingReturnServiceImpl
     entity.setGresFilling(gresFilling);
     if (request.getElementType() != null) {
       entity.setElementType(GresElementType.valueOf(request.getElementType().name()));
+    }
+    recompute(entity, gresFilling);
+  }
+
+  private static Double round3(Double value) {
+    if (value == null) return null;
+    return Math.round(value * 1000.0) / 1000.0;
+  }
+
+  /**
+   * Excel formula: Net Kg = Kgs − Peti × 1-Peti Weight;
+   * Ghati = Return Net − Job Net (positive = returned more than sent, negative = shortfall).
+   * The forward job's Net is taken from its first item (Gres records are single-item).
+   */
+  private void recompute(GresFillingReturnEntity entity, GresFillingEntity gresFilling) {
+    Double gross = entity.getGrossKg();
+    Double count = entity.getReturnElementCount();
+    Double tare = entity.getPetiWeightKg();
+    if (gross != null && count != null && tare != null) {
+      entity.setReturnKg(round3(Math.max(0.0, gross - count * tare)));
+    } else if (gross != null && entity.getReturnKg() == null) {
+      entity.setReturnKg(round3(gross));
+    }
+
+    Double jobNet =
+        gresFilling.getItems().stream()
+            .findFirst()
+            .map(item -> item.getNetWeight())
+            .orElse(null);
+    Double returnNet = entity.getReturnKg();
+    if (jobNet != null && returnNet != null) {
+      entity.setGhati(round3(returnNet - jobNet));
     }
   }
 

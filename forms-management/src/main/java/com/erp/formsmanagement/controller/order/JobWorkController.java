@@ -7,10 +7,16 @@ import com.erp.api.ordermanagement.model.PaginatedResultJobWork;
 import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.controller.AbstractCrudControllerV2;
+import com.erp.formsmanagement.domain.entity.order.JobWorkType;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.util.GetAllQuery;
 import java.util.Optional;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -28,6 +34,42 @@ public class JobWorkController
   @Override
   public ResponseEntity<JobWork> createJobWork(Long orderItemId, NewJobWork newJobWork) {
     return crud().createOne(orderItemId, newJobWork);
+  }
+
+  /** Manual job work — not tied to any order item. */
+  @PostMapping("/api/v1/job-works/manual")
+  public ResponseEntity<JobWork> createManualJobWork(@RequestBody NewJobWork newJobWork) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(jobWorkService.createManual(newJobWork));
+  }
+
+  /**
+   * Global job-work listing used by the operations dashboard and the plating
+   * analytics pages. Unlike the OpenAPI-generated per-order-item endpoint,
+   * this returns all job works across every order item, optionally filtered
+   * by {@code jobWorkType} (OUTSIDE / INHOUSE / MANUAL).
+   */
+  @GetMapping("/api/v1/job-works")
+  public ResponseEntity<PaginatedResultJobWork> getAllJobWorksGlobal(
+      @RequestParam(required = false) String jobWorkType,
+      @RequestParam(required = false) String search,
+      @RequestParam(required = false) Integer page,
+      @RequestParam(required = false) Integer size,
+      @RequestParam(required = false) String sortByFields,
+      @RequestParam(required = false) String direction) {
+    JobWorkType typeFilter = null;
+    if (jobWorkType != null && !jobWorkType.isBlank()) {
+      typeFilter = JobWorkType.valueOf(jobWorkType);
+    }
+    return ResponseEntity.ok(
+        jobWorkService.getAllGlobal(
+            typeFilter,
+            GetAllQuery.of(
+                Optional.empty(),
+                Optional.ofNullable(search),
+                Optional.ofNullable(page),
+                Optional.ofNullable(size),
+                Optional.ofNullable(sortByFields),
+                Optional.ofNullable(direction))));
   }
 
   @Override
