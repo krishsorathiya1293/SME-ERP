@@ -1,10 +1,12 @@
 package com.erp.formsmanagement.service.order;
 
 import com.erp.api.exportmanagement.model.JobWorkFormType;
-import com.erp.config.transliteration.TransliterationService;
 import com.erp.exception.EntityNotFoundException;
+import com.erp.formsmanagement.domain.entity.master.TranslationType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
+import com.erp.formsmanagement.service.master.TranslationService;
+import com.erp.formsmanagement.service.master.TranslationService.LocalizedText;
 import com.erp.service.AbstractDocumentProvider;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +20,7 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
   private static final String DEFAULT_PAPER_SIZE = "A6";
 
   private final JobWorkRepository jobWorkRepository;
-  private final TransliterationService transliterationService;
+  private final TranslationService translationService;
 
   @Override
   protected Class<JobWorkFormType> variantType() {
@@ -46,18 +48,22 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
     Map<String, Object> variables = new HashMap<>();
     variables.put("job", entity);
     variables.put("partyPlain", partyName);
-    variables.put("partyTri", transliterateTri(partyName));
-    variables.put("finishTri", transliterateTri(entity.getFinish()));
+    variables.put("partyTri", transliterateTri(TranslationType.PARTY, partyName));
+    variables.put("finishTri", transliterateTri(TranslationType.FINISH, entity.getFinish()));
     return new DocumentData(resolveTemplateName(type, paperSize), variables);
   }
 
-  private String transliterateTri(String text) {
+  /**
+   * Builds the {@code English / हिंदी / ગુજરાતી} string shown on the print, reading the saved
+   * (user-editable) dictionary entry and falling back to a live transliteration only when the term
+   * has never been seen.
+   */
+  private String transliterateTri(TranslationType type, String text) {
     if (text == null || text.isBlank()) {
       return "";
     }
-    return text
-        + " / " + transliterationService.convertToHindi(text)
-        + " / " + transliterationService.convertToGujarati(text);
+    LocalizedText localized = translationService.resolveForPrint(type, text);
+    return text + " / " + localized.hindi() + " / " + localized.gujarati();
   }
 
   private String resolveTemplateName(JobWorkFormType type, String paperSize) {

@@ -10,6 +10,7 @@ import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
+import com.erp.formsmanagement.domain.entity.master.TranslationType;
 import com.erp.formsmanagement.domain.entity.order.ElementType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
@@ -20,6 +21,7 @@ import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.mapper.order.JobWorkMapper;
+import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
@@ -27,11 +29,13 @@ import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @Transactional
 public class JobWorkServiceImpl
@@ -42,24 +46,44 @@ public class JobWorkServiceImpl
   private final OrderItemRepository orderItemRepository;
   private final PartyRepository partyRepository;
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
+  private final TranslationService translationService;
 
   public JobWorkServiceImpl(
       JobWorkRepository jobWorkRepository,
       OrderItemRepository orderItemRepository,
       PartyRepository partyRepository,
       ItemBlueprintDataRepository itemBlueprintDataRepository,
+      TranslationService translationService,
       JobWorkMapper jobWorkMapper) {
     super(jobWorkRepository, jobWorkMapper);
     this.jobWorkRepository = jobWorkRepository;
     this.orderItemRepository = orderItemRepository;
     this.partyRepository = partyRepository;
     this.itemBlueprintDataRepository = itemBlueprintDataRepository;
+    this.translationService = translationService;
+  }
+
+  /**
+   * Adds the job work's party name + finish to the translation dictionary (transliterating them on
+   * first sight) so the print can render them in Hindi/Gujarati from saved, editable values. Best
+   * effort — a transliteration/network hiccup must never block saving the job work.
+   */
+  private void ensureTranslations(JobWorkEntity entity) {
+    try {
+      if (entity.getParty() != null) {
+        translationService.ensure(TranslationType.PARTY, entity.getParty().getName());
+      }
+      translationService.ensure(TranslationType.FINISH, entity.getFinish());
+    } catch (Exception e) {
+      log.warn("Failed to seed translations for job work {}", entity.getId(), e);
+    }
   }
 
   @Override
   protected void afterCreate(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
     linkRelations(entity, orderItemId, request);
     assignJobWorkNo(entity);
+    ensureTranslations(entity);
   }
 
   @Override
@@ -271,7 +295,9 @@ public class JobWorkServiceImpl
         request.getJobWorkType() != null
             ? JobWorkType.valueOf(request.getJobWorkType().name())
             : JobWorkType.MANUAL);
-    return mapper().toDomain(jobWorkRepository.save(entity));
+    JobWorkEntity saved = jobWorkRepository.save(entity);
+    ensureTranslations(saved);
+    return mapper().toDomain(saved);
   }
 
   @Override
