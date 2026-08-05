@@ -104,9 +104,18 @@ public class TranslationService {
     if (changed) {
       entity.setHindi(hindi);
       entity.setGujarati(gujarati);
-      return repository.save(entity);
+      TranslationEntity saved = repository.save(entity);
+      // A back-fill changes what the print renders, so drop stale cached PNG/PDF too — this fires
+      // when the editor is merely opened (listFull auto-fills blanks), not only on explicit Save.
+      evictJobWorkPrintCache();
+      return saved;
     }
     return entity;
+  }
+
+  /** Drops every cached Job Work PNG/PDF so the next print re-renders with current translations. */
+  private void evictJobWorkPrintCache() {
+    eventPublisher.publishEvent(new FormChangedEvent("job-work", null, "TRANSLATION"));
   }
 
   /**
@@ -140,7 +149,7 @@ public class TranslationService {
     TranslationEntity saved = repository.save(entity);
     // The Job Work print renders party/finish from this dictionary; drop any cached PNG/PDF so the
     // edited Hindi/Gujarati shows immediately instead of a stale (Google-seeded) render.
-    eventPublisher.publishEvent(new FormChangedEvent("job-work", null, "TRANSLATION"));
+    evictJobWorkPrintCache();
     return saved;
   }
 

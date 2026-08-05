@@ -25,7 +25,6 @@
 
         .ticket {
             width: 49mm;
-            height: 71mm;
             margin: 1.5mm;
             border: 1pt solid #241C17;
             overflow: hidden;
@@ -67,6 +66,7 @@
         .job-no { font-size: 8.4px; font-weight: 700; color: #B87813; }
         .meta-k { color: #7A6E5F; }
         .meta-v { font-weight: 700; }
+        .meta-hl { font-weight: 700; color: #B87813; }
 
         table.info { width: 100%; border-collapse: collapse; }
         table.info td {
@@ -113,8 +113,6 @@
         table.ja td.col { padding: 0.9mm 1.4mm; vertical-align: top; background: #F2F8FD; }
         /* Stretch the data block to fill the label; In-Side carries an extra info row
            plus the totals chips, so it gets a shorter block to stay inside 74mm. */
-        table.ja.roomy td.col { height: 25mm; }
-        table.ja.compact td.col { height: 13mm; }
 
         .fr { margin-bottom: 1.2mm; }
         .fr .fk { color: #6B6259; font-size: 5px; }
@@ -144,7 +142,7 @@
        titleText=${jwType == 'OUTSIDE' ? 'Out Side Job Work' : (jwType == 'INHOUSE' ? 'In Side Job Work' : 'Job Work')},
        sizeText=${job.size != null ? job.size.sizeInInch : '—'},
        petiLabel=${job.elementType != null ? job.elementType.value : 'Peti'},
-       peti=${job.elementCount != null ? #numbers.formatDecimal(job.elementCount,1,2) : '—'},
+       peti=${job.elementCount != null ? #numbers.formatInteger(job.elementCount,1) : '—'},
        grossKg=${job.grossKg != null ? #numbers.formatDecimal(job.grossKg,1,3) + ' Kg' : '—'},
        netKg=${job.qtyKg != null ? #numbers.formatDecimal(job.qtyKg,1,3) + ' kg' : '—'}
      ">
@@ -159,8 +157,8 @@
                 <tr>
                     <td><span class="meta-k">Job No.</span> <span class="job-no" th:text="${jwNo}">003</span></td>
                     <td class="r">
-                        <span class="meta-v" th:text="${dt}">20-7-26</span><br/>
-                        <span class="meta-v" th:text="${tm}">5.00 pm</span>
+                        <span class="meta-hl" th:text="${dt}">20-7-26</span><br/>
+                        <span class="meta-hl" th:text="${tm}">5.00 pm</span>
                     </td>
                 </tr>
             </table>
