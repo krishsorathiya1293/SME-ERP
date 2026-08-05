@@ -168,16 +168,8 @@ public class TranslationService {
     if (sourceText == null || sourceText.isBlank()) {
       return new LocalizedText("", "");
     }
-    String key = sourceText.trim();
-    var found = repository.findByTypeAndSourceText(type, key);
-    log.info(
-        "TRANSLATION-DEBUG print type={} key=[{}] found={} -> hindi=[{}] gujarati=[{}]",
-        type,
-        key,
-        found.isPresent(),
-        found.map(TranslationEntity::getHindi).orElse(null),
-        found.map(TranslationEntity::getGujarati).orElse(null));
-    return found
+    return repository
+        .findByTypeAndSourceText(type, sourceText.trim())
         .map(e -> new LocalizedText(nullToEmpty(e.getHindi()).strip(), nullToEmpty(e.getGujarati()).strip()))
         .orElse(new LocalizedText("", ""));
   }
