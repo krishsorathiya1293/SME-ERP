@@ -79,8 +79,15 @@ public class ReportExportService {
         records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.OUTSIDE).toList();
     List<JobWorkEntity> insideRecords =
         records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.INHOUSE).toList();
+    // MANUAL (order-less) job works have no workflow section of their own; show them alongside the
+    // generic "Job Work" statement so they aren't silently dropped from the party statement.
     List<JobWorkEntity> plainJobWorkRecords =
-        records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.JOB_WORK).toList();
+        records.stream()
+            .filter(
+                jw ->
+                    jw.getJobWorkType() == JobWorkType.JOB_WORK
+                        || jw.getJobWorkType() == JobWorkType.MANUAL)
+            .toList();
 
     Map<String, Object> variables = new HashMap<>();
     variables.put("partyName", party.getName());
