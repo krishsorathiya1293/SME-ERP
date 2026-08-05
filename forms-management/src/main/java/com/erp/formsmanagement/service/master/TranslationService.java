@@ -73,26 +73,55 @@ public class TranslationService {
   }
 
   /**
-   * Ensures a dictionary row exists for {@code (type, sourceText)} and returns it. On first sight
-   * the source is transliterated to Hindi + Gujarati and saved; an existing row is returned
-   * untouched (the user's edits win). Returns {@code null} for blank input.
+   * Ensures a dictionary row exists for {@code (type, sourceText)} and returns it with both Hindi
+   * and Gujarati populated. A missing row is created; an existing row keeps whatever the user
+   * typed but has any <em>blank</em> Hindi/Gujarati field back-filled via Google transliteration —
+   * so the editor and print never show an empty translation. Returns {@code null} for blank input.
    */
   public TranslationEntity ensure(TranslationType type, String sourceText) {
     if (sourceText == null || sourceText.isBlank()) {
       return null;
     }
     String key = sourceText.trim();
-    return repository
-        .findByTypeAndSourceText(type, key)
-        .orElseGet(
-            () -> {
-              TranslationEntity entity = new TranslationEntity();
-              entity.setType(type);
-              entity.setSourceText(key);
-              entity.setHindi(transliterationService.convertToHindi(key));
-              entity.setGujarati(transliterationService.convertToGujarati(key));
-              return repository.save(entity);
-            });
+    TranslationEntity entity =
+        repository
+            .findByTypeAndSourceText(type, key)
+            .orElseGet(
+                () -> {
+                  TranslationEntity fresh = new TranslationEntity();
+                  fresh.setType(type);
+                  fresh.setSourceText(key);
+                  return fresh;
+                });
+
+    String hindi = filledOrTransliterated(entity.getHindi(), key, true);
+    String gujarati = filledOrTransliterated(entity.getGujarati(), key, false);
+
+    boolean changed =
+        entity.getId() == null
+            || !hindi.equals(nullToEmpty(entity.getHindi()))
+            || !gujarati.equals(nullToEmpty(entity.getGujarati()));
+    if (changed) {
+      entity.setHindi(hindi);
+      entity.setGujarati(gujarati);
+      return repository.save(entity);
+    }
+    return entity;
+  }
+
+  /**
+   * Keeps a non-blank existing value as-is; otherwise transliterates {@code key} (Hindi or
+   * Gujarati), never returning blank — falling back to the source text if Google yields nothing.
+   */
+  private String filledOrTransliterated(String current, String key, boolean hindi) {
+    if (current != null && !current.isBlank()) {
+      return current;
+    }
+    String converted =
+        hindi
+            ? transliterationService.convertToHindi(key)
+            : transliterationService.convertToGujarati(key);
+    return (converted != null && !converted.isBlank()) ? converted : key;
   }
 
   /** Creates or overwrites the saved translation for {@code (type, sourceText)} from user input. */
