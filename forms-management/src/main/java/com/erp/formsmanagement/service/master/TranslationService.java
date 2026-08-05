@@ -175,7 +175,7 @@ public class TranslationService {
     log.info(
         "TRANSLATION-DEBUG print type={} key=[{}] -> hindi=[{}] gujarati=[{}]",
         type, sourceText.trim(), e.getHindi(), e.getGujarati());
-    return new LocalizedText(nullToEmpty(e.getHindi()), nullToEmpty(e.getGujarati()));
+    return new LocalizedText(nullToEmpty(e.getHindi()).strip(), nullToEmpty(e.getGujarati()).strip());
   }
 
   private static String nullToEmpty(String s) {
