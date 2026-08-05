@@ -54,6 +54,10 @@ public class TranslationService {
     for (String source : sourcesFor(type)) {
       result.add(ensure(type, source));
     }
+    // Opening the editor is the user's "manage translations" action — always drop cached job-work
+    // prints so a reprint afterwards re-renders from the current dictionary, even when no row here
+    // actually changed (an earlier print may hold a stale render from before the value settled).
+    evictJobWorkPrintCache();
     return result;
   }
 
@@ -154,23 +158,24 @@ public class TranslationService {
   }
 
   /**
-   * Hindi + Gujarati for the print. Prefers the saved (user-edited) row; if none exists yet, falls
-   * back to a live transliteration without persisting (keeps the print path side-effect free).
+   * Hindi + Gujarati for the print. Always resolves through the saved dictionary: an existing row is
+   * returned exactly as saved (the user's edits win); the very first time a term is seen it is
+   * seeded from Google <em>and persisted</em>, so every subsequent print reads that saved value
+   * rather than calling Google again (which can return a slightly different result each time).
    */
-  @Transactional(readOnly = true)
+  @Transactional
   public LocalizedText resolveForPrint(TranslationType type, String sourceText) {
     if (sourceText == null || sourceText.isBlank()) {
       return new LocalizedText("", "");
     }
-    String key = sourceText.trim();
-    return repository
-        .findByTypeAndSourceText(type, key)
-        .map(e -> new LocalizedText(nullToEmpty(e.getHindi()), nullToEmpty(e.getGujarati())))
-        .orElseGet(
-            () ->
-                new LocalizedText(
-                    transliterationService.convertToHindi(key),
-                    transliterationService.convertToGujarati(key)));
+    TranslationEntity e = ensure(type, sourceText);
+    if (e == null) {
+      return new LocalizedText("", "");
+    }
+    log.info(
+        "TRANSLATION-DEBUG print type={} key=[{}] -> hindi=[{}] gujarati=[{}]",
+        type, sourceText.trim(), e.getHindi(), e.getGujarati());
+    return new LocalizedText(nullToEmpty(e.getHindi()), nullToEmpty(e.getGujarati()));
   }
 
   private static String nullToEmpty(String s) {
