@@ -1,6 +1,7 @@
 package com.erp.formsmanagement.service.master;
 
 import com.erp.config.transliteration.TransliterationService;
+import com.erp.event.FormChangedEvent;
 import com.erp.formsmanagement.clientportal.ClientPortalConstants;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.master.TranslationEntity;
@@ -12,6 +13,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,14 +31,17 @@ public class TranslationService {
   private final TranslationRepository repository;
   private final PartyRepository partyRepository;
   private final TransliterationService transliterationService;
+  private final ApplicationEventPublisher eventPublisher;
 
   public TranslationService(
       TranslationRepository repository,
       PartyRepository partyRepository,
-      TransliterationService transliterationService) {
+      TransliterationService transliterationService,
+      ApplicationEventPublisher eventPublisher) {
     this.repository = repository;
     this.partyRepository = partyRepository;
     this.transliterationService = transliterationService;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -103,7 +108,11 @@ public class TranslationService {
     entity.setSourceText(key);
     entity.setHindi(hindi);
     entity.setGujarati(gujarati);
-    return repository.save(entity);
+    TranslationEntity saved = repository.save(entity);
+    // The Job Work print renders party/finish from this dictionary; drop any cached PNG/PDF so the
+    // edited Hindi/Gujarati shows immediately instead of a stale (Google-seeded) render.
+    eventPublisher.publishEvent(new FormChangedEvent("job-work", null, "TRANSLATION"));
+    return saved;
   }
 
   /**

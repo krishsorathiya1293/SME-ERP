@@ -60,28 +60,33 @@
         table.meta { width: 100%; border-collapse: collapse; background: #FDF3E0; }
         table.meta td {
             padding: 0.7mm 1.4mm;
-            font-size: 5.4px;
+            font-size: 6.2px;
             border-bottom: 0.6pt solid #E2D3B4;
         }
         table.meta td.r { text-align: right; }
-        .job-no { font-size: 7px; font-weight: 700; color: #B87813; }
+        .job-no { font-size: 8.4px; font-weight: 700; color: #B87813; }
         .meta-k { color: #7A6E5F; }
         .meta-v { font-weight: 700; }
 
         table.info { width: 100%; border-collapse: collapse; }
         table.info td {
-            padding: 0.7mm 1.4mm;
+            padding: 0.75mm 1.4mm;
             vertical-align: top;
             border-bottom: 0.4pt solid #EDE6DA;
         }
         table.info td.k {
             width: 13mm;
             color: #7A6E5F;
-            font-size: 5.2px;
+            font-size: 6px;
             background: #FAF7F1;
             border-right: 0.4pt solid #EDE6DA;
         }
-        table.info td.v { font-weight: 700; font-size: 5.4px; word-break: break-word; }
+        table.info td.v { font-weight: 700; font-size: 6.4px; word-break: break-word; }
+
+        /* Finishing is the key line on the chitthi — highlight it. */
+        table.info tr.finish-row td { background: #FFF3D6; border-bottom: 0.6pt solid #E8A736; }
+        table.info tr.finish-row td.k { color: #8A5A12; background: #FBE7BC; }
+        table.info tr.finish-row td.v { color: #A5620A; font-size: 6.8px; }
 
         table.chips { width: 100%; border-collapse: collapse; }
         table.chips td {
@@ -108,8 +113,8 @@
         table.ja td.col { padding: 0.9mm 1.4mm; vertical-align: top; background: #F2F8FD; }
         /* Stretch the data block to fill the label; In-Side carries an extra info row
            plus the totals chips, so it gets a shorter block to stay inside 74mm. */
-        table.ja.roomy td.col { height: 28mm; }
-        table.ja.compact td.col { height: 15mm; }
+        table.ja.roomy td.col { height: 25mm; }
+        table.ja.compact td.col { height: 13mm; }
 
         .fr { margin-bottom: 1.2mm; }
         .fr .fk { color: #6B6259; font-size: 5px; }
@@ -132,7 +137,7 @@
 <body>
 <div class="ticket"
      th:with="
-       jwNo=${job.orderItem != null and job.orderItem.jobWorkNo != null ? #numbers.formatInteger(job.orderItem.jobWorkNo,3) : '—'},
+       jwNo=${jwLabel != null ? jwLabel : '—'},
        dt=${job.chitthiDate != null ? #temporals.format(job.chitthiDate,'d-M-yy') : (job.jobDate != null ? #temporals.format(job.jobDate,'d-M-yy') : '—')},
        tm=${job.orderTime != null ? job.orderTime : #temporals.format(#temporals.createNow(),'HH:mm')},
        jwType=${job.jobWorkType != null ? job.jobWorkType.name() : ''},
@@ -175,7 +180,7 @@
                     <td class="k">Party :-</td>
                     <td class="v" th:text="${partyTri}">Velvet / वेल्वेट / વેલ્વેટ</td>
                 </tr>
-                <tr>
+                <tr class="finish-row">
                     <td class="k">Finish :-</td>
                     <td class="v" th:text="${finishTri}">Z - Black / ज़ेड ब्लैक / ઝેડ બ્લેક</td>
                 </tr>

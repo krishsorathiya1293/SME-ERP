@@ -93,24 +93,27 @@ public class JobWorkServiceImpl
   }
 
   /**
-   * Generates a sequential job work number scoped to the current calendar month. Reads the current
-   * MAX for this month, increments by 1, so the sequence resets automatically when a new month
-   * begins.
+   * Generates the party-wise job work number scoped to the current calendar month. Reads the
+   * current MAX for this party this month and increments by 1, so each party has its own sequence
+   * (AZ-1, AZ-2, ZP-1, …), the sequence resets when a new month begins, and deleting the latest
+   * frees its number for reuse. No-op when the party isn't set yet.
    */
   private void assignJobWorkNo(JobWorkEntity entity) {
+    if (entity.getParty() == null || entity.getParty().getId() == null) {
+      return;
+    }
 
     LocalDateTime now = LocalDateTime.now();
-
     YearMonth yearMonth = YearMonth.from(now);
 
     LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
     LocalDateTime endDate = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-    Double max = orderItemRepository.findMaxJobWorkNoForMonth(startDate, endDate);
+    Integer max =
+        jobWorkRepository.findMaxJobWorkNoForPartyAndMonth(
+            entity.getParty().getId(), startDate, endDate);
 
-    double next = (max == null ? 0.0 : max) + 1.0;
-
-    entity.getOrderItem().setJobWorkNo(next);
+    entity.setJobWorkNo((max == null ? 0 : max) + 1);
   }
 
   private void linkRelations(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
@@ -295,6 +298,7 @@ public class JobWorkServiceImpl
         request.getJobWorkType() != null
             ? JobWorkType.valueOf(request.getJobWorkType().name())
             : JobWorkType.MANUAL);
+    assignJobWorkNo(entity);
     JobWorkEntity saved = jobWorkRepository.save(entity);
     ensureTranslations(saved);
     return mapper().toDomain(saved);

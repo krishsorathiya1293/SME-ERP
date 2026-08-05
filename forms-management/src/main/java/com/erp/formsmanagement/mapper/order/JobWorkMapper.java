@@ -5,6 +5,7 @@ import com.erp.api.ordermanagement.model.JobWorkParty;
 import com.erp.api.ordermanagement.model.JobWorkSize;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.util.JobWorkNumber;
 import com.erp.mapper.EntityMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -18,6 +19,7 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "party", expression = "java(toParty(entity))")
   @Mapping(target = "size", expression = "java(toSize(entity))")
   @Mapping(target = "createdAt", source = "createdAt")
+  @Mapping(target = "jobWorkLabel", expression = "java(toJobWorkLabel(entity))")
   JobWork toDomain(JobWorkEntity entity);
 
   @Override
@@ -48,6 +50,11 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
 
   default JobWorkSize toSize(JobWorkEntity entity) {
     return SizeContextMapper.toJobWorkSize(entity.getSize());
+  }
+
+  default String toJobWorkLabel(JobWorkEntity entity) {
+    String partyName = entity.getParty() != null ? entity.getParty().getName() : null;
+    return JobWorkNumber.label(partyName, entity.getJobWorkNo());
   }
 
 }

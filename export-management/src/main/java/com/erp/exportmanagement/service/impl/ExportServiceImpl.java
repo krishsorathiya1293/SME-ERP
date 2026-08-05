@@ -60,7 +60,9 @@ public class ExportServiceImpl implements ExportService {
         @SuppressWarnings("unchecked")
         com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeine =
             (com.github.benmanes.caffeine.cache.Cache<Object, Object>) nativeCache;
-        String prefix = formType + "-" + id + "-";
+        // A null id means "clear every cached document of this form type" — used when a global
+        // input (e.g. the translation dictionary) changes and could affect any record's render.
+        String prefix = id == null ? formType + "-" : formType + "-" + id + "-";
         caffeine
             .asMap()
             .keySet()

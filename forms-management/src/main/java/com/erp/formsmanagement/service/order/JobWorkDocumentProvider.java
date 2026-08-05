@@ -7,6 +7,7 @@ import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.master.TranslationService.LocalizedText;
+import com.erp.formsmanagement.util.JobWorkNumber;
 import com.erp.service.AbstractDocumentProvider;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
 
     Map<String, Object> variables = new HashMap<>();
     variables.put("job", entity);
+    variables.put("jwLabel", JobWorkNumber.label(partyName, entity.getJobWorkNo()));
     variables.put("partyPlain", partyName);
     variables.put("partyTri", transliterateTri(TranslationType.PARTY, partyName));
     variables.put("finishTri", transliterateTri(TranslationType.FINISH, entity.getFinish()));

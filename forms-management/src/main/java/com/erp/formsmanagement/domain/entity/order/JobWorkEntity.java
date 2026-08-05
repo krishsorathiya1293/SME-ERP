@@ -87,6 +87,13 @@ public class JobWorkEntity extends AuditInfo {
   private LocalDate chitthiDate;
   private String orderTime;
 
+  /**
+   * Per-party, per-month sequential number. Rendered as "{@code <partyCode>-<jobWorkNo>}" (e.g.
+   * AZ-1). Assigned on create as max(existing for this party this month) + 1, so deleting the
+   * latest frees the number for reuse.
+   */
+  private Integer jobWorkNo;
+
   @OneToMany(
       mappedBy = "jobWork",
       cascade = CascadeType.ALL,
