@@ -158,24 +158,28 @@ public class TranslationService {
   }
 
   /**
-   * Hindi + Gujarati for the print. Always resolves through the saved dictionary: an existing row is
-   * returned exactly as saved (the user's edits win); the very first time a term is seen it is
-   * seeded from Google <em>and persisted</em>, so every subsequent print reads that saved value
-   * rather than calling Google again (which can return a slightly different result each time).
+   * Hindi + Gujarati for the print — read <strong>only</strong> from the saved dictionary. Never
+   * calls Google here: whatever is stored is printed, and an empty stored value prints empty. The
+   * one-time Google seeding of a default happens elsewhere (when the editor is opened via {@link
+   * #listFull} or a job work is created), never during printing.
    */
-  @Transactional
+  @Transactional(readOnly = true)
   public LocalizedText resolveForPrint(TranslationType type, String sourceText) {
     if (sourceText == null || sourceText.isBlank()) {
       return new LocalizedText("", "");
     }
-    TranslationEntity e = ensure(type, sourceText);
-    if (e == null) {
-      return new LocalizedText("", "");
-    }
+    String key = sourceText.trim();
+    var found = repository.findByTypeAndSourceText(type, key);
     log.info(
-        "TRANSLATION-DEBUG print type={} key=[{}] -> hindi=[{}] gujarati=[{}]",
-        type, sourceText.trim(), e.getHindi(), e.getGujarati());
-    return new LocalizedText(nullToEmpty(e.getHindi()).strip(), nullToEmpty(e.getGujarati()).strip());
+        "TRANSLATION-DEBUG print type={} key=[{}] found={} -> hindi=[{}] gujarati=[{}]",
+        type,
+        key,
+        found.isPresent(),
+        found.map(TranslationEntity::getHindi).orElse(null),
+        found.map(TranslationEntity::getGujarati).orElse(null));
+    return found
+        .map(e -> new LocalizedText(nullToEmpty(e.getHindi()).strip(), nullToEmpty(e.getGujarati()).strip()))
+        .orElse(new LocalizedText("", ""));
   }
 
   private static String nullToEmpty(String s) {
