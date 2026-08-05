@@ -750,7 +750,7 @@ Filter objects (e.g., `ClientInventoryFilter`, `InventoryFilter`, `PackingInvoic
 | `PaginationUtils` | `com.erp.util` | `getPageRequest(page, size, dir, sortBy)` |
 | `PageMapper` | `com.erp.util` | Converts Spring `Page<E>` to DTO |
 | `FormChangedEvent` | `com.erp.event` | Record: `formType`, `entityId`, `action` (for cache eviction) |
-| `TransliterationService` | `com.erp.config.transliteration` | REST client for text transliteration |
+| `TranslationService` | `com.erp.formsmanagement.service.master` | Saved party (by id) / finish (by text) Hindi+Gujarati dictionary for prints; no external service |
 | `OpenApiConfig` | `com.erp.config` | SpringDoc beans |
 | `GlobalExceptionHandler` | `com.erp.exceptionhandler` (web-app) | `@RestControllerAdvice` |
 | `WebAppApplication` | `com.erp` (web-app) | `main()` entry point |

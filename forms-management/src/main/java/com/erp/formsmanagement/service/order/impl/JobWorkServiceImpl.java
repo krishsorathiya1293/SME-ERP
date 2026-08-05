@@ -10,7 +10,6 @@ import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
-import com.erp.formsmanagement.domain.entity.master.TranslationType;
 import com.erp.formsmanagement.domain.entity.order.ElementType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
@@ -64,16 +63,16 @@ public class JobWorkServiceImpl
   }
 
   /**
-   * Adds the job work's party name + finish to the translation dictionary (transliterating them on
-   * first sight) so the print can render them in Hindi/Gujarati from saved, editable values. Best
-   * effort — a transliteration/network hiccup must never block saving the job work.
+   * Registers the job work's party (by id) and finish in the translation dictionary so the editor
+   * lists them and the print can render saved Hindi/Gujarati. Rows start blank — values are entered
+   * by the user, never fetched. Best effort — a hiccup here must never block saving the job work.
    */
   private void ensureTranslations(JobWorkEntity entity) {
     try {
       if (entity.getParty() != null) {
-        translationService.ensure(TranslationType.PARTY, entity.getParty().getName());
+        translationService.ensureParty(entity.getParty());
       }
-      translationService.ensure(TranslationType.FINISH, entity.getFinish());
+      translationService.ensureFinish(entity.getFinish());
     } catch (Exception e) {
       log.warn("Failed to seed translations for job work {}", entity.getId(), e);
     }

@@ -2,7 +2,6 @@ package com.erp.formsmanagement.service.order;
 
 import com.erp.api.exportmanagement.model.JobWorkFormType;
 import com.erp.exception.EntityNotFoundException;
-import com.erp.formsmanagement.domain.entity.master.TranslationType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.service.master.TranslationService;
@@ -50,21 +49,23 @@ public class JobWorkDocumentProvider extends AbstractDocumentProvider<JobWorkFor
     variables.put("job", entity);
     variables.put("jwLabel", JobWorkNumber.label(partyName, entity.getJobWorkNo()));
     variables.put("partyPlain", partyName);
-    variables.put("partyTri", transliterateTri(TranslationType.PARTY, partyName));
-    variables.put("finishTri", transliterateTri(TranslationType.FINISH, entity.getFinish()));
+    variables.put(
+        "partyTri",
+        triLine(partyName, translationService.resolvePartyForPrint(entity.getParty().getId())));
+    variables.put(
+        "finishTri",
+        triLine(entity.getFinish(), translationService.resolveFinishForPrint(entity.getFinish())));
     return new DocumentData(resolveTemplateName(type, paperSize), variables);
   }
 
   /**
-   * Builds the {@code English / हिंदी / ગુજરાતી} string shown on the print, reading the saved
-   * (user-editable) dictionary entry and falling back to a live transliteration only when the term
-   * has never been seen.
+   * Builds the {@code English / हिंदी / ગુજરાતી} string shown on the print from the saved
+   * (user-editable) dictionary entry. Missing scripts render blank — nothing is fetched live.
    */
-  private String transliterateTri(TranslationType type, String text) {
+  private String triLine(String text, LocalizedText localized) {
     if (text == null || text.isBlank()) {
       return "";
     }
-    LocalizedText localized = translationService.resolveForPrint(type, text);
     return text + " / " + localized.hindi() + " / " + localized.gujarati();
   }
 

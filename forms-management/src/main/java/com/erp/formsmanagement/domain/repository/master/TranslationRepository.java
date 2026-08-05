@@ -12,4 +12,6 @@ public interface TranslationRepository extends CoreRepository<TranslationEntity,
   List<TranslationEntity> findByTypeOrderBySourceTextAsc(TranslationType type);
 
   Optional<TranslationEntity> findByTypeAndSourceText(TranslationType type, String sourceText);
+
+  Optional<TranslationEntity> findByPartyId(Long partyId);
 }

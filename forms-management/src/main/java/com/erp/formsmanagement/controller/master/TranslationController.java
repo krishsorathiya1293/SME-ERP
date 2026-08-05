@@ -36,6 +36,7 @@ public class TranslationController implements TranslationMasterManagementApi {
     var saved =
         service.upsert(
             TranslationType.valueOf(newTranslation.getType().name()),
+            newTranslation.getPartyId(),
             newTranslation.getSourceText(),
             newTranslation.getHindi(),
             newTranslation.getGujarati());

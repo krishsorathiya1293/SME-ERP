@@ -172,7 +172,7 @@ paths:
       operationId: upsertTranslation
       tags:
         - Translation
-      summary: Create or update a translation (keyed by type + sourceText)
+      summary: Create or update a translation (PARTY keyed by partyId, FINISH by sourceText)
       requestBody:
         required: true
         content:
@@ -506,6 +506,10 @@ components:
       properties:
         type:
           $ref: '#/components/schemas/TranslationType'
+        partyId:
+          type: integer
+          format: int64
+          description: Party this row belongs to (PARTY rows only); the print keys on this, not the name.
         sourceText:
           type: string
         hindi:
@@ -520,6 +524,9 @@ components:
           format: int64
         type:
           $ref: '#/components/schemas/TranslationType'
+        partyId:
+          type: integer
+          format: int64
         sourceText:
           type: string
         hindi:
