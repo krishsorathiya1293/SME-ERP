@@ -67,11 +67,19 @@ public class JobWorkReturnServiceImpl
       double alreadyReturned = jobWorkReturnRepository.sumReturnKgByJobWorkId(jobWork.getId(), excludeId);
       double newReturnKg = entity.getReturnKg() + (entity.getGhati() != null ? entity.getGhati() : 0.0);
       double total = alreadyReturned + newReturnKg;
-      if (total > jobWork.getQtyKg()) {
+      // Round both sides to 3 decimals (matching the frontend) before comparing so IEEE-754
+      // epsilon doesn't reject a return that exactly fills the remaining quantity — e.g.
+      // 201.9 + 1.3 == 203.20000000000002, which would falsely "exceed" a 203.2 kg job.
+      if (round3(total) > round3(jobWork.getQtyKg())) {
         throw new IllegalArgumentException(
             String.format("Total returned quantity %.2f kg exceeds sent quantity %.2f kg", total, jobWork.getQtyKg()));
       }
     }
+  }
+
+  /** Rounds to 3 decimals so weight comparisons ignore floating-point noise, matching the UI. */
+  private static double round3(double v) {
+    return Math.round(v * 1000.0) / 1000.0;
   }
 
   private JobWorkEntity resolveJobWork(Long jobWorkId) {
