@@ -8,6 +8,7 @@ import com.erp.api.ordermanagement.model.PaginatedResultOrder;
 import com.erp.api.ordermanagement.model.PartyOrdersResponse;
 import com.erp.constant.Constant;
 import com.erp.exception.EntityNotFoundException;
+import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
@@ -36,14 +37,30 @@ public class OrderServiceImpl
 
   private final OrderRepository orderRepository;
   private final PartyRepository partyRepository;
+  private final ClientOrderRequestRepository clientOrderRequestRepository;
 
   public OrderServiceImpl(
       OrderRepository orderRepository,
       OrderMapper orderMapper,
-      PartyRepository partyRepository) {
+      PartyRepository partyRepository,
+      ClientOrderRequestRepository clientOrderRequestRepository) {
     super(orderRepository, orderMapper);
     this.orderRepository = orderRepository;
     this.partyRepository = partyRepository;
+    this.clientOrderRequestRepository = clientOrderRequestRepository;
+  }
+
+  /**
+   * Deletes an order and, if it originated from an approved client order request, that request too —
+   * so an order the admin removes here also disappears from the client's "My Orders". The
+   * {@code order_id} FK is {@code ON DELETE SET NULL}, so without this the request would linger
+   * (still marked APPROVED, just unlinked). Look the request up before deleting the order, since the
+   * delete would otherwise null out the link first.
+   */
+  @Override
+  public void deleteById(Long partyId, Long id) {
+    clientOrderRequestRepository.findAllByOrder_Id(id).forEach(clientOrderRequestRepository::delete);
+    orderRepository.deleteById(id);
   }
 
   @Override

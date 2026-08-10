@@ -3,6 +3,7 @@ package com.erp.formsmanagement.clientportal.service.impl;
 import com.erp.api.clientportalmanagement.model.CatalogItem;
 import com.erp.api.clientportalmanagement.model.CatalogItemSize;
 import com.erp.api.clientportalmanagement.model.ChangePasswordRequest;
+import com.erp.api.clientportalmanagement.model.ClientItemJobWork;
 import com.erp.api.clientportalmanagement.model.ClientOrder;
 import com.erp.api.clientportalmanagement.model.ClientOrderItem;
 import com.erp.api.clientportalmanagement.model.ClientProfile;
@@ -25,6 +26,8 @@ import com.erp.formsmanagement.clientportal.service.ClientPortalService;
 import com.erp.formsmanagement.clientportal.service.CurrentClientProvider;
 import com.erp.formsmanagement.domain.entity.client.ClientInventoryEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.formsmanagement.domain.repository.client.ClientInventoryRepository;
@@ -154,7 +157,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   @Transactional
   public OrderRequest submitOrderRequest(NewOrderRequest request) {
     UserEntity user = currentClientProvider.getCurrentUser();
-    PartyEntity party = getActiveParty();
+    PartyEntity party = getActivePartyForWrite();
 
     ClientOrderRequestEntity entity = new ClientOrderRequestEntity();
     entity.setParty(party);
@@ -270,6 +273,18 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         .orElseThrow(() -> new EntityNotFoundException("Party not found with id: " + partyId));
   }
 
+  /**
+   * Resolves the active party for a WRITE, refusing to guess for a group login (see
+   * {@link CurrentClientProvider#requireActivePartyId()}). Prevents an order from being silently
+   * created for the first company when the client's company selection didn't reach the server.
+   */
+  private PartyEntity getActivePartyForWrite() {
+    Long partyId = currentClientProvider.requireActivePartyId();
+    return partyRepository
+        .findById(partyId)
+        .orElseThrow(() -> new EntityNotFoundException("Party not found with id: " + partyId));
+  }
+
   private ClientProfile toClientProfile(UserEntity user, PartyEntity party) {
     return new ClientProfile()
         .username(user.getUsername())
@@ -308,7 +323,38 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         .qtyKg(item.getQtyKg())
         .pendingPc(item.getPendingPc())
         .dispatchedPc(item.getTotalDispatchedPc())
-        .jobActionDone(item.getJobWork() != null);
+        .jobActionDone(item.getJobWork() != null)
+        .jobWork(toClientItemJobWork(item.getJobWork()));
+  }
+
+  /**
+   * Per-item job-work progress for the client portal. Kg returned so far is the sum over the job
+   * work's returns; ghati (loss burnt off during the process) is tracked separately from the
+   * returned weight, so both count against what is still lying with the job worker.
+   */
+  private ClientItemJobWork toClientItemJobWork(JobWorkEntity jobWork) {
+    if (jobWork == null) {
+      return null;
+    }
+
+    List<JobWorkReturnEntity> returns =
+        jobWork.getJobWorkReturns() == null ? List.of() : jobWork.getJobWorkReturns();
+    double sentKg = jobWork.getQtyKg() == null ? 0d : jobWork.getQtyKg();
+    double returnedKg =
+        returns.stream().mapToDouble(r -> r.getReturnKg() == null ? 0d : r.getReturnKg()).sum();
+    double ghatiKg =
+        returns.stream().mapToDouble(r -> r.getGhati() == null ? 0d : r.getGhati()).sum();
+
+    return new ClientItemJobWork()
+        .type(jobWork.getJobWorkType() == null ? null : jobWork.getJobWorkType().name())
+        .typeLabel(jobWork.getJobWorkType() == null ? null : jobWork.getJobWorkType().getValue())
+        .status(jobWork.getStatus() == null ? null : jobWork.getStatus().name())
+        .finish(jobWork.getFinish())
+        .jobWorkNo(jobWork.getJobWorkNo())
+        .sentKg(sentKg)
+        .returnedKg(returnedKg)
+        .ghatiKg(ghatiKg)
+        .remainingKg(Math.max(0d, sentKg - returnedKg - ghatiKg));
   }
 
   private OffsetDateTime toOffsetDateTime(OrderEntity order) {

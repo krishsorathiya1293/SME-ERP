@@ -30,6 +30,10 @@
 
         /* ---- one statement section ---- */
         .section { margin-bottom: 9mm; }
+        /* Each statement section repeats the party name, so start every one on a fresh page
+           (the first keeps the document header company with it). */
+        .sections > .section { page-break-before: always; }
+        .sections > .section:first-child { page-break-before: auto; }
 
         .sec-title {
             background: #241C17;
@@ -109,9 +113,9 @@
 </table>
 <div class="rule"></div>
 
+<div class="sections">
 <!-- ============ OUT SIDE ============ -->
 <div class="section" th:if="${!outsideRecords.isEmpty()}">
-    <div class="sec-title">Statement Of Outside Finish</div>
     <table class="meta">
         <tr>
             <td><span class="meta-k">Job Worker Name :-</span> <span class="meta-v" th:text="${partyName}">Ziya Process</span></td>
@@ -121,22 +125,21 @@
     <table class="data">
         <thead>
         <tr>
-            <th style="width:8%;">Ch. No.</th>
+            <th style="width:9%;">Ch. No.</th>
             <th style="width:12%;">Date</th>
-            <th style="width:14%;">Category</th>
-            <th style="width:20%;">Size</th>
-            <th style="width:14%;">Finish</th>
+            <th style="width:33%;">Category + Size</th>
+            <th style="width:16%;">Finish</th>
             <th style="width:12%;">Net Kg</th>
-            <th style="width:10%;">Rate / Kg</th>
-            <th style="width:10%;">Total Rate</th>
+            <th style="width:9%;">Rate / Kg</th>
+            <th style="width:9%;">Total Rate</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${outsideRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
             <td><span class="chno" th:text="${iter.count}">1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
-            <td class="l" th:text="${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : '—'}"></td>
-            <td class="l" th:text="${jw.size != null ? jw.size.sizeInInch : '—'}"></td>
+            <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
+                th:text="${combined != '' ? combined : '—'}"></td>
             <td><span class="finish-pill" th:text="${jw.finish != null ? jw.finish : '—'}"></span></td>
             <td class="num" th:text="${jw.qtyKg != null ? #numbers.formatDecimal(jw.qtyKg,1,3) : '0.000'}"></td>
             <td class="num" th:text="${jw.ratePerKg != null ? #numbers.formatDecimal(jw.ratePerKg,1,2) : '—'}"></td>
@@ -145,7 +148,7 @@
         </tbody>
         <tfoot>
         <tr>
-            <td class="lbl" colspan="5">TOTAL</td>
+            <td class="lbl" colspan="4">TOTAL</td>
             <td class="kg" th:text="${!outsideRecords.?[qtyKg != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(outsideRecords.?[qtyKg != null].![qtyKg]),1,3) : '0.000'}"></td>
             <td></td>
             <td class="amt" th:text="${!outsideRecords.?[totalRate != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(outsideRecords.?[totalRate != null].![totalRate]),1,0) : '0'}"></td>
@@ -156,7 +159,6 @@
 
 <!-- ============ IN SIDE ============ -->
 <div class="section" th:if="${!insideRecords.isEmpty()}">
-    <div class="sec-title">Statement Of In-Side Finish</div>
     <table class="meta">
         <tr>
             <td><span class="meta-k">Party Name :-</span> <span class="meta-v" th:text="${partyName}">Velvet</span></td>
@@ -166,22 +168,21 @@
     <table class="data">
         <thead>
         <tr>
-            <th style="width:8%;">Ch. No.</th>
+            <th style="width:9%;">Ch. No.</th>
             <th style="width:12%;">Date</th>
-            <th style="width:14%;">Category</th>
-            <th style="width:20%;">Size</th>
-            <th style="width:14%;">Finish</th>
+            <th style="width:33%;">Category + Size</th>
+            <th style="width:16%;">Finish</th>
             <th style="width:12%;">Net Kg</th>
-            <th style="width:10%;">Rate / Kg</th>
-            <th style="width:10%;">Total Rate</th>
+            <th style="width:9%;">Rate / Kg</th>
+            <th style="width:9%;">Total Rate</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${insideRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
             <td><span class="chno" th:text="${iter.count}">1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
-            <td class="l" th:text="${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : '—'}"></td>
-            <td class="l" th:text="${jw.size != null ? jw.size.sizeInInch : '—'}"></td>
+            <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
+                th:text="${combined != '' ? combined : '—'}"></td>
             <td><span class="finish-pill" th:text="${jw.finish != null ? jw.finish : '—'}"></span></td>
             <td class="num" th:text="${jw.qtyKg != null ? #numbers.formatDecimal(jw.qtyKg,1,3) : '0.000'}"></td>
             <td class="num" th:text="${jw.ratePerKg != null ? #numbers.formatDecimal(jw.ratePerKg,1,2) : '—'}"></td>
@@ -190,7 +191,7 @@
         </tbody>
         <tfoot>
         <tr>
-            <td class="lbl" colspan="5">TOTAL</td>
+            <td class="lbl" colspan="4">TOTAL</td>
             <td class="kg" th:text="${!insideRecords.?[qtyKg != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(insideRecords.?[qtyKg != null].![qtyKg]),1,3) : '0.000'}"></td>
             <td></td>
             <td class="amt" th:text="${!insideRecords.?[totalRate != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(insideRecords.?[totalRate != null].![totalRate]),1,0) : '0'}"></td>
@@ -201,7 +202,6 @@
 
 <!-- ============ PLAIN JOB WORK ============ -->
 <div class="section" th:if="${!plainJobWorkRecords.isEmpty()}">
-    <div class="sec-title">Statement Of Job Work</div>
     <table class="meta">
         <tr>
             <td><span class="meta-k">Party Name :-</span> <span class="meta-v" th:text="${partyName}">Party</span></td>
@@ -211,22 +211,21 @@
     <table class="data">
         <thead>
         <tr>
-            <th style="width:8%;">Ch. No.</th>
+            <th style="width:9%;">Ch. No.</th>
             <th style="width:12%;">Date</th>
-            <th style="width:14%;">Category</th>
-            <th style="width:20%;">Size</th>
-            <th style="width:14%;">Finish</th>
+            <th style="width:33%;">Category + Size</th>
+            <th style="width:16%;">Finish</th>
             <th style="width:12%;">Net Kg</th>
-            <th style="width:10%;">Rate / Kg</th>
-            <th style="width:10%;">Total Rate</th>
+            <th style="width:9%;">Rate / Kg</th>
+            <th style="width:9%;">Total Rate</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${plainJobWorkRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
             <td><span class="chno" th:text="${iter.count}">1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
-            <td class="l" th:text="${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : '—'}"></td>
-            <td class="l" th:text="${jw.size != null ? jw.size.sizeInInch : '—'}"></td>
+            <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
+                th:text="${combined != '' ? combined : '—'}"></td>
             <td><span class="finish-pill" th:text="${jw.finish != null ? jw.finish : '—'}"></span></td>
             <td class="num" th:text="${jw.qtyKg != null ? #numbers.formatDecimal(jw.qtyKg,1,3) : '0.000'}"></td>
             <td class="num" th:text="${jw.ratePerKg != null ? #numbers.formatDecimal(jw.ratePerKg,1,2) : '—'}"></td>
@@ -235,13 +234,15 @@
         </tbody>
         <tfoot>
         <tr>
-            <td class="lbl" colspan="5">TOTAL</td>
+            <td class="lbl" colspan="4">TOTAL</td>
             <td class="kg" th:text="${!plainJobWorkRecords.?[qtyKg != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(plainJobWorkRecords.?[qtyKg != null].![qtyKg]),1,3) : '0.000'}"></td>
             <td></td>
             <td class="amt" th:text="${!plainJobWorkRecords.?[totalRate != null].isEmpty() ? #numbers.formatDecimal(#aggregates.sum(plainJobWorkRecords.?[totalRate != null].![totalRate]),1,0) : '0'}"></td>
         </tr>
         </tfoot>
     </table>
+</div>
+
 </div>
 
 <div class="empty-note" th:if="${outsideRecords.isEmpty() and insideRecords.isEmpty() and plainJobWorkRecords.isEmpty()}">

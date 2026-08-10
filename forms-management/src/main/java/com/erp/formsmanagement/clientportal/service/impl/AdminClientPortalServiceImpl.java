@@ -18,6 +18,7 @@ import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestStat
 import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.clientportal.mapper.ClientOrderRequestMapper;
 import com.erp.formsmanagement.clientportal.service.AdminClientPortalService;
+import com.erp.formsmanagement.domain.repository.client.ClientInventoryRepository;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
@@ -58,6 +59,7 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
   private final UserService userService;
   private final ClientOrderRequestRepository clientOrderRequestRepository;
   private final ClientOrderRequestMapper clientOrderRequestMapper;
+  private final ClientInventoryRepository clientInventoryRepository;
   private final OrderService orderService;
 
   @Override
@@ -199,17 +201,46 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
       return;
     }
 
+    Long partyId = entity.getParty().getId();
     List<NewOrderItem> orderItems =
         items.stream()
             .filter(item -> item.getItemSize() != null)
             .map(
-                item ->
-                    new NewOrderItem()
-                        .itemSizeId(item.getItemSize().getId())
-                        .plating(item.getPlating())
-                        .qtyPc(item.getQtyPc())
-                        .qtyKg(item.getQtyKg())
-                        .pendingPc(item.getQtyPc()))
+                item -> {
+                  NewOrderItem orderItem =
+                      new NewOrderItem()
+                          .itemSizeId(item.getItemSize().getId())
+                          .plating(item.getPlating())
+                          .qtyPc(item.getQtyPc())
+                          .qtyKg(item.getQtyKg())
+                          .pendingPc(item.getQtyPc());
+
+                  // Packing (pcs/box, box/carton, pcs/carton) must reflect this CLIENT's negotiated
+                  // packing from Client Management, not the item master's defaults — the same client
+                  // often boxes/cartons a size differently from the master. Falls back to the master
+                  // (via the display's own fallback) only when the client has no row for the size.
+                  clientInventoryRepository
+                      .findByParty_IdAndSize_Id(partyId, item.getItemSize().getId())
+                      .ifPresent(
+                          ci -> {
+                            if (ci.getPcsPerBox() != null) {
+                              orderItem.setPcPerBox(ci.getPcsPerBox().doubleValue());
+                            }
+                            if (ci.getBoxPerCarton() != null) {
+                              orderItem.setBoxPerCartoon(ci.getBoxPerCarton().doubleValue());
+                            }
+                            if (ci.getPcsPerCarton() != null) {
+                              orderItem.setPcPerCartoon(ci.getPcsPerCarton().doubleValue());
+                            }
+                            if (ci.getPcsPerBox() != null
+                                && ci.getPcsPerBox() > 0
+                                && item.getQtyPc() != null) {
+                              orderItem.setStickerQty(
+                                  Math.ceil(item.getQtyPc() / ci.getPcsPerBox()));
+                            }
+                          });
+                  return orderItem;
+                })
             .toList();
 
     if (orderItems.isEmpty()) {

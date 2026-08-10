@@ -245,4 +245,15 @@ public class UserService {
     }
     userRepository.deleteById(userId);
   }
+
+  /**
+   * Remove the auto-created CLIENT login linked to a party, if one exists. Called when a party is
+   * deleted: every party gets a client login on creation ({@link #registerClientUser}) and its
+   * {@code users.party_id} foreign key has no cascade, so the login must be cleared first or the
+   * party delete fails even when the party has no orders. No-op when the party has no login.
+   */
+  @Transactional
+  public void deleteClientUserByPartyId(Long partyId) {
+    userRepository.findByPartyId(partyId).ifPresent(userRepository::delete);
+  }
 }

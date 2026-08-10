@@ -47,6 +47,22 @@ public class PartyServiceImpl
     return new CreateOne<>(mapper().toDomain(savedEntity));
   }
 
+  /**
+   * Deletes a party. Every party gets an auto-created CLIENT login on {@link #save}, and its
+   * {@code users.party_id} foreign key has no cascade — so that login must be cleared first or the
+   * delete fails even for a party with no orders. Transactional/order-carrying foreign keys (orders,
+   * job_works, packing_invoice, sales_orders, gres_fillings) stay {@code ON DELETE RESTRICT}, so a
+   * party still referenced by real records raises a foreign-key violation that the global handler
+   * surfaces as a clean 409. Running in one transaction keeps it atomic — if the party delete is
+   * blocked, the login removal rolls back too.
+   */
+  @Override
+  @Transactional
+  public void deleteById(Long id) {
+    userService.deleteClientUserByPartyId(id);
+    partyRepository.deleteById(id);
+  }
+
   @Override
   public List<Party> getAll(GetAllQuery<String> query) {
     Map<Long, String> groupNames =

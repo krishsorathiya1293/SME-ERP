@@ -98,11 +98,15 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
         String mm   = sizeInMm   != null ? sizeInMm   : "";
 
         // Match on item name (Doz.) + inch + mm, so a size shared by multiple items binds to the
-        // correct one. Rows with no resolvable item name cannot be matched.
+        // correct one. Rows with no resolvable item name cannot be matched. Uses the null-safe
+        // lookup so mm-less items (e.g. "Super Marble", "Crank") — stored with sizeInMm = NULL in
+        // the blueprint — still resolve when the client sheet leaves the mm cell blank.
         ItemBlueprintDataEntity size = currentItemName == null
             ? null
             : itemBlueprintDataRepository
-                .findFirstByItem_ItemNameAndSizeInInchAndSizeInMm(currentItemName, inch, mm)
+                .findByItemNameAndSizesNullSafe(currentItemName, inch, mm)
+                .stream()
+                .findFirst()
                 .orElse(null);
 
         if (size == null) {

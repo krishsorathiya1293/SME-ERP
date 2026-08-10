@@ -15,7 +15,6 @@ import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.repository.invoice.InvoiceRepository;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.service.DocumentFormat;
-import com.erp.usermanagement.model.entity.UserEntity;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.time.ZoneOffset;
@@ -45,7 +44,7 @@ public class ClientInvoiceServiceImpl implements ClientInvoiceService {
       Optional<Integer> size,
       Optional<String> sortBy,
       Optional<String> sortDirection) {
-    PartyEntity party = getParty(currentClientProvider.getCurrentUser());
+    PartyEntity party = getActiveParty();
 
     List<InvoiceEntity> matching =
         invoiceRepository.findAll().stream()
@@ -73,7 +72,7 @@ public class ClientInvoiceServiceImpl implements ClientInvoiceService {
   @Override
   @Transactional(readOnly = true)
   public ClientInvoicePdfResult getMyInvoicePdf(Long id) {
-    PartyEntity party = getParty(currentClientProvider.getCurrentUser());
+    PartyEntity party = getActiveParty();
 
     InvoiceEntity invoice =
         invoiceRepository
@@ -116,10 +115,15 @@ public class ClientInvoiceServiceImpl implements ClientInvoiceService {
             invoice.getCreatedAt() == null ? null : invoice.getCreatedAt().atOffset(ZoneOffset.UTC));
   }
 
-  private PartyEntity getParty(UserEntity user) {
+  /**
+   * The company the client is currently viewing. Resolved through {@link CurrentClientProvider} —
+   * a group login has no {@code partyId} of its own (it carries a {@code groupId}), so reading
+   * {@code user.getPartyId()} here would look up a null id.
+   */
+  private PartyEntity getActiveParty() {
+    Long partyId = currentClientProvider.getActivePartyId();
     return partyRepository
-        .findById(user.getPartyId())
-        .orElseThrow(
-            () -> new EntityNotFoundException("Party not found with id: " + user.getPartyId()));
+        .findById(partyId)
+        .orElseThrow(() -> new EntityNotFoundException("Party not found with id: " + partyId));
   }
 }
