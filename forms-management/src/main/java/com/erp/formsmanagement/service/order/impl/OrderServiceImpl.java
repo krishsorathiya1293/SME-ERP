@@ -11,7 +11,9 @@ import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
+import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
+import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import com.erp.formsmanagement.mapper.order.OrderMapper;
 import com.erp.formsmanagement.service.order.OrderService;
@@ -38,16 +40,19 @@ public class OrderServiceImpl
   private final OrderRepository orderRepository;
   private final PartyRepository partyRepository;
   private final ClientOrderRequestRepository clientOrderRequestRepository;
+  private final OrderItemRepository orderItemRepository;
 
   public OrderServiceImpl(
       OrderRepository orderRepository,
       OrderMapper orderMapper,
       PartyRepository partyRepository,
-      ClientOrderRequestRepository clientOrderRequestRepository) {
+      ClientOrderRequestRepository clientOrderRequestRepository,
+      OrderItemRepository orderItemRepository) {
     super(orderRepository, orderMapper);
     this.orderRepository = orderRepository;
     this.partyRepository = partyRepository;
     this.clientOrderRequestRepository = clientOrderRequestRepository;
+    this.orderItemRepository = orderItemRepository;
   }
 
   /**
@@ -61,6 +66,31 @@ public class OrderServiceImpl
   public void deleteById(Long partyId, Long id) {
     clientOrderRequestRepository.findAllByOrder_Id(id).forEach(clientOrderRequestRepository::delete);
     orderRepository.deleteById(id);
+  }
+
+  @Override
+  @Transactional
+  public void deleteItem(Long partyId, Long orderId, Long itemId) {
+    OrderItemEntity item =
+        orderItemRepository
+            .findById(itemId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, itemId)));
+
+    // Guard: the item must actually belong to the order in the path.
+    if (item.getOrder() == null || !orderId.equals(item.getOrder().getId())) {
+      throw new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, itemId));
+    }
+
+    // job_works + job_work_returns + order_dispatch all FK-cascade on order_item delete.
+    orderItemRepository.deleteById(itemId);
+
+    // The derived query below auto-flushes the pending delete first, so an order left with no
+    // items is removed too (along with any linked client order request, via deleteById).
+    if (orderItemRepository.findAllByOrderId(orderId).isEmpty()) {
+      deleteById(partyId, orderId);
+    }
   }
 
   @Override

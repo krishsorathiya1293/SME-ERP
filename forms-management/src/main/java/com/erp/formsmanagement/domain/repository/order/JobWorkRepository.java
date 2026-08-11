@@ -44,9 +44,11 @@ public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
                 s -> {
                   String like = "%" + s.toLowerCase() + "%";
                   // party + size are non-null ManyToOne, so these are inner joins — no rows dropped.
+                  // chitthiNo is nullable; a null column simply never matches the LIKE.
                   return cb.or(
                       cb.like(cb.lower(root.get("party").get("name")), like),
                       cb.like(cb.lower(root.get("finish")), like),
+                      cb.like(cb.lower(root.get("chitthiNo")), like),
                       cb.like(cb.lower(root.get("size").get("sizeInInch")), like),
                       cb.like(cb.lower(root.get("size").get("sizeInMm")), like));
                 })

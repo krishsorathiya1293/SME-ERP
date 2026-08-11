@@ -15,7 +15,9 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,12 +29,25 @@ public class OrderController
   private final GetAllDelegateV1<String, PaginatedPartyOrdersResponse> partyOrdersPage;
   private final OrderRepository orderRepository;
   private final OrderMapper orderMapper;
+  private final OrderService orderService;
 
   public OrderController(OrderService s, OrderRepository orderRepository, OrderMapper orderMapper) {
     super(s, s);
     this.partyOrdersPage = new GetAllDelegateV1<>(s);
     this.orderRepository = orderRepository;
     this.orderMapper = orderMapper;
+    this.orderService = s;
+  }
+
+  /**
+   * Delete a single order item (not the whole order). Dependent job work / returns / dispatches
+   * cascade; if it was the order's last item, the empty order is removed too.
+   */
+  @DeleteMapping("/api/v1/parties/{partyId}/orders/{orderId}/items/{itemId}")
+  public ResponseEntity<Void> deleteOrderItem(
+      @PathVariable Long partyId, @PathVariable Long orderId, @PathVariable Long itemId) {
+    orderService.deleteItem(partyId, orderId, itemId);
+    return ResponseEntity.noContent().build();
   }
 
   /**
