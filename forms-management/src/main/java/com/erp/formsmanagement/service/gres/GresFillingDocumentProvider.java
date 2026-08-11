@@ -52,9 +52,14 @@ public class GresFillingDocumentProvider extends AbstractDocumentProvider<GresFi
     // as the Job Work print — no live transliteration. Blank until someone fills it in.
     LocalizedText partyLocalized =
         translationService.resolvePartyForPrint(entity.getParty().getId());
+    // Most parties have no dictionary entry yet, so only append the Hindi when there is one —
+    // otherwise the chitthi prints a dangling "Name / ".
+    String partyName = entity.getParty().getName();
+    String hindi = partyLocalized.hindi();
     Map<String, Object> variables = new HashMap<>();
     variables.put("gres", entity);
-    variables.put("party", entity.getParty().getName() + " / " + partyLocalized.hindi());
+    variables.put(
+        "party", hindi == null || hindi.isBlank() ? partyName : partyName + " / " + hindi);
     variables.put("latestReturnDate", latestReturnDate);
     return new DocumentData(resolveTemplateName(type), variables);
   }

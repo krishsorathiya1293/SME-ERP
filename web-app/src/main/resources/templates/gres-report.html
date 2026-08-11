@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Statement Of Outside Gris</title>
+    <title>Statement Of Gris</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -97,7 +97,7 @@
     <tr>
         <td class="logo"><img th:src="${companyLogoMarkDataUri}" alt="Ishita Industries"/></td>
         <td class="tag">
-            <span class="big">STATEMENT OF OUTSIDE GRIS</span>
+            <span class="big">STATEMENT OF GRIS</span>
             <span th:text="'Period : ' + ${#temporals.format(startDate,'dd-MM-yyyy')} + '  to  ' + ${#temporals.format(endDate,'dd-MM-yyyy')}">Period</span>
         </td>
     </tr>
