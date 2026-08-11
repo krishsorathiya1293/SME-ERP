@@ -1131,6 +1131,10 @@ components:
         id:
           type: integer
           format: int64
+        orderItemId:
+          type: integer
+          format: int64
+          description: Owning order item id; null for manual job works. Used by the client for status/type/return/delete calls.
         party:
           $ref: '#/components/schemas/JobWorkParty'
         size:

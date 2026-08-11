@@ -22,12 +22,14 @@ import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.mapper.order.JobWorkMapper;
 import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.order.JobWorkService;
+import com.erp.formsmanagement.service.order.JobWorkStats;
 import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -257,6 +259,22 @@ public class JobWorkServiceImpl
 
     return PageMapper.toResult(
         results, mapper()::toDomain, PaginatedResultJobWork::new, PaginatedResultJobWork::setData);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public JobWorkStats getGlobalStats(JobWorkType type, String search) {
+    Specification<JobWorkEntity> base =
+        Specification.where(jobWorkRepository.filterBySearch(Optional.ofNullable(search)))
+            .and(jobWorkRepository.filterByType(type));
+
+    long total = jobWorkRepository.count(base);
+    long completed =
+        jobWorkRepository.count(base.and(jobWorkRepository.filterByStatus(JobWorkStatus.COMPLETE)));
+    long pending =
+        jobWorkRepository.count(base.and(jobWorkRepository.filterByStatus(JobWorkStatus.PENDING)));
+
+    return new JobWorkStats(total, completed, pending);
   }
 
   @Override

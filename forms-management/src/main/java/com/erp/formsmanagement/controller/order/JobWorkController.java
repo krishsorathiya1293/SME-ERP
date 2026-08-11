@@ -9,6 +9,7 @@ import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.formsmanagement.domain.entity.order.JobWorkType;
 import com.erp.formsmanagement.service.order.JobWorkService;
+import com.erp.formsmanagement.service.order.JobWorkStats;
 import com.erp.util.GetAllQuery;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
@@ -79,6 +80,22 @@ public class JobWorkController
                 Optional.ofNullable(size),
                 Optional.ofNullable(sortByFields),
                 Optional.ofNullable(direction))));
+  }
+
+  /**
+   * Global stat-card counts (total / completed / pending) honouring the same {@code jobWorkType} +
+   * {@code search} filters as the global listing, so the cards stay correct while the list is
+   * paginated server-side.
+   */
+  @GetMapping("/api/v1/job-works/stats")
+  public ResponseEntity<JobWorkStats> getJobWorkStats(
+      @RequestParam(required = false) String jobWorkType,
+      @RequestParam(required = false) String search) {
+    JobWorkType typeFilter = null;
+    if (jobWorkType != null && !jobWorkType.isBlank()) {
+      typeFilter = JobWorkType.valueOf(jobWorkType);
+    }
+    return ResponseEntity.ok(jobWorkService.getGlobalStats(typeFilter, search));
   }
 
   @Override

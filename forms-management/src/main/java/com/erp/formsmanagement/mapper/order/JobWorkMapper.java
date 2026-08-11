@@ -16,6 +16,7 @@ import org.mapstruct.ReportingPolicy;
 public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, JobWork> {
 
   @Override
+  @Mapping(target = "orderItemId", expression = "java(toOrderItemId(entity))")
   @Mapping(target = "party", expression = "java(toParty(entity))")
   @Mapping(target = "size", expression = "java(toSize(entity))")
   @Mapping(target = "createdAt", source = "createdAt")
@@ -39,6 +40,14 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   void updateEntity(@MappingTarget JobWorkEntity entity, NewJobWork request);
 
   // ---------- Custom Mappers ----------
+
+  /**
+   * Owning order item id, or null for manual job works. Reads only the id off the (possibly lazy)
+   * association, so it never triggers an extra select — the FK already lives on the job_works row.
+   */
+  default Long toOrderItemId(JobWorkEntity entity) {
+    return entity.getOrderItem() != null ? entity.getOrderItem().getId() : null;
+  }
 
   default JobWorkParty toParty(JobWorkEntity entity) {
     if (entity.getParty() == null) return null;

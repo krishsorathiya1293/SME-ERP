@@ -1,6 +1,8 @@
 package com.erp.formsmanagement.domain.repository.order;
 
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
+import com.erp.formsmanagement.domain.entity.order.JobWorkType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,14 +41,24 @@ public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
         search
             .filter(s -> !s.isBlank())
             .map(
-                s ->
-                    cb.or(
-                        cb.like(
-                            cb.lower(root.get("party").get("name")),
-                            "%" + s.toLowerCase() + "%"),
-                        cb.like(
-                            cb.lower(root.get("finish")), "%" + s.toLowerCase() + "%")))
+                s -> {
+                  String like = "%" + s.toLowerCase() + "%";
+                  // party + size are non-null ManyToOne, so these are inner joins — no rows dropped.
+                  return cb.or(
+                      cb.like(cb.lower(root.get("party").get("name")), like),
+                      cb.like(cb.lower(root.get("finish")), like),
+                      cb.like(cb.lower(root.get("size").get("sizeInInch")), like),
+                      cb.like(cb.lower(root.get("size").get("sizeInMm")), like));
+                })
             .orElse(null);
+  }
+
+  default Specification<JobWorkEntity> filterByType(JobWorkType type) {
+    return (root, query, cb) -> type == null ? null : cb.equal(root.get("jobWorkType"), type);
+  }
+
+  default Specification<JobWorkEntity> filterByStatus(JobWorkStatus status) {
+    return (root, query, cb) -> status == null ? null : cb.equal(root.get("status"), status);
   }
 
   List<JobWorkEntity> findByPartyIdAndJobDateBetweenOrderByJobDateAsc(

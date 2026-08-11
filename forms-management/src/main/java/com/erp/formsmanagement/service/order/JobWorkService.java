@@ -29,4 +29,11 @@ public interface JobWorkService
    * {@code type} filters by JobWorkType; pass null for all.
    */
   PaginatedResultJobWork getAllGlobal(JobWorkType type, GetAllQuery<Void> query);
+
+  /**
+   * Global stat-card counts (total / completed / pending) over the whole dataset, honouring the
+   * same {@code type} + {@code search} filters as {@link #getAllGlobal} so the cards stay correct
+   * while the list itself is paginated. Pass null/blank for no filter.
+   */
+  JobWorkStats getGlobalStats(JobWorkType type, String search);
 }
