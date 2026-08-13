@@ -6,7 +6,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        @page { margin: 12mm 10mm; size: A4 portrait; }
+        @page { margin: 8mm 6mm; size: A4 portrait; }
 
         body {
             font-family: "Kantumruy Pro", Arial, sans-serif;
@@ -15,9 +15,9 @@
         }
 
         /* ---- document header ---- */
-        table.head { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+        table.head { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
         table.head td { vertical-align: middle; }
-        table.head td.logo img { height: 12mm; width: auto; }
+        table.head td.logo img { height: 10mm; width: auto; }
         table.head td.tag { text-align: right; font-size: 9px; color: #7A6E5F; }
         table.head td.tag .big {
             display: block;
@@ -26,10 +26,10 @@
             color: #241C17;
             letter-spacing: 0.5px;
         }
-        .rule { height: 1.6mm; background: #E8A736; margin-bottom: 6mm; }
+        .rule { height: 1.2mm; background: #E8A736; margin-bottom: 3mm; }
 
         /* ---- one statement section ---- */
-        .section { margin-bottom: 9mm; }
+        .section { margin-bottom: 4mm; }
         /* Each statement section repeats the party name, so start every one on a fresh page
            (the first keeps the document header company with it). */
         .sections > .section { page-break-before: always; }
@@ -46,7 +46,7 @@
 
         table.meta { width: 100%; border-collapse: collapse; background: #FDF3E0; }
         table.meta td {
-            padding: 2mm 3mm;
+            padding: 1.5mm 2.5mm;
             font-size: 10.5px;
             border-bottom: 0.8pt solid #E2D3B4;
         }
@@ -61,13 +61,13 @@
             color: #241C17;
             font-size: 9.5px;
             font-weight: 700;
-            padding: 2mm 1.5mm;
+            padding: 1.5mm 1mm;
             text-align: center;
             border: 0.6pt solid #C8871B;
         }
         table.data td {
             font-size: 10px;
-            padding: 1.8mm 1.5mm;
+            padding: 1.2mm 1mm;
             text-align: center;
             border: 0.6pt solid #E4DED2;
         }
@@ -136,7 +136,7 @@
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${outsideRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
-            <td><span class="chno" th:text="${iter.count}">1</span></td>
+            <td><span class="chno" th:text="${jw.chitthiNo != null ? jw.chitthiNo : iter.count}">1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
             <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
                 th:text="${combined != '' ? combined : '—'}"></td>
@@ -179,7 +179,7 @@
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${insideRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
-            <td><span class="chno" th:text="${iter.count}">1</span></td>
+            <td><span class="chno" th:text="${jw.chitthiNo != null ? jw.chitthiNo : iter.count}">1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
             <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
                 th:text="${combined != '' ? combined : '—'}"></td>
@@ -222,7 +222,7 @@
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${plainJobWorkRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
-            <td><span class="chno" th:text="${iter.count}">1</span></td>
+            <td><span class="chno" th:text="${jw.chitthiNo != null ? jw.chitthiNo : iter.count}">1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
             <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
                 th:text="${combined != '' ? combined : '—'}"></td>

@@ -49,8 +49,12 @@ public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
                       cb.like(cb.lower(root.get("party").get("name")), like),
                       cb.like(cb.lower(root.get("finish")), like),
                       cb.like(cb.lower(root.get("chitthiNo")), like),
+                      cb.like(cb.lower(root.get("jobWorkLabel")), like),
                       cb.like(cb.lower(root.get("size").get("sizeInInch")), like),
-                      cb.like(cb.lower(root.get("size").get("sizeInMm")), like));
+                      cb.like(cb.lower(root.get("size").get("sizeInMm")), like),
+                      cb.like(
+                          cb.lower(root.get("size").get("item").get("itemName")),
+                          like));
                 })
             .orElse(null);
   }

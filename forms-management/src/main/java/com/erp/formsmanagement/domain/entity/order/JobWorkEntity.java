@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -94,11 +95,14 @@ public class JobWorkEntity extends AuditInfo {
    */
   private Integer jobWorkNo;
 
+  private String jobWorkLabel;
+
   @OneToMany(
       mappedBy = "jobWork",
       cascade = CascadeType.ALL,
       orphanRemoval = true,
       fetch = FetchType.LAZY)
+  @OrderBy("createdAt ASC")
   private List<JobWorkReturnEntity> jobWorkReturns = new ArrayList<>();
 
   @Override

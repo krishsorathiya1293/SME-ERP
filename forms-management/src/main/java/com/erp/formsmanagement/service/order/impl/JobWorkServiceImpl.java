@@ -23,6 +23,7 @@ import com.erp.formsmanagement.mapper.order.JobWorkMapper;
 import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.formsmanagement.service.order.JobWorkStats;
+import com.erp.formsmanagement.util.JobWorkNumber;
 import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
@@ -115,6 +116,8 @@ public class JobWorkServiceImpl
             entity.getParty().getId(), startDate, endDate);
 
     entity.setJobWorkNo((max == null ? 0 : max) + 1);
+    entity.setJobWorkLabel(
+        JobWorkNumber.label(entity.getParty().getName(), entity.getJobWorkNo()));
   }
 
   private void linkRelations(JobWorkEntity entity, Long orderItemId, NewJobWork request) {

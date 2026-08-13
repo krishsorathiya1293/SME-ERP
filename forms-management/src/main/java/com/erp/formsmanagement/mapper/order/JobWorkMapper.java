@@ -62,6 +62,9 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   }
 
   default String toJobWorkLabel(JobWorkEntity entity) {
+    if (entity.getJobWorkLabel() != null) {
+      return entity.getJobWorkLabel();
+    }
     String partyName = entity.getParty() != null ? entity.getParty().getName() : null;
     return JobWorkNumber.label(partyName, entity.getJobWorkNo());
   }
