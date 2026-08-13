@@ -1,19 +1,22 @@
 -- ============================================================
--- Backfill the pipeline stage on client order requests.
+-- Re-backfill the pipeline stage on client order requests.
 --
--- A client order request used to stop at APPROVED and stay there no matter what
--- happened to the order it produced, so an order already out for plating still
--- showed under "Approved" in Order Approvals. The application now writes the
--- stage back on every job-work / dispatch event; this brings existing rows into
--- line so the tabs are correct from the first load rather than only after the
--- next event touches an order.
+-- V48 rolled an order up to the stage of its LEAST advanced line. Real orders
+-- run a dozen lines that move at different speeds, so that kept a request in
+-- "Approved" until the very last line had been sent for plating -- in practice,
+-- never. ClientOrderFulfillmentServiceImpl now rolls up to the FURTHEST stage
+-- any line has reached; this re-runs the backfill under that rule.
 --
--- Mirrors ClientOrderFulfillmentServiceImpl: an order takes the stage of its
--- LEAST advanced line.
+-- V48 is deliberately left untouched: it has already been applied, and editing
+-- an applied migration breaks Flyway's checksum validation on the next start.
+--
 --   0 APPROVED           - not sent anywhere yet
 --   1 IN_PLATING         - out for job work, nothing back
 --   2 READY_TO_DISPATCH  - the job worker has returned something
 --   3 DISPATCHED         - every piece ordered has gone out
+--
+-- Stages are derived from the works themselves, not from the status V48 left
+-- behind, so this is a straight recompute rather than a patch on top.
 -- ============================================================
 
 WITH item_stage AS (SELECT oi.order_id,
@@ -33,7 +36,14 @@ WITH item_stage AS (SELECT oi.order_id,
                                END AS stage
                     FROM order_items oi
                              LEFT JOIN job_works jw ON jw.order_item_id = oi.id),
-     order_stage AS (SELECT order_id, MIN(stage) AS stage
+     order_stage AS (SELECT order_id,
+                            -- All lines dispatched -> DISPATCHED; otherwise the furthest any line
+                            -- reached, with an already-dispatched line counting as ready (2) so a
+                            -- part-shipped order doesn't read as fully dispatched.
+                            CASE
+                                WHEN MIN(stage) = 3 THEN 3
+                                ELSE LEAST(MAX(stage), 2)
+                                END AS stage
                      FROM item_stage
                      GROUP BY order_id)
 UPDATE client_order_requests r
@@ -45,5 +55,6 @@ SET status = CASE os.stage
     END
 FROM order_stage os
 WHERE r.order_id = os.order_id
-  -- Never touch a request the admin still has to decide on, or has rejected.
-  AND r.status IN ('APPROVED', 'IN_PROGRESS', 'COMPLETED');
+  -- Every stage the works may own. Never touch a request the admin still has to
+  -- decide on, or has rejected.
+  AND r.status NOT IN ('PENDING_APPROVAL', 'REJECTED');
