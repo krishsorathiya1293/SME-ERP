@@ -14,7 +14,11 @@ import java.util.Map;
  */
 public interface ClientOrderFulfillmentService {
 
-  /** Per-line progress, used to show item-level detail alongside the request's rolled-up status. */
+  /**
+   * Per-line progress, used to show item-level detail alongside the request's rolled-up status.
+   * The roll-up takes the furthest stage any line has reached (except DISPATCHED, which needs every
+   * line), so this detail is what tells the client which lines are actually where.
+   */
   record ItemFulfillment(
       OrderItemStage stage,
       Double sentKg,

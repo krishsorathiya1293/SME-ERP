@@ -101,18 +101,38 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
   }
 
   /**
-   * An order is only as far along as its least advanced line — the answer to "what is this order
-   * still waiting on?". An order with no lines has nothing outstanding, so it reads as approved.
+   * An order shows the furthest stage any of its lines has reached: the moment one line goes out
+   * for plating the order has left "Approved", and the moment one comes back there is something
+   * ready to dispatch. Real orders run a dozen lines that move at different speeds, so rolling up
+   * the *least* advanced line would pin an order in "Approved" until the last line was sent —
+   * which is the whole problem this replaces. Which lines are where is on the per-line detail.
+   *
+   * <p>DISPATCHED is the one exception: while any line is still to go out, the order is not
+   * dispatched. An order with no lines has nothing outstanding, so it reads as approved.
    */
   private OrderItemStage rollUp(OrderEntity order) {
     List<OrderItemEntity> items = order.getOrderItems();
     if (items == null || items.isEmpty()) {
       return OrderItemStage.APPROVED;
     }
-    return items.stream()
-        .map(item -> describe(item).stage())
-        .min(java.util.Comparator.comparingInt(Enum::ordinal))
-        .orElse(OrderItemStage.APPROVED);
+
+    List<OrderItemStage> stages = items.stream().map(item -> describe(item).stage()).toList();
+
+    if (stages.stream().allMatch(stage -> stage == OrderItemStage.DISPATCHED)) {
+      return OrderItemStage.DISPATCHED;
+    }
+    // A line already out of the door got at least as far as ready, so it counts towards
+    // READY_TO_DISPATCH rather than dragging the whole order into DISPATCHED.
+    if (stages.stream()
+        .anyMatch(
+            stage ->
+                stage == OrderItemStage.READY_TO_DISPATCH || stage == OrderItemStage.DISPATCHED)) {
+      return OrderItemStage.READY_TO_DISPATCH;
+    }
+    if (stages.stream().anyMatch(stage -> stage == OrderItemStage.IN_PLATING)) {
+      return OrderItemStage.IN_PLATING;
+    }
+    return OrderItemStage.APPROVED;
   }
 
   /**

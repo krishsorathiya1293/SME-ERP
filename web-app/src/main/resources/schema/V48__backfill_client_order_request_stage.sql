@@ -8,8 +8,8 @@
 -- line so the tabs are correct from the first load rather than only after the
 -- next event touches an order.
 --
--- Mirrors ClientOrderFulfillmentServiceImpl: an order takes the stage of its
--- LEAST advanced line.
+-- Mirrors ClientOrderFulfillmentServiceImpl: an order takes the FURTHEST stage
+-- any of its lines has reached, except DISPATCHED which needs every line.
 --   0 APPROVED           - not sent anywhere yet
 --   1 IN_PLATING         - out for job work, nothing back
 --   2 READY_TO_DISPATCH  - the job worker has returned something
@@ -33,7 +33,13 @@ WITH item_stage AS (SELECT oi.order_id,
                                END AS stage
                     FROM order_items oi
                              LEFT JOIN job_works jw ON jw.order_item_id = oi.id),
-     order_stage AS (SELECT order_id, MIN(stage) AS stage
+     order_stage AS (SELECT order_id,
+                            -- All lines dispatched -> DISPATCHED; otherwise the furthest any line
+                            -- reached, with an already-dispatched line counting as ready (2).
+                            CASE
+                                WHEN MIN(stage) = 3 THEN 3
+                                ELSE LEAST(MAX(stage), 2)
+                                END AS stage
                      FROM item_stage
                      GROUP BY order_id)
 UPDATE client_order_requests r
