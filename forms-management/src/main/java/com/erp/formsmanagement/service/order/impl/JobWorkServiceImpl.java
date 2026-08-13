@@ -7,6 +7,7 @@ import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.constant.Constant;
 import com.erp.exception.EntityNotFoundException;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
@@ -49,6 +50,7 @@ public class JobWorkServiceImpl
   private final PartyRepository partyRepository;
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
   private final TranslationService translationService;
+  private final ClientOrderFulfillmentService clientOrderFulfillmentService;
 
   public JobWorkServiceImpl(
       JobWorkRepository jobWorkRepository,
@@ -56,6 +58,7 @@ public class JobWorkServiceImpl
       PartyRepository partyRepository,
       ItemBlueprintDataRepository itemBlueprintDataRepository,
       TranslationService translationService,
+      ClientOrderFulfillmentService clientOrderFulfillmentService,
       JobWorkMapper jobWorkMapper) {
     super(jobWorkRepository, jobWorkMapper);
     this.jobWorkRepository = jobWorkRepository;
@@ -63,6 +66,7 @@ public class JobWorkServiceImpl
     this.partyRepository = partyRepository;
     this.itemBlueprintDataRepository = itemBlueprintDataRepository;
     this.translationService = translationService;
+    this.clientOrderFulfillmentService = clientOrderFulfillmentService;
   }
 
   /**
@@ -86,6 +90,30 @@ public class JobWorkServiceImpl
     linkRelations(entity, orderItemId, request);
     assignJobWorkNo(entity);
     ensureTranslations(entity);
+    if (entity.getStatus() == null) {
+      entity.setStatus(JobWorkStatus.PENDING);
+    }
+    // The order item has just gone out for plating — move the client's request to "In Plating".
+    clientOrderFulfillmentService.syncByOrderItem(entity.getOrderItem());
+  }
+
+  /**
+   * Pulling a job work back off an order item puts that item back where it was before it was sent
+   * out, so the client's request drops back to "Approved".
+   */
+  @Override
+  @Transactional
+  public void deleteById(Long orderItemId, Long id) {
+    OrderItemEntity orderItem =
+        jobWorkRepository.findById(id).map(JobWorkEntity::getOrderItem).orElse(null);
+    if (orderItem != null) {
+      // The inverse side is already loaded in this persistence context and would still point at the
+      // row we are about to remove; clear it so the stage is derived from the real state.
+      orderItem.setJobWork(null);
+    }
+    jobWorkRepository.deleteById(id);
+    jobWorkRepository.flush();
+    clientOrderFulfillmentService.syncByOrderItem(orderItem);
   }
 
   @Override
@@ -289,6 +317,7 @@ public class JobWorkServiceImpl
             .orElseThrow(
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     entity.setStatus(JobWorkStatus.valueOf(request.getStatus().name()));
+    clientOrderFulfillmentService.syncByOrderItem(entity.getOrderItem());
     return mapper().toDomain(entity);
   }
 

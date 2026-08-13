@@ -975,13 +975,31 @@ components:
 
     OrderRequestStatus:
       type: string
-      description: Lifecycle status of a client order request
+      description: >-
+        Lifecycle status of a client order request. PENDING_APPROVAL / APPROVED / REJECTED are set
+        by an admin; IN_PLATING, READY_TO_DISPATCH and DISPATCHED are derived from the order created
+        on approval as it moves through job work and dispatch. IN_PROGRESS is legacy and is no longer
+        derived.
       enum:
         - PENDING_APPROVAL
         - APPROVED
+        - IN_PLATING
+        - READY_TO_DISPATCH
+        - DISPATCHED
         - IN_PROGRESS
         - COMPLETED
         - REJECTED
+
+    OrderItemStage:
+      type: string
+      description: >-
+        Stage a single requested line item is at in the works. An order request as a whole reports
+        the stage of its least advanced item.
+      enum:
+        - APPROVED
+        - IN_PLATING
+        - READY_TO_DISPATCH
+        - DISPATCHED
 
     NewOrderRequestItem:
       type: object
@@ -1061,6 +1079,26 @@ components:
         pendingPc:
           type: number
           format: double
+        stage:
+          $ref: '#/components/schemas/OrderItemStage'
+        sentKg:
+          type: number
+          format: double
+          description: Net Kg sent out for job work / plating for this line, if any.
+        returnedKg:
+          type: number
+          format: double
+          description: >-
+            Net Kg already returned from the job worker. On a partial return this is exactly the
+            weight that is ready to dispatch.
+        remainingKg:
+          type: number
+          format: double
+          description: Net Kg still lying with the job worker (sent - returned - ghati).
+        dispatchedPc:
+          type: number
+          format: double
+          description: Pieces dispatched against this line so far.
 
     OrderRequest:
       type: object

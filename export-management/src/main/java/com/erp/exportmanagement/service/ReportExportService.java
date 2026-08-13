@@ -8,6 +8,7 @@ import com.erp.formsmanagement.domain.entity.sales.SalesOrderEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.repository.gres.GresFillingRepository;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
+import com.erp.formsmanagement.util.JobWorkNumber;
 import com.erp.formsmanagement.domain.repository.purchase.PurchaseOrderRepository;
 import com.erp.formsmanagement.domain.repository.sales.SalesOrderRepository;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
@@ -89,6 +90,20 @@ public class ReportExportService {
                         || jw.getJobWorkType() == JobWorkType.MANUAL)
             .toList();
 
+    // Ch. No. on the statement is the same party-wise job number the app's cards and the printed
+    // chitthi show (ED-4, NP-22, …). Rows created before the label column existed have only the
+    // serial, so rebuild the label from the party name rather than trusting the stored copy.
+    Map<Long, String> chNoById = new HashMap<>();
+    for (JobWorkEntity jw : records) {
+      String label = JobWorkNumber.label(party.getName(), jw.getJobWorkNo());
+      if (label == null) {
+        label = jw.getJobWorkLabel() != null ? jw.getJobWorkLabel() : jw.getChitthiNo();
+      }
+      if (label != null) {
+        chNoById.put(jw.getId(), label);
+      }
+    }
+
     Map<String, Object> variables = new HashMap<>();
     variables.put("partyName", party.getName());
     variables.put("startDate", startDate);
@@ -96,6 +111,7 @@ public class ReportExportService {
     variables.put("outsideRecords", outsideRecords);
     variables.put("insideRecords", insideRecords);
     variables.put("plainJobWorkRecords", plainJobWorkRecords);
+    variables.put("chNoById", chNoById);
 
     return documentRenderService.renderDocument("jobwork-report", variables, DocumentFormat.PDF).getByteArray();
   }

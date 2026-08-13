@@ -35,4 +35,7 @@ public interface GresFillingReturnRepository extends CoreRepository<GresFillingR
           + "WHERE r.gresFilling.id = :gresFillingId AND (:excludeId = 0 OR r.id <> :excludeId)")
   double sumReturnKgByGresFillingId(
       @Param("gresFillingId") Long gresFillingId, @Param("excludeId") Long excludeId);
+
+  /** How many returns are still recorded against a Gres record — drives its auto Pending/Complete status. */
+  long countByGresFilling_Id(Long gresFillingId);
 }

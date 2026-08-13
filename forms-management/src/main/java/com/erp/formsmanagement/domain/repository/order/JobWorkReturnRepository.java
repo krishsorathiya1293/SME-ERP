@@ -30,4 +30,11 @@ public interface JobWorkReturnRepository
 
   @Query("SELECT COALESCE(SUM(r.returnElementCount), 0.0) FROM JobWorkReturnEntity r WHERE r.jobWork.id = :jobWorkId AND r.id <> :excludeId")
   Double sumReturnElementCountByJobWorkId(@Param("jobWorkId") Long jobWorkId, @Param("excludeId") Long excludeId);
+
+  /** How many returns are still recorded against a job work — drives its auto Pending/Complete status. */
+  long countByJobWork_Id(Long jobWorkId);
+
+  /** Net Kg returned against a job work (ghati excluded — that weight never comes back). */
+  @Query("SELECT COALESCE(SUM(r.returnKg), 0.0) FROM JobWorkReturnEntity r WHERE r.jobWork.id = :jobWorkId")
+  Double sumReturnKgByJobWorkId(@Param("jobWorkId") Long jobWorkId);
 }

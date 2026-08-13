@@ -18,10 +18,13 @@ import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestStat
 import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.clientportal.mapper.ClientOrderRequestMapper;
 import com.erp.formsmanagement.clientportal.service.AdminClientPortalService;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService.ItemFulfillment;
 import com.erp.formsmanagement.domain.repository.client.ClientInventoryRepository;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
+import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import com.erp.formsmanagement.service.order.OrderService;
 import com.erp.usermanagement.model.entity.UserEntity;
 import com.erp.usermanagement.repository.UserRepository;
@@ -35,6 +38,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -61,6 +65,8 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
   private final ClientOrderRequestMapper clientOrderRequestMapper;
   private final ClientInventoryRepository clientInventoryRepository;
   private final OrderService orderService;
+  private final OrderRepository orderRepository;
+  private final ClientOrderFulfillmentService clientOrderFulfillmentService;
 
   @Override
   @Transactional(readOnly = true)
@@ -186,6 +192,12 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
       createOrderFromRequest(saved);
     }
 
+    // Approving a request that already has an order behind it (a re-approval) must land on the
+    // stage that order is actually at, not plain "Approved".
+    if (saved.getOrder() != null) {
+      clientOrderFulfillmentService.syncByOrderId(saved.getOrder().getId());
+    }
+
     return toOrderRequest(saved);
   }
 
@@ -269,7 +281,22 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
                 .findByPartyId(entity.getParty().getId())
                 .map(UserEntity::getUsername)
                 .orElse(null);
-    return clientOrderRequestMapper.toDomain(entity, username);
+    return clientOrderRequestMapper.toDomain(entity, username, fulfillmentOf(entity));
+  }
+
+  /**
+   * Per-line progress from the order this request became. Looked up by id rather than through the
+   * lazy association so a request whose order has since been deleted degrades to "no progress"
+   * instead of blowing up on a dangling proxy.
+   */
+  private Map<String, ItemFulfillment> fulfillmentOf(ClientOrderRequestEntity entity) {
+    if (entity.getOrder() == null) {
+      return Map.of();
+    }
+    return orderRepository
+        .findById(entity.getOrder().getId())
+        .map(clientOrderFulfillmentService::describeByLine)
+        .orElseGet(Map::of);
   }
 
   private ClientAccount toClientAccount(PartyEntity party) {

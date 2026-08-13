@@ -5,8 +5,10 @@ import com.erp.api.ordermanagement.model.NewJobWorkReturn;
 import com.erp.api.ordermanagement.model.PaginatedResultJobWorkReturn;
 import com.erp.constant.Constant;
 import com.erp.exception.EntityNotFoundException;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.domain.repository.order.JobWorkReturnRepository;
 import com.erp.formsmanagement.mapper.order.JobWorkReturnMapper;
@@ -28,14 +30,17 @@ public class JobWorkReturnServiceImpl
 
   private final JobWorkReturnRepository jobWorkReturnRepository;
   private final JobWorkRepository jobWorkRepository;
+  private final ClientOrderFulfillmentService clientOrderFulfillmentService;
 
   public JobWorkReturnServiceImpl(
       JobWorkReturnRepository jobWorkReturnRepository,
       JobWorkRepository jobWorkRepository,
+      ClientOrderFulfillmentService clientOrderFulfillmentService,
       JobWorkReturnMapper mapper) {
     super(jobWorkReturnRepository, mapper);
     this.jobWorkReturnRepository = jobWorkReturnRepository;
     this.jobWorkRepository = jobWorkRepository;
+    this.clientOrderFulfillmentService = clientOrderFulfillmentService;
   }
 
   @Override
@@ -44,6 +49,8 @@ public class JobWorkReturnServiceImpl
     computeReturnKg(entity);
     validateReturnQuantity(jobWork, entity, 0L);
     entity.setJobWork(jobWork);
+    jobWork.setStatus(JobWorkStatus.COMPLETE);
+    clientOrderFulfillmentService.syncByOrderItem(jobWork.getOrderItem());
   }
 
   @Override
@@ -52,6 +59,25 @@ public class JobWorkReturnServiceImpl
     computeReturnKg(entity);
     validateReturnQuantity(jobWork, entity, entity.getId());
     entity.setJobWork(jobWork);
+    jobWork.setStatus(JobWorkStatus.COMPLETE);
+    clientOrderFulfillmentService.syncByOrderItem(jobWork.getOrderItem());
+  }
+
+  /**
+   * Deleting the last return reverts the job work to Pending — the goods are back out with the job
+   * worker as far as the books are concerned. Any remaining return keeps it Complete.
+   */
+  @Override
+  @Transactional
+  public void deleteById(Long jobWorkId, Long id) {
+    jobWorkReturnRepository.deleteById(id);
+    jobWorkReturnRepository.flush();
+
+    JobWorkEntity jobWork = resolveJobWork(jobWorkId);
+    if (jobWorkReturnRepository.countByJobWork_Id(jobWorkId) == 0) {
+      jobWork.setStatus(JobWorkStatus.PENDING);
+    }
+    clientOrderFulfillmentService.syncByOrderItem(jobWork.getOrderItem());
   }
 
   /** Net Kg = grossKg (weighed once) - returnElementCount * petiWeightKg, matching the excel. */

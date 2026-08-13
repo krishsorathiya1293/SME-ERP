@@ -8,6 +8,7 @@ import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.gres.GresElementType;
 import com.erp.formsmanagement.domain.entity.gres.GresFillingEntity;
 import com.erp.formsmanagement.domain.entity.gres.GresFillingReturnEntity;
+import com.erp.formsmanagement.domain.entity.gres.GresFillingStatus;
 import com.erp.formsmanagement.domain.repository.gres.GresFillingRepository;
 import com.erp.formsmanagement.domain.repository.gres.GresFillingReturnRepository;
 import com.erp.formsmanagement.mapper.gres.GresFillingReturnMapper;
@@ -49,6 +50,7 @@ public class GresFillingReturnServiceImpl
       entity.setElementType(GresElementType.valueOf(request.getElementType().name()));
     }
     recompute(entity, gresFilling);
+    gresFilling.setStatus(GresFillingStatus.COMPLETE);
   }
 
   @Override
@@ -60,6 +62,22 @@ public class GresFillingReturnServiceImpl
       entity.setElementType(GresElementType.valueOf(request.getElementType().name()));
     }
     recompute(entity, gresFilling);
+    gresFilling.setStatus(GresFillingStatus.COMPLETE);
+  }
+
+  /**
+   * Deleting the last return reverts the Gres record to Pending — the filling is outstanding again.
+   * Any remaining return keeps it Complete.
+   */
+  @Override
+  @Transactional
+  public void deleteById(Long gresFillingId, Long id) {
+    gresFillingReturnRepository.deleteById(id);
+    gresFillingReturnRepository.flush();
+
+    if (gresFillingReturnRepository.countByGresFilling_Id(gresFillingId) == 0) {
+      resolveGresFilling(gresFillingId).setStatus(GresFillingStatus.PENDING);
+    }
   }
 
   private static Double round3(Double value) {

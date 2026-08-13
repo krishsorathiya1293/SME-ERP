@@ -22,6 +22,8 @@ import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestItem
 import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestStatus;
 import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.clientportal.mapper.ClientOrderRequestMapper;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService.ItemFulfillment;
 import com.erp.formsmanagement.clientportal.service.ClientPortalService;
 import com.erp.formsmanagement.clientportal.service.CurrentClientProvider;
 import com.erp.formsmanagement.domain.entity.client.ClientInventoryEntity;
@@ -65,6 +67,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   private final ClientInventoryRepository clientInventoryRepository;
   private final ClientOrderRequestRepository clientOrderRequestRepository;
   private final ClientOrderRequestMapper clientOrderRequestMapper;
+  private final ClientOrderFulfillmentService clientOrderFulfillmentService;
 
   @Override
   @Transactional(readOnly = true)
@@ -185,9 +188,25 @@ public class ClientPortalServiceImpl implements ClientPortalService {
 
     return PageMapper.toResult(
         requests,
-        entity -> clientOrderRequestMapper.toDomain(entity, user.getUsername()),
+        entity ->
+            clientOrderRequestMapper.toDomain(entity, user.getUsername(), fulfillmentOf(entity)),
         PaginatedResultOrderRequest::new,
         PaginatedResultOrderRequest::setData);
+  }
+
+  /**
+   * Per-line progress from the order this request became. Looked up by id rather than through the
+   * lazy association so a request whose order has since been deleted degrades to "no progress"
+   * instead of blowing up on a dangling proxy.
+   */
+  private Map<String, ItemFulfillment> fulfillmentOf(ClientOrderRequestEntity entity) {
+    if (entity.getOrder() == null) {
+      return Map.of();
+    }
+    return orderRepository
+        .findById(entity.getOrder().getId())
+        .map(clientOrderFulfillmentService::describeByLine)
+        .orElseGet(Map::of);
   }
 
   private ClientOrderRequestItemEntity toItemEntity(

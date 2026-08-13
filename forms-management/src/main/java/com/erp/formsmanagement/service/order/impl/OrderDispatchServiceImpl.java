@@ -3,6 +3,7 @@ package com.erp.formsmanagement.service.order.impl;
 import com.erp.api.ordermanagement.model.NewOrderDispatch;
 import com.erp.api.ordermanagement.model.OrderDispatch;
 import com.erp.api.ordermanagement.model.PaginatedResultOrderDispatch;
+import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
 import com.erp.formsmanagement.domain.entity.order.OrderDispatchEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.formsmanagement.domain.repository.order.OrderDispatchRepository;
@@ -29,14 +30,17 @@ public class OrderDispatchServiceImpl
 
   private final OrderDispatchRepository orderDispatchRepository;
   private final OrderItemRepository orderItemRepository;
+  private final ClientOrderFulfillmentService clientOrderFulfillmentService;
 
   public OrderDispatchServiceImpl(
       OrderDispatchRepository orderDispatchRepository,
       OrderItemRepository orderItemRepository,
+      ClientOrderFulfillmentService clientOrderFulfillmentService,
       OrderDispatchMapper orderDispatchMapper) {
     super(orderDispatchRepository, orderDispatchMapper);
     this.orderDispatchRepository = orderDispatchRepository;
     this.orderItemRepository = orderItemRepository;
+    this.clientOrderFulfillmentService = clientOrderFulfillmentService;
   }
 
   @Override
@@ -58,6 +62,7 @@ public class OrderDispatchServiceImpl
     entity.setOrderItem(orderItem);
     orderItem.setPendingPc(orderQty - (alreadyDispatched + newPcs));
     orderItemRepository.save(orderItem);
+    clientOrderFulfillmentService.syncByOrderItem(orderItem);
   }
 
   @Override
@@ -80,6 +85,7 @@ public class OrderDispatchServiceImpl
     entity.setOrderItem(orderItem);
     orderItem.setPendingPc(orderQty - (alreadyDispatched + updatedPcs));
     orderItemRepository.save(orderItem);
+    clientOrderFulfillmentService.syncByOrderItem(orderItem);
   }
 
   @Override
@@ -95,6 +101,7 @@ public class OrderDispatchServiceImpl
     double orderQty = orderItem.getQtyPc() != null ? orderItem.getQtyPc() : 0;
     orderItem.setPendingPc(orderQty - remaining);
     orderItemRepository.save(orderItem);
+    clientOrderFulfillmentService.syncByOrderItem(orderItem);
   }
 
   @Override

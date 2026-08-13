@@ -136,7 +136,7 @@
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${outsideRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
-            <td><span class="chno" th:text="${jw.chitthiNo != null ? jw.chitthiNo : iter.count}">1</span></td>
+            <td><span class="chno" th:text="${chNoById.containsKey(jw.id) ? chNoById.get(jw.id) : iter.count}">ED-1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
             <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
                 th:text="${combined != '' ? combined : '—'}"></td>
@@ -179,7 +179,7 @@
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${insideRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
-            <td><span class="chno" th:text="${jw.chitthiNo != null ? jw.chitthiNo : iter.count}">1</span></td>
+            <td><span class="chno" th:text="${chNoById.containsKey(jw.id) ? chNoById.get(jw.id) : iter.count}">ED-1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
             <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
                 th:text="${combined != '' ? combined : '—'}"></td>
@@ -222,7 +222,7 @@
         </thead>
         <tbody>
         <tr th:each="jw, iter : ${plainJobWorkRecords}" th:classappend="${iter.odd} ? '' : 'alt'">
-            <td><span class="chno" th:text="${jw.chitthiNo != null ? jw.chitthiNo : iter.count}">1</span></td>
+            <td><span class="chno" th:text="${chNoById.containsKey(jw.id) ? chNoById.get(jw.id) : iter.count}">ED-1</span></td>
             <td th:text="${jw.jobDate != null ? #temporals.format(jw.jobDate,'d-M-yy') : '—'}"></td>
             <td class="l" th:with="cat=${jw.size != null and jw.size.item != null and jw.size.item.category != null ? jw.size.item.category.name : ''},sz=${jw.size != null and jw.size.sizeInInch != null ? jw.size.sizeInInch : ''},combined=${cat + (cat != '' and sz != '' ? ' - ' : '') + sz}"
                 th:text="${combined != '' ? combined : '—'}"></td>
