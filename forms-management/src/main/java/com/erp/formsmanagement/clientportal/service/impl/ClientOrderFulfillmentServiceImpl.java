@@ -5,11 +5,11 @@ import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestEnti
 import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestStatus;
 import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
+import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
-import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
+import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
-import com.erp.formsmanagement.domain.repository.order.JobWorkReturnRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -37,9 +37,11 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
           ClientOrderRequestStatus.IN_PROGRESS,
           ClientOrderRequestStatus.COMPLETED);
 
+  /** Weights are compared and reported to 3 decimals, matching the job-work sheets. */
+  private static final double EPSILON = 0.0005;
+
   private final ClientOrderRequestRepository clientOrderRequestRepository;
   private final OrderRepository orderRepository;
-  private final JobWorkReturnRepository jobWorkReturnRepository;
 
   @Override
   @Transactional
@@ -100,12 +102,23 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
     return byLine;
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public Map<Long, ItemFulfillment> describeByOrderItemId(OrderEntity order) {
+    Map<Long, ItemFulfillment> byId = new HashMap<>();
+    if (order == null || order.getOrderItems() == null) {
+      return byId;
+    }
+    for (OrderItemEntity item : order.getOrderItems()) {
+      byId.put(item.getId(), describe(item));
+    }
+    return byId;
+  }
+
   /**
-   * An order shows the furthest stage any of its lines has reached: the moment one line goes out
-   * for plating the order has left "Approved", and the moment one comes back there is something
-   * ready to dispatch. Real orders run a dozen lines that move at different speeds, so rolling up
-   * the *least* advanced line would pin an order in "Approved" until the last line was sent —
-   * which is the whole problem this replaces. Which lines are where is on the per-line detail.
+   * An order shows the furthest stage any of its lines has reached, which is the coarse badge the
+   * admin screen filters on. The client portal doesn't use this — it splits each line's quantity
+   * across the stages instead, so a part-plated order appears under several tabs at once.
    *
    * <p>DISPATCHED is the one exception: while any line is still to go out, the order is not
    * dispatched. An order with no lines has nothing outstanding, so it reads as approved.
@@ -136,53 +149,105 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
   }
 
   /**
-   * Works out where a single line stands:
+   * Splits one line's quantity across the stages of the works:
    *
-   * <ul>
-   *   <li>DISPATCHED — every piece ordered has gone out
-   *   <li>READY_TO_DISPATCH — the job worker has returned something; on a partial return it is the
-   *       returned Kg that is ready to go
-   *   <li>IN_PLATING — sent out for job work, nothing back yet
-   *   <li>APPROVED — not sent anywhere yet
-   * </ul>
+   * <pre>
+   *   approved        = ordered  - sent                   (never went to the plater)
+   *   inPlating       = sent     - returned - ghati       (with the plater right now)
+   *   readyToDispatch = returned - dispatched             (back, waiting to go out)
+   *   dispatched      = dispatched                        (gone)
+   * </pre>
+   *
+   * <p>Ghati is weight burnt off during the process: it leaves plating but never becomes
+   * dispatchable, so it is subtracted rather than counted as returned.
+   *
+   * <p>The books mix units — the order is placed in pieces, the plater works in Kg, dispatch is
+   * counted in pieces — so everything is normalised to Kg through the size's 1-pc weight and the
+   * piece equivalent is reported alongside.
    */
   private ItemFulfillment describe(OrderItemEntity item) {
-    double qtyPc = item.getQtyPc() == null ? 0d : item.getQtyPc();
-    double dispatchedPc = dispatchedPc(item, qtyPc);
+    Double pcsWeight = pcsWeight(item);
 
-    JobWorkEntity jobWork = item.getJobWork();
-    Double sentKg = jobWork == null ? null : jobWork.getQtyKg();
-    double returnedKg =
-        jobWork == null
-            ? 0d
-            : nullToZero(jobWorkReturnRepository.sumReturnKgByJobWorkId(jobWork.getId()));
-    double ghatiKg =
-        jobWork == null || jobWork.getJobWorkReturns() == null
-            ? 0d
-            : jobWork.getJobWorkReturns().stream()
-                .mapToDouble(r -> r.getGhati() == null ? 0d : r.getGhati())
-                .sum();
+    double orderedPc = nullToZero(item.getQtyPc());
+    Double orderedKg = item.getQtyKg() != null && item.getQtyKg() > 0
+        ? item.getQtyKg()
+        : toKg(orderedPc, pcsWeight);
 
-    // A return that was recorded in this very transaction isn't in the DB yet, but the job work's
-    // status has already been flipped to COMPLETE for it — so trust either signal.
-    boolean anyReturned =
-        jobWork != null && (returnedKg > 0 || jobWork.getStatus() == JobWorkStatus.COMPLETE);
+    List<JobWorkEntity> jobWorks =
+        item.getJobWorks() == null ? List.of() : item.getJobWorks();
+    double sentKg = jobWorks.stream().mapToDouble(jw -> nullToZero(jw.getQtyKg())).sum();
 
-    OrderItemStage stage;
-    if (qtyPc > 0 && dispatchedPc >= qtyPc) {
-      stage = OrderItemStage.DISPATCHED;
-    } else if (jobWork == null) {
-      stage = OrderItemStage.APPROVED;
-    } else if (anyReturned) {
-      stage = OrderItemStage.READY_TO_DISPATCH;
-    } else {
-      stage = OrderItemStage.IN_PLATING;
+    List<JobWorkReturnEntity> returns =
+        jobWorks.stream()
+            .flatMap(jw -> jw.getJobWorkReturns() == null ? List.<JobWorkReturnEntity>of().stream()
+                                                          : jw.getJobWorkReturns().stream())
+            .toList();
+    double returnedKg = returns.stream().mapToDouble(r -> nullToZero(r.getReturnKg())).sum();
+    double ghatiKg = returns.stream().mapToDouble(r -> nullToZero(r.getGhati())).sum();
+
+    double dispatchedPc = dispatchedPc(item, orderedPc);
+    Double dispatchedKg = toKg(dispatchedPc, pcsWeight);
+
+    // What's still with the plater is pure Kg arithmetic, so it always works. The other three need
+    // a Kg basis for the order line (its own qtyKg, or pieces converted through the size's 1-pc
+    // weight); without one they are genuinely unknown, and null says so rather than showing a 0
+    // that reads as "nothing left".
+    double inPlatingKg = clampToZero(sentKg - returnedKg - ghatiKg);
+    Double approvedKg = orderedKg == null ? null : clampToZero(orderedKg - sentKg);
+    Double readyToDispatchKg =
+        dispatchedKg == null
+            ? (dispatchedPc > 0 ? null : clampToZero(returnedKg))
+            : clampToZero(returnedKg - dispatchedKg);
+
+    return new ItemFulfillment(
+        stageOf(orderedPc, dispatchedPc, sentKg, returnedKg),
+        round3(orderedKg),
+        orderedPc,
+        round3(approvedKg),
+        toPc(approvedKg, pcsWeight),
+        round3(inPlatingKg),
+        toPc(inPlatingKg, pcsWeight),
+        round3(readyToDispatchKg),
+        toPc(readyToDispatchKg, pcsWeight),
+        round3(dispatchedKg),
+        dispatchedPc,
+        round3(ghatiKg),
+        round3(sentKg),
+        round3(returnedKg),
+        round3(inPlatingKg));
+  }
+
+  /**
+   * The single coarse stage for the admin badge. Quantity-wise a line is usually in several at
+   * once; this reports the furthest thing that has happened to it.
+   */
+  private OrderItemStage stageOf(
+      double orderedPc, double dispatchedPc, double sentKg, double returnedKg) {
+    if (orderedPc > 0 && dispatchedPc >= orderedPc - EPSILON) {
+      return OrderItemStage.DISPATCHED;
     }
+    if (returnedKg > EPSILON) {
+      return OrderItemStage.READY_TO_DISPATCH;
+    }
+    if (sentKg > EPSILON) {
+      return OrderItemStage.IN_PLATING;
+    }
+    return OrderItemStage.APPROVED;
+  }
 
-    Double remainingKg =
-        sentKg == null ? null : Math.max(0d, sentKg - returnedKg - ghatiKg);
+  private Double pcsWeight(OrderItemEntity item) {
+    ItemBlueprintDataEntity size = item.getItemSize();
+    Double weight = size == null ? null : size.getPcsWeight();
+    return weight != null && weight > 0 ? weight : null;
+  }
 
-    return new ItemFulfillment(stage, sentKg, returnedKg, remainingKg, dispatchedPc);
+  /** Null when the size has no 1-pc weight — better an absent figure than a made-up one. */
+  private Double toKg(double pc, Double pcsWeight) {
+    return pcsWeight == null ? null : round3(pc * pcsWeight);
+  }
+
+  private Double toPc(Double kg, Double pcsWeight) {
+    return pcsWeight == null || kg == null ? null : round3(kg / pcsWeight);
   }
 
   /**
@@ -190,12 +255,12 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
    * this transaction it still reads the old total. {@code pendingPc} is written explicitly by the
    * dispatch service, so take whichever of the two is further along.
    */
-  private double dispatchedPc(OrderItemEntity item, double qtyPc) {
+  private double dispatchedPc(OrderItemEntity item, double orderedPc) {
     double dispatched = nullToZero(item.getTotalDispatchedPc());
     if (item.getPendingPc() != null) {
-      dispatched = Math.max(dispatched, qtyPc - item.getPendingPc());
+      dispatched = Math.max(dispatched, orderedPc - item.getPendingPc());
     }
-    return Math.max(0d, dispatched);
+    return clampToZero(dispatched);
   }
 
   private ClientOrderRequestStatus toRequestStatus(OrderItemStage stage) {
@@ -205,6 +270,14 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
       case IN_PLATING -> ClientOrderRequestStatus.IN_PLATING;
       case APPROVED -> ClientOrderRequestStatus.APPROVED;
     };
+  }
+
+  private static double clampToZero(double value) {
+    return value < EPSILON ? 0d : value;
+  }
+
+  private static Double round3(Double value) {
+    return value == null ? null : Math.round(value * 1000.0) / 1000.0;
   }
 
   private static double nullToZero(Double value) {

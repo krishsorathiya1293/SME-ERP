@@ -81,6 +81,7 @@ public class ClientOrderRequestMapper {
           .returnedKg(fulfillment.returnedKg())
           .remainingKg(fulfillment.remainingKg())
           .dispatchedPc(fulfillment.dispatchedPc())
+          .stages(OrderLineStagesMapper.toStages(fulfillment))
           .pendingPc(
               fulfillment.dispatchedPc() != null && item.getQtyPc() != null
                   ? Math.max(0d, item.getQtyPc() - fulfillment.dispatchedPc())

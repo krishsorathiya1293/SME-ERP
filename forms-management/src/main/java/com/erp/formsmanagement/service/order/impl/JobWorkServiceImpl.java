@@ -107,9 +107,9 @@ public class JobWorkServiceImpl
     OrderItemEntity orderItem =
         jobWorkRepository.findById(id).map(JobWorkEntity::getOrderItem).orElse(null);
     if (orderItem != null) {
-      // The inverse side is already loaded in this persistence context and would still point at the
-      // row we are about to remove; clear it so the stage is derived from the real state.
-      orderItem.setJobWork(null);
+      // The inverse side is already loaded in this persistence context and would still hold the
+      // row we are about to remove; drop it so the stage split is derived from the real state.
+      orderItem.getJobWorks().removeIf(jw -> id.equals(jw.getId()));
     }
     jobWorkRepository.deleteById(id);
     jobWorkRepository.flush();

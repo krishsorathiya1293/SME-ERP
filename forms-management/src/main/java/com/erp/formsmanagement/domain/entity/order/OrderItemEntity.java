@@ -12,9 +12,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import org.hibernate.annotations.Formula;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
@@ -59,8 +63,14 @@ public class OrderItemEntity extends AuditInfo {
   @Formula("(SELECT MAX(d.dispatch_date) FROM sme_erp.order_dispatch d WHERE d.order_item_id = id)")
   private LocalDate lastDispatchDate;
 
-  @OneToOne(mappedBy = "orderItem", fetch = FetchType.LAZY)
-  private JobWorkEntity jobWork;
+  /**
+   * Every job work this line has been sent out on. A line can go to the plater in batches, so this
+   * is a list — {@code jobWorks} summed gives the Kg sent, and what is left of the order quantity
+   * is still waiting to be sent.
+   */
+  @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY)
+  @OrderBy("createdAt ASC")
+  private List<JobWorkEntity> jobWorks = new ArrayList<>();
 
   private Boolean jobActionDone;
 

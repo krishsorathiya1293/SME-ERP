@@ -39,9 +39,13 @@ public class JobWorkEntity extends AuditInfo {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // Nullable: manual job works are not tied to an order item.
-  @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "order_item_id", unique = true)
+  /**
+   * Nullable: manual job works are not tied to an order item. Many-to-one, not one-to-one — an
+   * order line can be sent to the plater in batches (50 Kg now, the rest later), so it may hold
+   * several job works over its life.
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "order_item_id")
   private OrderItemEntity orderItem;
 
   @ManyToOne(fetch = FetchType.LAZY)

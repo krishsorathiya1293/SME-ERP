@@ -6,25 +6,43 @@ import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import java.util.Map;
 
 /**
- * Keeps a client order request's status in step with what has actually happened to the order it
- * produced. An approved request becomes a real order; that order then goes out for plating, comes
- * back, and is dispatched. Each of those events writes the resulting stage back onto the request so
- * the admin's Order Approvals tabs stay mutually exclusive — an order out for plating shows under
- * "In Plating" and no longer under "Approved".
+ * Works out where an order's quantity actually sits.
+ *
+ * <p>The stages are not buckets of orders — they are buckets of <em>quantity</em>. One line of 100
+ * Kg is normally in several at once: send 50 Kg to the plater and 30 Kg comes back, and that line
+ * reads approved 50, in plating 20, ready to dispatch 30. So the same order shows under several
+ * tabs, each showing only the part of it that is really at that stage.
+ *
+ * <p>It also keeps the request-level {@code status} column in step, which is what the admin's Order
+ * Approvals tabs still filter on.
  */
 public interface ClientOrderFulfillmentService {
 
   /**
-   * Per-line progress, used to show item-level detail alongside the request's rolled-up status.
-   * The roll-up takes the furthest stage any line has reached (except DISPATCHED, which needs every
-   * line), so this detail is what tells the client which lines are actually where.
+   * One line's quantity split across the stages, in Kg with the piece equivalent alongside.
+   *
+   * <p>{@code approved + inPlating + readyToDispatch + dispatched + ghati == ordered}, so the split
+   * always accounts for the whole line.
+   *
+   * @param stage the single furthest stage this line has reached — the coarse roll-up the admin
+   *     screen shows; the Kg fields are what the client portal renders.
    */
   record ItemFulfillment(
       OrderItemStage stage,
+      Double orderedKg,
+      Double orderedPc,
+      Double approvedKg,
+      Double approvedPc,
+      Double inPlatingKg,
+      Double inPlatingPc,
+      Double readyToDispatchKg,
+      Double readyToDispatchPc,
+      Double dispatchedKg,
+      Double dispatchedPc,
+      Double ghatiKg,
       Double sentKg,
       Double returnedKg,
-      Double remainingKg,
-      Double dispatchedPc) {}
+      Double remainingKg) {}
 
   /**
    * Recomputes and persists the status of any client request behind this order item's order.
@@ -45,6 +63,9 @@ public interface ClientOrderFulfillmentService {
    * still resolves (to the least advanced item of that size).
    */
   Map<String, ItemFulfillment> describeByLine(OrderEntity order);
+
+  /** Per-line progress for an order, keyed by order-item id. */
+  Map<Long, ItemFulfillment> describeByOrderItemId(OrderEntity order);
 
   /** Lookup key for {@link #describeByLine}; pass a null plating for the size-only fallback. */
   static String lineKey(Long sizeId, String plating) {

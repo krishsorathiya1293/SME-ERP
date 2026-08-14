@@ -22,6 +22,7 @@ import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestItem
 import com.erp.formsmanagement.clientportal.domain.entity.ClientOrderRequestStatus;
 import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequestRepository;
 import com.erp.formsmanagement.clientportal.mapper.ClientOrderRequestMapper;
+import com.erp.formsmanagement.clientportal.mapper.OrderLineStagesMapper;
 import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
 import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService.ItemFulfillment;
 import com.erp.formsmanagement.clientportal.service.ClientPortalService;
@@ -29,7 +30,6 @@ import com.erp.formsmanagement.clientportal.service.CurrentClientProvider;
 import com.erp.formsmanagement.domain.entity.client.ClientInventoryEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
-import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.formsmanagement.domain.repository.client.ClientInventoryRepository;
@@ -316,10 +316,16 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   }
 
   private ClientOrder toClientOrder(OrderEntity order) {
+    // Computed once per order — every line's stage split comes from the same pass.
+    Map<Long, ItemFulfillment> byItemId =
+        clientOrderFulfillmentService.describeByOrderItemId(order);
+
     var items =
         order.getOrderItems() == null
             ? java.util.List.<ClientOrderItem>of()
-            : order.getOrderItems().stream().map(this::toClientOrderItem).toList();
+            : order.getOrderItems().stream()
+                .map(item -> toClientOrderItem(item, byItemId.get(item.getId())))
+                .toList();
 
     return new ClientOrder()
         .id(order.getId())
@@ -328,7 +334,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         .createdAt(toOffsetDateTime(order));
   }
 
-  private ClientOrderItem toClientOrderItem(OrderItemEntity item) {
+  private ClientOrderItem toClientOrderItem(OrderItemEntity item, ItemFulfillment fulfillment) {
     return new ClientOrderItem()
         .id(item.getId())
         .itemName(
@@ -342,38 +348,38 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         .qtyKg(item.getQtyKg())
         .pendingPc(item.getPendingPc())
         .dispatchedPc(item.getTotalDispatchedPc())
-        .jobActionDone(item.getJobWork() != null)
-        .jobWork(toClientItemJobWork(item.getJobWork()));
+        .jobActionDone(!item.getJobWorks().isEmpty())
+        .jobWork(toClientItemJobWork(item.getJobWorks(), fulfillment))
+        .stages(OrderLineStagesMapper.toStages(fulfillment));
   }
 
   /**
-   * Per-item job-work progress for the client portal. Kg returned so far is the sum over the job
-   * work's returns; ghati (loss burnt off during the process) is tracked separately from the
-   * returned weight, so both count against what is still lying with the job worker.
+   * Rolled-up job-work progress for a line, across every batch it was sent out on. Ghati (loss
+   * burnt off during the process) is tracked separately from the returned weight, since both count
+   * against what is still lying with the job worker but only the returned part can be dispatched.
+   *
+   * <p>Type, finish and job number come from the most recent batch — with several batches open
+   * there is no single answer, and the latest is the one the client is waiting on. The weights are
+   * sums, so they describe the whole line.
    */
-  private ClientItemJobWork toClientItemJobWork(JobWorkEntity jobWork) {
-    if (jobWork == null) {
+  private ClientItemJobWork toClientItemJobWork(
+      List<JobWorkEntity> jobWorks, ItemFulfillment fulfillment) {
+    if (jobWorks == null || jobWorks.isEmpty()) {
       return null;
     }
 
-    List<JobWorkReturnEntity> returns =
-        jobWork.getJobWorkReturns() == null ? List.of() : jobWork.getJobWorkReturns();
-    double sentKg = jobWork.getQtyKg() == null ? 0d : jobWork.getQtyKg();
-    double returnedKg =
-        returns.stream().mapToDouble(r -> r.getReturnKg() == null ? 0d : r.getReturnKg()).sum();
-    double ghatiKg =
-        returns.stream().mapToDouble(r -> r.getGhati() == null ? 0d : r.getGhati()).sum();
+    JobWorkEntity latest = jobWorks.get(jobWorks.size() - 1);
 
     return new ClientItemJobWork()
-        .type(jobWork.getJobWorkType() == null ? null : jobWork.getJobWorkType().name())
-        .typeLabel(jobWork.getJobWorkType() == null ? null : jobWork.getJobWorkType().getValue())
-        .status(jobWork.getStatus() == null ? null : jobWork.getStatus().name())
-        .finish(jobWork.getFinish())
-        .jobWorkNo(jobWork.getJobWorkNo())
-        .sentKg(sentKg)
-        .returnedKg(returnedKg)
-        .ghatiKg(ghatiKg)
-        .remainingKg(Math.max(0d, sentKg - returnedKg - ghatiKg));
+        .type(latest.getJobWorkType() == null ? null : latest.getJobWorkType().name())
+        .typeLabel(latest.getJobWorkType() == null ? null : latest.getJobWorkType().getValue())
+        .status(latest.getStatus() == null ? null : latest.getStatus().name())
+        .finish(latest.getFinish())
+        .jobWorkNo(latest.getJobWorkNo())
+        .sentKg(fulfillment == null ? null : fulfillment.sentKg())
+        .returnedKg(fulfillment == null ? null : fulfillment.returnedKg())
+        .ghatiKg(fulfillment == null ? null : fulfillment.ghatiKg())
+        .remainingKg(fulfillment == null ? null : fulfillment.remainingKg());
   }
 
   private OffsetDateTime toOffsetDateTime(OrderEntity order) {
