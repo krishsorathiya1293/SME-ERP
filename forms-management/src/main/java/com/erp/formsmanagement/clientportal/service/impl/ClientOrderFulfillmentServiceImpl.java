@@ -193,11 +193,19 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
     // weight); without one they are genuinely unknown, and null says so rather than showing a 0
     // that reads as "nothing left".
     double inPlatingKg = clampToZero(sentKg - returnedKg - ghatiKg);
-    Double approvedKg = orderedKg == null ? null : clampToZero(orderedKg - sentKg);
     Double readyToDispatchKg =
         dispatchedKg == null
             ? (dispatchedPc > 0 ? null : clampToZero(returnedKg))
             : clampToZero(returnedKg - dispatchedKg);
+
+    // Dispatch does not require plating — stock can go straight out. Anything dispatched beyond
+    // what came back from the plater was therefore shipped without ever being sent, so it has to
+    // come off "approved" as well; otherwise the same weight is reported both as still waiting to
+    // be sent and as already gone.
+    double shippedWithoutPlating =
+        dispatchedKg == null ? 0d : clampToZero(dispatchedKg - returnedKg);
+    Double approvedKg =
+        orderedKg == null ? null : clampToZero(orderedKg - sentKg - shippedWithoutPlating);
 
     return new ItemFulfillment(
         stageOf(orderedPc, dispatchedPc, sentKg, returnedKg),

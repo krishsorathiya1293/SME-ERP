@@ -21,8 +21,10 @@ public interface ClientOrderFulfillmentService {
   /**
    * One line's quantity split across the stages, in Kg with the piece equivalent alongside.
    *
-   * <p>{@code approved + inPlating + readyToDispatch + dispatched + ghati == ordered}, so the split
-   * always accounts for the whole line.
+   * <p>On a line whose books balance, {@code approved + inPlating + readyToDispatch + dispatched +
+   * ghati == ordered}. It can come out over where the works booked more movement than was ordered
+   * — dispatching a whole line while part of it is still with the plater, say — because each figure
+   * reports what was actually recorded rather than forcing the total to reconcile.
    *
    * @param stage the single furthest stage this line has reached — the coarse roll-up the admin
    *     screen shows; the Kg fields are what the client portal renders.
