@@ -7,14 +7,17 @@ import com.erp.formsmanagement.clientportal.domain.repository.ClientOrderRequest
 import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentService;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkOrderItemEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -173,17 +176,21 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
         ? item.getQtyKg()
         : toKg(orderedPc, pcsWeight);
 
-    List<JobWorkEntity> jobWorks =
-        item.getJobWorks() == null ? List.of() : item.getJobWorks();
-    double sentKg = jobWorks.stream().mapToDouble(jw -> nullToZero(jw.getQtyKg())).sum();
+    // A chitthi can cover several order lines (see JobWorkOrderItemEntity), so this line's figures
+    // are its *share* of each one, not the whole. `shareOf` is 1.0 for an ordinary job work, so
+    // unmerged lines are unaffected.
+    List<JobWorkEntity> jobWorks = jobWorksTouching(item);
+    double sentKg =
+        jobWorks.stream().mapToDouble(jw -> nullToZero(jw.getQtyKg()) * shareOf(jw, item)).sum();
 
-    List<JobWorkReturnEntity> returns =
+    double returnedKg =
         jobWorks.stream()
-            .flatMap(jw -> jw.getJobWorkReturns() == null ? List.<JobWorkReturnEntity>of().stream()
-                                                          : jw.getJobWorkReturns().stream())
-            .toList();
-    double returnedKg = returns.stream().mapToDouble(r -> nullToZero(r.getReturnKg())).sum();
-    double ghatiKg = returns.stream().mapToDouble(r -> nullToZero(r.getGhati())).sum();
+            .mapToDouble(jw -> sumReturns(jw, JobWorkReturnEntity::getReturnKg) * shareOf(jw, item))
+            .sum();
+    double ghatiKg =
+        jobWorks.stream()
+            .mapToDouble(jw -> sumReturns(jw, JobWorkReturnEntity::getGhati) * shareOf(jw, item))
+            .sum();
 
     double dispatchedPc = dispatchedPc(item, orderedPc);
     Double dispatchedKg = toKg(dispatchedPc, pcsWeight);
@@ -241,6 +248,59 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
       return OrderItemStage.IN_PLATING;
     }
     return OrderItemStage.APPROVED;
+  }
+
+  /**
+   * Every chitthi this line appears on: the ones it owns outright, plus the merged ones it was
+   * folded into. Distinct by id, because a merged chitthi's primary line reaches it both ways.
+   */
+  private List<JobWorkEntity> jobWorksTouching(OrderItemEntity item) {
+    Map<Long, JobWorkEntity> byId = new LinkedHashMap<>();
+    if (item.getJobWorks() != null) {
+      item.getJobWorks().forEach(jw -> byId.put(jw.getId(), jw));
+    }
+    if (item.getJobWorkAllocations() != null) {
+      item.getJobWorkAllocations().stream()
+          .map(JobWorkOrderItemEntity::getJobWork)
+          .filter(Objects::nonNull)
+          .forEach(jw -> byId.putIfAbsent(jw.getId(), jw));
+    }
+    return List.copyOf(byId.values());
+  }
+
+  /**
+   * How much of {@code jobWork} belongs to {@code item}, as a fraction of the whole.
+   *
+   * <p>1.0 for an unmerged chitthi. For a merged one it is the line's allocated Kg over the
+   * chitthi's total, which is also how returns and ghati are apportioned — the plater weighs the
+   * batch as a whole and never tells us which line a given kilo came back from, so proportional is
+   * the only defensible split.
+   */
+  private double shareOf(JobWorkEntity jobWork, OrderItemEntity item) {
+    List<JobWorkOrderItemEntity> allocations = jobWork.getMergedOrderItems();
+    if (allocations == null || allocations.isEmpty()) {
+      // Not merged: it counts in full for its own line, and not at all for anyone else's.
+      return jobWork.getOrderItem() != null && jobWork.getOrderItem().getId().equals(item.getId())
+          ? 1d
+          : 0d;
+    }
+
+    double total = jobWork.getQtyKg() != null ? jobWork.getQtyKg() : 0d;
+    double mine =
+        allocations.stream()
+            .filter(a -> a.getOrderItem() != null && item.getId().equals(a.getOrderItem().getId()))
+            .mapToDouble(a -> nullToZero(a.getQtyKg()))
+            .sum();
+    if (total <= 0) return 0d;
+    return Math.min(1d, mine / total);
+  }
+
+  private double sumReturns(
+      JobWorkEntity jobWork, java.util.function.Function<JobWorkReturnEntity, Double> field) {
+    if (jobWork.getJobWorkReturns() == null) return 0d;
+    return jobWork.getJobWorkReturns().stream()
+        .mapToDouble(r -> nullToZero(field.apply(r)))
+        .sum();
   }
 
   private Double pcsWeight(OrderItemEntity item) {

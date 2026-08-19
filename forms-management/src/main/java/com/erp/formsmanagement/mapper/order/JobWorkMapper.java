@@ -21,6 +21,8 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "size", expression = "java(toSize(entity))")
   @Mapping(target = "createdAt", source = "createdAt")
   @Mapping(target = "jobWorkLabel", expression = "java(toJobWorkLabel(entity))")
+  @Mapping(target = "bajaarValue", source = "bajaarValue")
+  @Mapping(target = "mergedOrderItemIds", expression = "java(toMergedOrderItemIds(entity))")
   JobWork toDomain(JobWorkEntity entity);
 
   @Override
@@ -29,6 +31,9 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "size", ignore = true)
   @Mapping(target = "jobWorkReturns", ignore = true)
+  @Mapping(target = "bajaarType", ignore = true)
+  @Mapping(target = "bajaarValue", ignore = true)
+  @Mapping(target = "mergedOrderItems", ignore = true)
   JobWorkEntity toEntity(NewJobWork request);
 
   @Override
@@ -37,6 +42,9 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "size", ignore = true)
   @Mapping(target = "jobWorkReturns", ignore = true)
+  @Mapping(target = "bajaarType", ignore = true)
+  @Mapping(target = "bajaarValue", ignore = true)
+  @Mapping(target = "mergedOrderItems", ignore = true)
   void updateEntity(@MappingTarget JobWorkEntity entity, NewJobWork request);
 
   // ---------- Custom Mappers ----------
@@ -59,6 +67,17 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
 
   default JobWorkSize toSize(JobWorkEntity entity) {
     return SizeContextMapper.toJobWorkSize(entity.getSize());
+  }
+
+  /** The order lines a merged chitthi covers; empty for an ordinary one. */
+  default java.util.List<Long> toMergedOrderItemIds(JobWorkEntity entity) {
+    if (entity.getMergedOrderItems() == null || entity.getMergedOrderItems().isEmpty()) {
+      return java.util.List.of();
+    }
+    return entity.getMergedOrderItems().stream()
+        .map(a -> a.getOrderItem() != null ? a.getOrderItem().getId() : null)
+        .filter(java.util.Objects::nonNull)
+        .toList();
   }
 
   default String toJobWorkLabel(JobWorkEntity entity) {

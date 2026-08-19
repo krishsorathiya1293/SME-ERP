@@ -88,6 +88,18 @@ public class JobWorkEntity extends AuditInfo {
   @Enumerated(EnumType.STRING)
   private JobWorkType jobWorkType;
 
+  /**
+   * Which market rate this chitthi is priced against. Null until someone chooses one.
+   *
+   * <p>Only ROJNU stores an amount here — a FIXED job work reads the single house rate from app
+   * settings, so changing that setting moves every fixed chitthi at once, which is the point of it
+   * being "fixed". Writing the fixed amount onto the row would freeze a copy and defeat that.
+   */
+  @Enumerated(EnumType.STRING)
+  private BajaarType bajaarType;
+
+  private Double bajaarValue;
+
   private String chitthiNo;
   private LocalDate chitthiDate;
   private String orderTime;
@@ -108,6 +120,23 @@ public class JobWorkEntity extends AuditInfo {
       fetch = FetchType.LAZY)
   @OrderBy("createdAt ASC")
   private List<JobWorkReturnEntity> jobWorkReturns = new ArrayList<>();
+
+  /**
+   * How this chitthi's weight is split across the order lines it covers — empty for an ordinary
+   * job work, which is fully described by {@link #orderItem}. Populated only when several lines
+   * were merged into one batch, and always including the primary line so the split is complete.
+   */
+  @OneToMany(
+      mappedBy = "jobWork",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      fetch = FetchType.LAZY)
+  private List<JobWorkOrderItemEntity> mergedOrderItems = new ArrayList<>();
+
+  /** True when this chitthi covers more than the one line named by {@link #orderItem}. */
+  public boolean isMerged() {
+    return mergedOrderItems != null && mergedOrderItems.size() > 1;
+  }
 
   @Override
   public boolean equals(Object o) {

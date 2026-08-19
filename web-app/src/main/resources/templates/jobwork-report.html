@@ -29,11 +29,13 @@
         .rule { height: 1.2mm; background: #E8A736; margin-bottom: 3mm; }
 
         /* ---- one statement section ---- */
-        .section { margin-bottom: 4mm; }
-        /* Each statement section repeats the party name, so start every one on a fresh page
-           (the first keeps the document header company with it). */
-        .sections > .section { page-break-before: always; }
-        .sections > .section:first-child { page-break-before: auto; }
+        /* Sections flow one after another and only spill onto a new page when the current one is
+           genuinely full. What must not split is a section's *opening*: the party/month strip and
+           the column headings have to arrive with at least the first data rows, never stranded at
+           the foot of a page. `page-break-after: avoid` on the meta strip pushes the whole opening
+           forward together, and orphans/widows keep a lone row from being left behind. */
+        .section { margin-bottom: 6mm; }
+        .section + .section { margin-top: 2mm; }
 
         .sec-title {
             background: #241C17;
@@ -44,7 +46,13 @@
             padding: 2.2mm 3mm;
         }
 
-        table.meta { width: 100%; border-collapse: collapse; background: #FDF3E0; }
+        table.meta {
+            width: 100%;
+            border-collapse: collapse;
+            background: #FDF3E0;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
         table.meta td {
             padding: 1.5mm 2.5mm;
             font-size: 10.5px;
@@ -55,7 +63,16 @@
         .meta-v { font-weight: 700; color: #241C17; }
 
         /* ---- data table ---- */
-        table.data { width: 100%; border-collapse: collapse; }
+        table.data {
+            width: 100%;
+            border-collapse: collapse;
+            orphans: 3;
+            widows: 3;
+        }
+        /* Repeat the column headings on every page a long table runs onto. */
+        table.data thead { display: table-header-group; }
+        table.data tfoot { display: table-row-group; }
+        table.data tr { page-break-inside: avoid; break-inside: avoid; }
         table.data th {
             background: #E8A736;
             color: #241C17;

@@ -4,9 +4,11 @@ import com.erp.api.ordermanagement.JobWorkOrderManagementApi;
 import com.erp.api.ordermanagement.model.JobWork;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.api.ordermanagement.model.PaginatedResultJobWork;
+import com.erp.api.ordermanagement.model.UpdateJobWorkBajaar;
 import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.controller.AbstractCrudControllerV2;
+import com.erp.formsmanagement.domain.entity.order.JobWorkReturnState;
 import com.erp.formsmanagement.domain.entity.order.JobWorkType;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.formsmanagement.service.order.JobWorkStats;
@@ -45,6 +47,16 @@ public class JobWorkController
     return ResponseEntity.status(HttpStatus.CREATED).body(jobWorkService.createManual(newJobWork));
   }
 
+  /**
+   * Sets the bajaar (market rate) a job work is priced against. Keyed on the job work alone —
+   * manual chitthis have no order item, and the choice has nothing to do with one either.
+   */
+  @PutMapping("/api/v1/job-works/{id}/bajaar")
+  public ResponseEntity<JobWork> updateJobWorkBajaar(
+      @PathVariable Long id, @RequestBody UpdateJobWorkBajaar request) {
+    return ResponseEntity.ok(jobWorkService.updateBajaar(id, request));
+  }
+
   /** Update a Manual job work — not tied to any order item. */
   @PutMapping("/api/v1/job-works/manual/{id}")
   public ResponseEntity<JobWork> updateManualJobWork(
@@ -61,18 +73,16 @@ public class JobWorkController
   @GetMapping("/api/v1/job-works")
   public ResponseEntity<PaginatedResultJobWork> getAllJobWorksGlobal(
       @RequestParam(required = false) String jobWorkType,
+      @RequestParam(required = false) String returnState,
       @RequestParam(required = false) String search,
       @RequestParam(required = false) Integer page,
       @RequestParam(required = false) Integer size,
       @RequestParam(required = false) String sortByFields,
       @RequestParam(required = false) String direction) {
-    JobWorkType typeFilter = null;
-    if (jobWorkType != null && !jobWorkType.isBlank()) {
-      typeFilter = JobWorkType.valueOf(jobWorkType);
-    }
     return ResponseEntity.ok(
         jobWorkService.getAllGlobal(
-            typeFilter,
+            parseType(jobWorkType),
+            parseReturnState(returnState),
             GetAllQuery.of(
                 Optional.empty(),
                 Optional.ofNullable(search),
@@ -91,11 +101,20 @@ public class JobWorkController
   public ResponseEntity<JobWorkStats> getJobWorkStats(
       @RequestParam(required = false) String jobWorkType,
       @RequestParam(required = false) String search) {
-    JobWorkType typeFilter = null;
-    if (jobWorkType != null && !jobWorkType.isBlank()) {
-      typeFilter = JobWorkType.valueOf(jobWorkType);
-    }
-    return ResponseEntity.ok(jobWorkService.getGlobalStats(typeFilter, search));
+    return ResponseEntity.ok(jobWorkService.getGlobalStats(parseType(jobWorkType), search));
+  }
+
+  /** Blank/absent means "no narrowing"; an unknown value is a client bug, so it still throws. */
+  private static JobWorkType parseType(String jobWorkType) {
+    return jobWorkType == null || jobWorkType.isBlank()
+        ? null
+        : JobWorkType.valueOf(jobWorkType);
+  }
+
+  private static JobWorkReturnState parseReturnState(String returnState) {
+    return returnState == null || returnState.isBlank()
+        ? null
+        : JobWorkReturnState.valueOf(returnState);
   }
 
   @Override

@@ -963,6 +963,9 @@ components:
           type: string
         category:
           type: string
+        dozenWeight:
+          type: number
+          format: double
         pcsWeight:
           type: number
           format: double
@@ -1081,6 +1084,16 @@ components:
           type: number
           format: double
           description: 1-pc weight used for this job work (fetched from item, editable)
+        mergedOrderItemIds:
+          type: array
+          description: >-
+            Order lines this one chitthi covers. Send it when several lines for the same party,
+            item, size and finish go to the plater as a single batch — the chitthi's weight is then
+            split back across these lines in proportion to what each ordered. Omit (or send a
+            single id) for an ordinary job work.
+          items:
+            type: integer
+            format: int64
         pcsPerBox:
           type: number
           format: double
@@ -1197,6 +1210,38 @@ components:
         jobWorkLabel:
           type: string
           description: Party-wise number shown on the list and print, e.g. "AZ-1".
+        mergedOrderItemIds:
+          type: array
+          description: The order lines this chitthi covers; empty/absent unless it is a merged one.
+          items:
+            type: integer
+            format: int64
+        bajaarType:
+          $ref: '#/components/schemas/BajaarType'
+        bajaarValue:
+          type: number
+          format: double
+          description: >-
+            The market rate in effect for this job work. For ROJNU it is the per-chitthi amount
+            stored on the row; for FIXED it is the house rate resolved from app settings at read
+            time, so it is never stale. Null when no bajaar has been chosen or set.
+
+    BajaarType:
+      type: string
+      description: >-
+        FIXED takes the single house rate held in settings (same for every chitthi, changes
+        everywhere at once); ROJNU is negotiated per chitthi and carries its own amount.
+      enum: [ FIXED, ROJNU ]
+
+    UpdateJobWorkBajaar:
+      type: object
+      properties:
+        bajaarType:
+          $ref: '#/components/schemas/BajaarType'
+        bajaarValue:
+          type: number
+          format: double
+          description: Ignored for FIXED — that amount is owned by the setting, not the job work.
 
     JobWorkParty:
       type: object
@@ -1221,6 +1266,9 @@ components:
           type: string
         category:
           type: string
+        dozenWeight:
+          type: number
+          format: double
         pcsWeight:
           type: number
           format: double

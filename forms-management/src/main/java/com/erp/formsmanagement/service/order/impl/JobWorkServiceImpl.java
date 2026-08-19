@@ -3,6 +3,7 @@ package com.erp.formsmanagement.service.order.impl;
 import com.erp.api.ordermanagement.model.JobWork;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.api.ordermanagement.model.PaginatedResultJobWork;
+import com.erp.api.ordermanagement.model.UpdateJobWorkBajaar;
 import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.constant.Constant;
@@ -11,8 +12,11 @@ import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentServic
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
+import com.erp.formsmanagement.domain.entity.order.BajaarType;
 import com.erp.formsmanagement.domain.entity.order.ElementType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkOrderItemEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkReturnState;
 import com.erp.formsmanagement.domain.entity.order.JobWorkStatus;
 import com.erp.formsmanagement.domain.entity.order.JobWorkType;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
@@ -21,6 +25,7 @@ import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.mapper.order.JobWorkMapper;
+import com.erp.formsmanagement.service.master.AppSettingService;
 import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.formsmanagement.service.order.JobWorkStats;
@@ -31,6 +36,11 @@ import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -51,6 +61,7 @@ public class JobWorkServiceImpl
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
   private final TranslationService translationService;
   private final ClientOrderFulfillmentService clientOrderFulfillmentService;
+  private final AppSettingService appSettingService;
 
   public JobWorkServiceImpl(
       JobWorkRepository jobWorkRepository,
@@ -59,6 +70,7 @@ public class JobWorkServiceImpl
       ItemBlueprintDataRepository itemBlueprintDataRepository,
       TranslationService translationService,
       ClientOrderFulfillmentService clientOrderFulfillmentService,
+      AppSettingService appSettingService,
       JobWorkMapper jobWorkMapper) {
     super(jobWorkRepository, jobWorkMapper);
     this.jobWorkRepository = jobWorkRepository;
@@ -67,6 +79,23 @@ public class JobWorkServiceImpl
     this.itemBlueprintDataRepository = itemBlueprintDataRepository;
     this.translationService = translationService;
     this.clientOrderFulfillmentService = clientOrderFulfillmentService;
+    this.appSettingService = appSettingService;
+  }
+
+  /**
+   * Fills in the amount a FIXED job work is priced at.
+   *
+   * <p>The fixed rate is stored once, in settings, and never copied onto the row — so it is
+   * resolved on the way out. That is what makes "change it in Settings and every fixed chitthi
+   * follows" true rather than a promise. ROJNU rows already carry their own amount and pass
+   * through untouched.
+   */
+  private JobWork withResolvedBajaar(JobWork dto) {
+    if (dto != null
+        && dto.getBajaarType() == com.erp.api.ordermanagement.model.BajaarType.FIXED) {
+      dto.setBajaarValue(appSettingService.getDouble(AppSettingService.JOBWORK_FIXED_BAJAAR));
+    }
+    return dto;
   }
 
   /**
@@ -93,8 +122,9 @@ public class JobWorkServiceImpl
     if (entity.getStatus() == null) {
       entity.setStatus(JobWorkStatus.PENDING);
     }
-    // The order item has just gone out for plating — move the client's request to "In Plating".
-    clientOrderFulfillmentService.syncByOrderItem(entity.getOrderItem());
+    applyMergedOrderItems(entity, request);
+    // The order items have just gone out for plating — move their client requests to "In Plating".
+    syncCoveredOrderItems(entity);
   }
 
   /**
@@ -104,22 +134,138 @@ public class JobWorkServiceImpl
   @Override
   @Transactional
   public void deleteById(Long orderItemId, Long id) {
-    OrderItemEntity orderItem =
-        jobWorkRepository.findById(id).map(JobWorkEntity::getOrderItem).orElse(null);
-    if (orderItem != null) {
-      // The inverse side is already loaded in this persistence context and would still hold the
-      // row we are about to remove; drop it so the stage split is derived from the real state.
-      orderItem.getJobWorks().removeIf(jw -> id.equals(jw.getId()));
+    JobWorkEntity jobWork = jobWorkRepository.findById(id).orElse(null);
+
+    // Every line the chitthi covered goes back where it was, not just the primary one.
+    Map<Long, OrderItemEntity> covered = new LinkedHashMap<>();
+    if (jobWork != null) {
+      if (jobWork.getOrderItem() != null) {
+        covered.put(jobWork.getOrderItem().getId(), jobWork.getOrderItem());
+      }
+      if (jobWork.getMergedOrderItems() != null) {
+        jobWork.getMergedOrderItems().stream()
+            .map(JobWorkOrderItemEntity::getOrderItem)
+            .filter(Objects::nonNull)
+            .forEach(item -> covered.putIfAbsent(item.getId(), item));
+      }
     }
+    // The inverse sides are already loaded in this persistence context and would still hold the
+    // row we are about to remove; drop it so the stage split is derived from the real state.
+    covered
+        .values()
+        .forEach(
+            item -> {
+              item.getJobWorks().removeIf(jw -> id.equals(jw.getId()));
+              item.getJobWorkAllocations()
+                  .removeIf(a -> a.getJobWork() != null && id.equals(a.getJobWork().getId()));
+            });
+
     jobWorkRepository.deleteById(id);
     jobWorkRepository.flush();
-    clientOrderFulfillmentService.syncByOrderItem(orderItem);
+    covered.values().forEach(clientOrderFulfillmentService::syncByOrderItem);
   }
 
   @Override
   protected void afterUpdate(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
     linkRelations(entity, orderItemId, request);
     // jobWorkNo is never changed on update — keep the originally assigned number
+    applyMergedOrderItems(entity, request);
+    syncCoveredOrderItems(entity);
+  }
+
+  /**
+   * Records which order lines this one chitthi covers, and how its weight divides between them.
+   *
+   * <p>A merge exists because the shop physically sends one batch: 200 Kg for one order and 100 Kg
+   * for another, same party, item, size and finish, go to the plater together and come back
+   * together. The chitthi is therefore one job work of 300 Kg — but the client portal still reports
+   * per order line, so the 300 has to be attributable. It is split in proportion to what each line
+   * ordered, which is the only split the shop floor can actually justify: nobody weighs the two
+   * orders separately once they are in the same drum.
+   *
+   * <p>Passing one id (or none) leaves the job work exactly as it was before merging existed — no
+   * allocation rows, {@code orderItem} alone describes it.
+   */
+  private void applyMergedOrderItems(JobWorkEntity entity, NewJobWork request) {
+    List<Long> requested =
+        request.getMergedOrderItemIds() == null ? List.of() : request.getMergedOrderItemIds();
+
+    // Always include the primary line, and keep the caller's order without duplicates.
+    Map<Long, OrderItemEntity> covered = new LinkedHashMap<>();
+    if (entity.getOrderItem() != null) {
+      covered.put(entity.getOrderItem().getId(), entity.getOrderItem());
+    }
+    for (Long id : requested) {
+      if (id == null || covered.containsKey(id)) continue;
+      covered.put(
+          id,
+          orderItemRepository
+              .findById(id)
+              .orElseThrow(
+                  () ->
+                      new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id))));
+    }
+
+    entity.getMergedOrderItems().clear();
+    if (covered.size() < 2) {
+      // Not a merge. Leaving the table empty keeps ordinary job works on exactly the old path.
+      return;
+    }
+
+    List<OrderItemEntity> items = List.copyOf(covered.values());
+    double[] weights = items.stream().mapToDouble(this::orderedKg).toArray();
+    double totalWeight = 0d;
+    for (double w : weights) totalWeight += w;
+
+    double totalKg = entity.getQtyKg() != null ? entity.getQtyKg() : 0d;
+    double totalPc = entity.getQtyPc() != null ? entity.getQtyPc() : 0d;
+
+    List<JobWorkOrderItemEntity> allocations = new ArrayList<>();
+    double assignedKg = 0d;
+    double assignedPc = 0d;
+    for (int i = 0; i < items.size(); i++) {
+      // An order line with no usable quantity still gets a row (it is genuinely on this chitthi),
+      // it just gets an even share when nothing better is known.
+      double share =
+          totalWeight > 0 ? weights[i] / totalWeight : 1d / items.size();
+
+      JobWorkOrderItemEntity allocation = new JobWorkOrderItemEntity();
+      allocation.setJobWork(entity);
+      allocation.setOrderItem(items.get(i));
+      boolean last = i == items.size() - 1;
+      // The last line absorbs the rounding, so the parts always add back up to the whole.
+      allocation.setQtyKg(last ? round3(totalKg - assignedKg) : round3(totalKg * share));
+      allocation.setQtyPc(last ? round3(totalPc - assignedPc) : round3(totalPc * share));
+      assignedKg += allocation.getQtyKg();
+      assignedPc += allocation.getQtyPc();
+      allocations.add(allocation);
+    }
+    entity.getMergedOrderItems().addAll(allocations);
+  }
+
+  /** The Kg an order line stands for, falling back to pieces through the size's 1-pc weight. */
+  private double orderedKg(OrderItemEntity item) {
+    if (item.getQtyKg() != null && item.getQtyKg() > 0) return item.getQtyKg();
+    Double pcsWeight = item.getItemSize() != null ? item.getItemSize().getPcsWeight() : null;
+    if (item.getQtyPc() != null && pcsWeight != null && pcsWeight > 0) {
+      return item.getQtyPc() * pcsWeight;
+    }
+    return 0d;
+  }
+
+  /** Every order line this chitthi touches — the primary, plus the rest of a merge. */
+  private void syncCoveredOrderItems(JobWorkEntity entity) {
+    Map<Long, OrderItemEntity> covered = new LinkedHashMap<>();
+    if (entity.getOrderItem() != null) {
+      covered.put(entity.getOrderItem().getId(), entity.getOrderItem());
+    }
+    if (entity.getMergedOrderItems() != null) {
+      entity.getMergedOrderItems().stream()
+          .map(JobWorkOrderItemEntity::getOrderItem)
+          .filter(Objects::nonNull)
+          .forEach(item -> covered.putIfAbsent(item.getId(), item));
+    }
+    covered.values().forEach(clientOrderFulfillmentService::syncByOrderItem);
   }
 
   /**
@@ -269,18 +415,20 @@ public class JobWorkServiceImpl
                 query.page(), query.size(), query.direction(), query.sortBy()));
 
     return PageMapper.toResult(
-        results, mapper()::toDomain, PaginatedResultJobWork::new, PaginatedResultJobWork::setData);
+        results,
+        entity -> withResolvedBajaar(mapper().toDomain(entity)),
+        PaginatedResultJobWork::new,
+        PaginatedResultJobWork::setData);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public PaginatedResultJobWork getAllGlobal(JobWorkType type, GetAllQuery<Void> query) {
-    Specification<JobWorkEntity> spec = jobWorkRepository.filterBySearch(query.search());
-    if (type != null) {
-      Specification<JobWorkEntity> typeSpec =
-          (root, q, cb) -> cb.equal(root.get("jobWorkType"), type);
-      spec = spec == null ? typeSpec : spec.and(typeSpec);
-    }
+  public PaginatedResultJobWork getAllGlobal(
+      JobWorkType type, JobWorkReturnState returnState, GetAllQuery<Void> query) {
+    Specification<JobWorkEntity> spec =
+        Specification.where(jobWorkRepository.filterBySearch(query.search()))
+            .and(jobWorkRepository.filterByType(type))
+            .and(jobWorkRepository.filterByReturnState(returnState));
 
     Page<JobWorkEntity> results =
         jobWorkRepository.findAll(
@@ -289,7 +437,10 @@ public class JobWorkServiceImpl
                 query.page(), query.size(), query.direction(), query.sortBy()));
 
     return PageMapper.toResult(
-        results, mapper()::toDomain, PaginatedResultJobWork::new, PaginatedResultJobWork::setData);
+        results,
+        entity -> withResolvedBajaar(mapper().toDomain(entity)),
+        PaginatedResultJobWork::new,
+        PaginatedResultJobWork::setData);
   }
 
   @Override
@@ -300,12 +451,18 @@ public class JobWorkServiceImpl
             .and(jobWorkRepository.filterByType(type));
 
     long total = jobWorkRepository.count(base);
-    long completed =
-        jobWorkRepository.count(base.and(jobWorkRepository.filterByStatus(JobWorkStatus.COMPLETE)));
     long pending =
-        jobWorkRepository.count(base.and(jobWorkRepository.filterByStatus(JobWorkStatus.PENDING)));
+        jobWorkRepository.count(
+            base.and(jobWorkRepository.filterByReturnState(JobWorkReturnState.PENDING)));
+    long partiallyReturned =
+        jobWorkRepository.count(
+            base.and(
+                jobWorkRepository.filterByReturnState(JobWorkReturnState.PARTIALLY_RETURNED)));
+    long fullyReturned =
+        jobWorkRepository.count(
+            base.and(jobWorkRepository.filterByReturnState(JobWorkReturnState.FULLY_RETURNED)));
 
-    return new JobWorkStats(total, completed, pending);
+    return new JobWorkStats(total, pending, partiallyReturned, fullyReturned);
   }
 
   @Override
@@ -318,7 +475,7 @@ public class JobWorkServiceImpl
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     entity.setStatus(JobWorkStatus.valueOf(request.getStatus().name()));
     clientOrderFulfillmentService.syncByOrderItem(entity.getOrderItem());
-    return mapper().toDomain(entity);
+    return withResolvedBajaar(mapper().toDomain(entity));
   }
 
   @Override
@@ -330,7 +487,28 @@ public class JobWorkServiceImpl
             .orElseThrow(
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     entity.setJobWorkType(JobWorkType.valueOf(request.getJobWorkType().name()));
-    return mapper().toDomain(entity);
+    return withResolvedBajaar(mapper().toDomain(entity));
+  }
+
+  @Override
+  @Transactional
+  public JobWork updateBajaar(Long id, UpdateJobWorkBajaar request) {
+    JobWorkEntity entity =
+        jobWorkRepository
+            .findById(id)
+            .orElseThrow(
+                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
+
+    BajaarType type =
+        request.getBajaarType() == null
+            ? null
+            : BajaarType.valueOf(request.getBajaarType().name());
+    entity.setBajaarType(type);
+    // A FIXED job work owns no amount of its own; clearing it here means switching FIXED -> ROJNU
+    // starts from an empty box rather than inheriting whatever the house rate happened to be.
+    entity.setBajaarValue(type == BajaarType.ROJNU ? request.getBajaarValue() : null);
+
+    return withResolvedBajaar(mapper().toDomain(entity));
   }
 
   /**

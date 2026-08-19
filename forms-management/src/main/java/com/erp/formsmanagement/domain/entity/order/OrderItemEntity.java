@@ -72,6 +72,16 @@ public class OrderItemEntity extends AuditInfo {
   @OrderBy("createdAt ASC")
   private List<JobWorkEntity> jobWorks = new ArrayList<>();
 
+  /**
+   * This line's share of every *merged* chitthi it appears on.
+   *
+   * <p>{@link #jobWorks} only sees job works whose primary order item is this one, so a line
+   * merged into someone else's chitthi would otherwise look untouched. These rows carry both the
+   * link and how much of that chitthi's weight belongs here.
+   */
+  @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY)
+  private List<JobWorkOrderItemEntity> jobWorkAllocations = new ArrayList<>();
+
   private Boolean jobActionDone;
 
   @ToString.Exclude

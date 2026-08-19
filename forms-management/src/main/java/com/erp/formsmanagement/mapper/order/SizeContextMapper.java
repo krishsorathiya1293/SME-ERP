@@ -21,6 +21,7 @@ public final class SizeContextMapper {
     s.setId(size.getId());
     s.setSizeInInch(size.getSizeInInch());
     s.setSizeInMm(size.getSizeInMm());
+    s.setDozenWeight(size.getDozenWeight());
     s.setPcsWeight(size.getPcsWeight());
     applyItem(size, s::setItemName, s::setCategory);
     applyInventory(size, s::setPcsPerBox, s::setBoxPerCarton, s::setPcsPerCarton);
@@ -33,6 +34,7 @@ public final class SizeContextMapper {
     s.setId(size.getId());
     s.setSizeInInch(size.getSizeInInch());
     s.setSizeInMm(size.getSizeInMm());
+    s.setDozenWeight(size.getDozenWeight());
     s.setPcsWeight(size.getPcsWeight());
     applyItem(size, s::setItemName, s::setCategory);
     applyInventory(size, s::setPcsPerBox, s::setBoxPerCarton, s::setPcsPerCarton);
