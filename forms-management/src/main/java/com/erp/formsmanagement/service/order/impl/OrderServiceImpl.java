@@ -22,8 +22,14 @@ import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -94,6 +100,206 @@ public class OrderServiceImpl
   }
 
   @Override
+  @Transactional
+  public Order updateScrap(Long orderId, Double scrap) {
+    OrderEntity order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, orderId)));
+    order.setScrap(scrap);
+    return mapper().toDomain(order);
+  }
+
+  // ── Merging orders ────────────────────────────────────────────────────────
+
+  /**
+   * Lines are combined when the plater would treat them as the same goods: same size, same finish.
+   * Nothing looser — a different finish is a different batch, and merging it would put the wrong
+   * thing on the chitthi.
+   */
+  private static String lineKey(OrderItemEntity item) {
+    Long sizeId = item.getItemSize() == null ? null : item.getItemSize().getId();
+    String plating = item.getPlating() == null ? "" : item.getPlating().trim().toLowerCase();
+    return sizeId + "|" + plating;
+  }
+
+  /** True while nothing has left the building: no line at a plater, nothing dispatched. */
+  private boolean isCreated(OrderEntity order) {
+    if (order.getOrderItems() == null) {
+      return true;
+    }
+    return order.getOrderItems().stream()
+        .noneMatch(
+            item ->
+                (item.getJobWorks() != null && !item.getJobWorks().isEmpty())
+                    || (item.getJobWorkAllocations() != null
+                        && !item.getJobWorkAllocations().isEmpty())
+                    || (item.getTotalDispatchedPc() != null && item.getTotalDispatchedPc() > 0));
+  }
+
+  private static double nullToZero(Double value) {
+    return value == null ? 0d : value;
+  }
+
+  private static Double round3(Double value) {
+    return value == null ? null : Math.round(value * 1000d) / 1000d;
+  }
+
+  /** Sums one nullable field across the group, null only when no line in it carried a value. */
+  private static Double sumField(
+      List<OrderItemEntity> items, Function<OrderItemEntity, Double> field) {
+    if (items.stream().map(field).noneMatch(Objects::nonNull)) {
+      return null;
+    }
+    return round3(items.stream().map(field).mapToDouble(OrderServiceImpl::nullToZero).sum());
+  }
+
+  @Override
+  @Transactional
+  public Order mergeOrders(List<Long> orderIds, Double scrap) {
+    List<Long> ids =
+        orderIds == null
+            ? List.of()
+            : orderIds.stream().filter(Objects::nonNull).distinct().toList();
+    if (ids.size() < 2) {
+      throw new IllegalArgumentException("Merging needs at least two different orders");
+    }
+
+    List<OrderEntity> sources = new ArrayList<>();
+    for (Long id : ids) {
+      sources.add(
+          orderRepository
+              .findById(id)
+              .orElseThrow(
+                  () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id))));
+    }
+
+    // One party. Merging across parties would put two customers' goods on one chitthi.
+    Set<Long> parties =
+        sources.stream()
+            .map(order -> order.getParty() == null ? null : order.getParty().getId())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    if (parties.size() != 1 || parties.contains(null)) {
+      throw new IllegalArgumentException("Only orders of the same party can be merged");
+    }
+
+    for (OrderEntity source : sources) {
+      if (source.getMergedInto() != null) {
+        throw new IllegalArgumentException(
+            "Order " + source.getId() + " is already part of a merge");
+      }
+      if (!source.getMergedSources().isEmpty()) {
+        throw new IllegalArgumentException(
+            "Order " + source.getId() + " is itself a merged order; un-merge it first");
+      }
+      if (!isCreated(source)) {
+        throw new IllegalArgumentException(
+            "Order " + source.getId() + " has already gone to job work or been dispatched");
+      }
+    }
+
+    // Oldest first, so the merged order inherits the earliest P/O date and the sources read in the
+    // order the party placed them.
+    sources.sort(
+        Comparator.comparing(
+                OrderEntity::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(OrderEntity::getId));
+
+    OrderEntity merged = new OrderEntity();
+    merged.setParty(sources.get(0).getParty());
+    merged.setOrderDate(sources.get(0).getOrderDate());
+    merged.setScrap(scrap);
+    merged.setOrderItems(new ArrayList<>());
+    orderRepository.save(merged);
+
+    // Group every line of every source by what the plater sees. A group of one is a line that had
+    // no counterpart and simply rides across; a group of several is a genuine sum.
+    Map<String, List<OrderItemEntity>> groups = new LinkedHashMap<>();
+    for (OrderEntity source : sources) {
+      for (OrderItemEntity item : source.getOrderItems()) {
+        groups.computeIfAbsent(lineKey(item), key -> new ArrayList<>()).add(item);
+      }
+    }
+
+    for (List<OrderItemEntity> group : groups.values()) {
+      OrderItemEntity first = group.get(0);
+      OrderItemEntity line = new OrderItemEntity();
+      line.setOrder(merged);
+      line.setItemSize(first.getItemSize());
+      line.setPlating(first.getPlating());
+
+      line.setQtyPc(sumField(group, OrderItemEntity::getQtyPc));
+      line.setQtyKg(sumField(group, OrderItemEntity::getQtyKg));
+      line.setPendingPc(sumField(group, OrderItemEntity::getPendingPc));
+      line.setStickerQty(sumField(group, OrderItemEntity::getStickerQty));
+
+      // Packing figures are rates for this size and client, not quantities — the same on every
+      // line of the group, so they are carried over rather than added up.
+      line.setPcPerBox(first.getPcPerBox());
+      line.setBoxPerCartoon(first.getBoxPerCartoon());
+      line.setPcPerCartoon(first.getPcPerCartoon());
+      line.setPlatingType(first.getPlatingType());
+      line.setJobActionDone(Boolean.FALSE);
+
+      orderItemRepository.save(line);
+      merged.getOrderItems().add(line);
+
+      // The source lines keep their own quantities untouched; they just point at the line that now
+      // carries the combined one. Both sides are set: the response to this call is built from the
+      // same in-session graph, and an inverse side left empty would report a merge covering
+      // nothing.
+      group.forEach(
+          item -> {
+            item.setMergedIntoItem(line);
+            line.getMergedSourceItems().add(item);
+          });
+    }
+
+    sources.forEach(
+        source -> {
+          source.setMergedInto(merged);
+          merged.getMergedSources().add(source);
+        });
+    orderRepository.flush();
+
+    return mapper().toDomain(merged);
+  }
+
+  @Override
+  @Transactional
+  public void unmergeOrder(Long orderId) {
+    OrderEntity merged =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, orderId)));
+
+    if (merged.getMergedSources().isEmpty()) {
+      throw new IllegalArgumentException("Order " + orderId + " is not a merged order");
+    }
+    if (!isCreated(merged)) {
+      throw new IllegalArgumentException(
+          "Order " + orderId + " has already gone to job work or been dispatched");
+    }
+
+    // Nothing has to be rebuilt: the sources were never altered. Releasing them and dropping the
+    // merged order is the whole of it.
+    merged.getMergedSources().forEach(source -> source.setMergedInto(null));
+    merged
+        .getOrderItems()
+        .forEach(line -> line.getMergedSourceItems().forEach(item -> item.setMergedIntoItem(null)));
+    merged.getMergedSources().clear();
+
+    // deleteById would also delete the client requests behind the sources; the merged order has
+    // none of its own, so it is removed directly.
+    orderRepository.delete(merged);
+    orderRepository.flush();
+  }
+
+  @Override
   protected void afterCreate(OrderEntity entity, Long partyId, NewOrder request) {
     entity.setParty(
         partyRepository
@@ -119,7 +325,8 @@ public class OrderServiceImpl
                 () ->
                     new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, partyId)));
     Specification<OrderEntity> spec =
-        (root, q, cb) -> cb.equal(root.get("party").get("id"), partyId);
+        Specification.<OrderEntity>where((root, q, cb) -> cb.equal(root.get("party").get("id"), partyId))
+            .and(orderRepository.notMergedAway());
     Page<OrderEntity> page =
         orderRepository.findAll(
             spec,
@@ -148,7 +355,7 @@ public class OrderServiceImpl
     List<Long> partyIds = partyPage.getContent().stream().map(PartyEntity::getId).toList();
 
     Map<Long, List<Order>> ordersByParty =
-        orderRepository.findByParty_IdIn(partyIds).stream()
+        orderRepository.findByParty_IdInAndMergedIntoIsNull(partyIds).stream()
             .collect(
                 Collectors.groupingBy(
                     oe -> oe.getParty().getId(),

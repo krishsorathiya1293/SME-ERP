@@ -88,18 +88,6 @@ public class JobWorkEntity extends AuditInfo {
   @Enumerated(EnumType.STRING)
   private JobWorkType jobWorkType;
 
-  /**
-   * Which market rate this chitthi is priced against. Null until someone chooses one.
-   *
-   * <p>Only ROJNU stores an amount here — a FIXED job work reads the single house rate from app
-   * settings, so changing that setting moves every fixed chitthi at once, which is the point of it
-   * being "fixed". Writing the fixed amount onto the row would freeze a copy and defeat that.
-   */
-  @Enumerated(EnumType.STRING)
-  private BajaarType bajaarType;
-
-  private Double bajaarValue;
-
   private String chitthiNo;
   private LocalDate chitthiDate;
   private String orderTime;

@@ -82,6 +82,22 @@ public class OrderItemEntity extends AuditInfo {
   @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY)
   private List<JobWorkOrderItemEntity> jobWorkAllocations = new ArrayList<>();
 
+  /**
+   * The merged line now carrying this line's quantity, or null when this line is not merged away.
+   *
+   * <p>This line's own {@code qtyPc} / {@code qtyKg} are deliberately left alone — they are what
+   * the party ordered, and the share of the merged line that belongs here is worked out from them.
+   * Nothing is summed in place, so un-merging is a matter of dropping the merged order.
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "merged_into_item_id")
+  private OrderItemEntity mergedIntoItem;
+
+  /** The lines this one sums. More than one means the quantities were genuinely added together. */
+  @OneToMany(mappedBy = "mergedIntoItem", fetch = FetchType.LAZY)
+  @OrderBy("id ASC")
+  private List<OrderItemEntity> mergedSourceItems = new ArrayList<>();
+
   private Boolean jobActionDone;
 
   @ToString.Exclude

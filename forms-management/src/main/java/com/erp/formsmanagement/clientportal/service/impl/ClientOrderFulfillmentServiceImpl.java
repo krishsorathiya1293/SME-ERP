@@ -176,23 +176,40 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
         ? item.getQtyKg()
         : toKg(orderedPc, pcsWeight);
 
-    // A chitthi can cover several order lines (see JobWorkOrderItemEntity), so this line's figures
-    // are its *share* of each one, not the whole. `shareOf` is 1.0 for an ordinary job work, so
-    // unmerged lines are unaffected.
-    List<JobWorkEntity> jobWorks = jobWorksTouching(item);
+    // When this line has been merged into another order, the work happens on the merged line and
+    // nothing at all is recorded here. What is reported is this line's share of that work --
+    // ordered against ordered -- so a client who ordered 100 Kg of a merged 300 sees a third of it
+    // and never the whole. `mergedShare` is 1.0 and `worked` is the line itself when unmerged.
+    OrderItemEntity worked = item.getMergedIntoItem() != null ? item.getMergedIntoItem() : item;
+    double mergedShare = mergedShareOf(item, worked);
+
+    // A chitthi can cover several order lines (see JobWorkOrderItemEntity), so the worked line's
+    // figures are its *share* of each one, not the whole. `shareOf` is 1.0 for an ordinary job
+    // work, so unmerged lines are unaffected.
+    List<JobWorkEntity> jobWorks = jobWorksTouching(worked);
     double sentKg =
-        jobWorks.stream().mapToDouble(jw -> nullToZero(jw.getQtyKg()) * shareOf(jw, item)).sum();
+        jobWorks.stream()
+                .mapToDouble(jw -> nullToZero(jw.getQtyKg()) * shareOf(jw, worked))
+                .sum()
+            * mergedShare;
 
     double returnedKg =
         jobWorks.stream()
-            .mapToDouble(jw -> sumReturns(jw, JobWorkReturnEntity::getReturnKg) * shareOf(jw, item))
-            .sum();
+                .mapToDouble(
+                    jw -> sumReturns(jw, JobWorkReturnEntity::getReturnKg) * shareOf(jw, worked))
+                .sum()
+            * mergedShare;
     double ghatiKg =
         jobWorks.stream()
-            .mapToDouble(jw -> sumReturns(jw, JobWorkReturnEntity::getGhati) * shareOf(jw, item))
-            .sum();
+                .mapToDouble(
+                    jw -> sumReturns(jw, JobWorkReturnEntity::getGhati) * shareOf(jw, worked))
+                .sum()
+            * mergedShare;
 
-    double dispatchedPc = dispatchedPc(item, orderedPc);
+    double dispatchedPc =
+        worked == item
+            ? dispatchedPc(item, orderedPc)
+            : clampToZero(dispatchedPc(worked, nullToZero(worked.getQtyPc())) * mergedShare);
     Double dispatchedKg = toKg(dispatchedPc, pcsWeight);
 
     // What's still with the plater is pure Kg arithmetic, so it always works. The other three need
@@ -248,6 +265,37 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
       return OrderItemStage.IN_PLATING;
     }
     return OrderItemStage.APPROVED;
+  }
+
+  /**
+   * How much of a merged line belongs to one of the lines folded into it.
+   *
+   * <p>Ordered against ordered: a 100 Kg line inside a merged 300 owns a third of whatever the
+   * merged line has done. Kg is preferred and pieces are the fallback, since an order placed only
+   * in pieces still has to divide. Returns 1.0 when the line is not merged at all, and falls back
+   * to an even split when neither basis is available -- an unknown share is better shared out than
+   * silently dropped.
+   */
+  private double mergedShareOf(OrderItemEntity item, OrderItemEntity merged) {
+    if (merged == item) {
+      return 1d;
+    }
+
+    double mineKg = nullToZero(item.getQtyKg());
+    double totalKg = nullToZero(merged.getQtyKg());
+    if (mineKg > 0 && totalKg > 0) {
+      return Math.min(1d, mineKg / totalKg);
+    }
+
+    double minePc = nullToZero(item.getQtyPc());
+    double totalPc = nullToZero(merged.getQtyPc());
+    if (minePc > 0 && totalPc > 0) {
+      return Math.min(1d, minePc / totalPc);
+    }
+
+    List<OrderItemEntity> siblings = merged.getMergedSourceItems();
+    int count = siblings == null || siblings.isEmpty() ? 1 : siblings.size();
+    return 1d / count;
   }
 
   /**

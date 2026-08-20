@@ -189,7 +189,13 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
 
     if (newStatus == ClientOrderRequestStatus.APPROVED
         && oldStatus != ClientOrderRequestStatus.APPROVED) {
-      createOrderFromRequest(saved);
+      createOrderFromRequest(saved, request.getScrap());
+    } else if (newStatus == ClientOrderRequestStatus.APPROVED
+        && request.getScrap() != null
+        && saved.getOrder() != null) {
+      // Re-approving an order that already exists: the scrap is the one thing the admin can still
+      // be settling, so it is written through. Omitting it leaves what was agreed the first time.
+      orderService.updateScrap(saved.getOrder().getId(), request.getScrap());
     }
 
     // Approving a request that already has an order behind it (a re-approval) must land on the
@@ -206,8 +212,12 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
    * can be tracked/processed (job work, dispatch, etc.) like any other order. Only items that
    * reference a known catalog item size can be carried over, since orders require a valid
    * item size reference.
+   *
+   * <p>Approval is also the moment the scrap is settled — it is the only point at which the admin
+   * sees the client's request as a whole — so whatever was agreed goes onto the order being
+   * created. Null simply means it has not been agreed yet.
    */
-  private void createOrderFromRequest(ClientOrderRequestEntity entity) {
+  private void createOrderFromRequest(ClientOrderRequestEntity entity, Double scrap) {
     List<ClientOrderRequestItemEntity> items = entity.getItems();
     if (items == null || items.isEmpty()) {
       return;
@@ -262,6 +272,7 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
     NewOrder newOrder =
         new NewOrder()
             .orderDate(entity.getOrderDate() != null ? entity.getOrderDate() : LocalDate.now())
+            .scrap(scrap)
             .items(orderItems);
 
     var result = orderService.save(entity.getParty().getId(), newOrder);
@@ -281,22 +292,24 @@ public class AdminClientPortalServiceImpl implements AdminClientPortalService {
                 .findByPartyId(entity.getParty().getId())
                 .map(UserEntity::getUsername)
                 .orElse(null);
-    return clientOrderRequestMapper.toDomain(entity, username, fulfillmentOf(entity));
+    Optional<OrderEntity> order = orderOf(entity);
+    return clientOrderRequestMapper.toDomain(
+        entity,
+        username,
+        order.map(clientOrderFulfillmentService::describeByLine).orElseGet(Map::of),
+        order.map(OrderEntity::getScrap).orElse(null));
   }
 
   /**
-   * Per-line progress from the order this request became. Looked up by id rather than through the
-   * lazy association so a request whose order has since been deleted degrades to "no progress"
-   * instead of blowing up on a dangling proxy.
+   * The order this request became, if it still exists. Looked up by id rather than through the
+   * lazy association so a request whose order has since been deleted degrades to "nothing known"
+   * instead of blowing up on a dangling proxy. Both the per-line progress and the scrap are read
+   * off it, so it is fetched once.
    */
-  private Map<String, ItemFulfillment> fulfillmentOf(ClientOrderRequestEntity entity) {
-    if (entity.getOrder() == null) {
-      return Map.of();
-    }
-    return orderRepository
-        .findById(entity.getOrder().getId())
-        .map(clientOrderFulfillmentService::describeByLine)
-        .orElseGet(Map::of);
+  private Optional<OrderEntity> orderOf(ClientOrderRequestEntity entity) {
+    return entity.getOrder() == null
+        ? Optional.empty()
+        : orderRepository.findById(entity.getOrder().getId());
   }
 
   private ClientAccount toClientAccount(PartyEntity party) {

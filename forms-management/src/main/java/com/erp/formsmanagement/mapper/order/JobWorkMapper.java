@@ -21,7 +21,6 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "size", expression = "java(toSize(entity))")
   @Mapping(target = "createdAt", source = "createdAt")
   @Mapping(target = "jobWorkLabel", expression = "java(toJobWorkLabel(entity))")
-  @Mapping(target = "bajaarValue", source = "bajaarValue")
   @Mapping(target = "mergedOrderItemIds", expression = "java(toMergedOrderItemIds(entity))")
   JobWork toDomain(JobWorkEntity entity);
 
@@ -31,8 +30,6 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "size", ignore = true)
   @Mapping(target = "jobWorkReturns", ignore = true)
-  @Mapping(target = "bajaarType", ignore = true)
-  @Mapping(target = "bajaarValue", ignore = true)
   @Mapping(target = "mergedOrderItems", ignore = true)
   JobWorkEntity toEntity(NewJobWork request);
 
@@ -42,8 +39,6 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "size", ignore = true)
   @Mapping(target = "jobWorkReturns", ignore = true)
-  @Mapping(target = "bajaarType", ignore = true)
-  @Mapping(target = "bajaarValue", ignore = true)
   @Mapping(target = "mergedOrderItems", ignore = true)
   void updateEntity(@MappingTarget JobWorkEntity entity, NewJobWork request);
 

@@ -118,7 +118,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
       Optional<String> sortDirection) {
     Long partyId = currentClientProvider.getActivePartyId();
     Pageable pageable = PaginationUtils.getPageRequest(page, size, sortDirection, sortBy);
-    Page<OrderEntity> orders = orderRepository.findByParty_Id(partyId, pageable);
+    Page<OrderEntity> orders = orderRepository.findByParty_IdAndMergedSourcesIsEmpty(partyId, pageable);
 
     var data = orders.getContent().stream().map(this::toClientOrder).toList();
 
@@ -188,25 +188,28 @@ public class ClientPortalServiceImpl implements ClientPortalService {
 
     return PageMapper.toResult(
         requests,
-        entity ->
-            clientOrderRequestMapper.toDomain(entity, user.getUsername(), fulfillmentOf(entity)),
+        entity -> {
+          Optional<OrderEntity> order = orderOf(entity);
+          return clientOrderRequestMapper.toDomain(
+              entity,
+              user.getUsername(),
+              order.map(clientOrderFulfillmentService::describeByLine).orElseGet(Map::of),
+              order.map(OrderEntity::getScrap).orElse(null));
+        },
         PaginatedResultOrderRequest::new,
         PaginatedResultOrderRequest::setData);
   }
 
   /**
-   * Per-line progress from the order this request became. Looked up by id rather than through the
-   * lazy association so a request whose order has since been deleted degrades to "no progress"
-   * instead of blowing up on a dangling proxy.
+   * The order this request became, if it still exists. Looked up by id rather than through the
+   * lazy association so a request whose order has since been deleted degrades to "nothing known"
+   * instead of blowing up on a dangling proxy. Both the per-line progress and the scrap are read
+   * off it, so it is fetched once.
    */
-  private Map<String, ItemFulfillment> fulfillmentOf(ClientOrderRequestEntity entity) {
-    if (entity.getOrder() == null) {
-      return Map.of();
-    }
-    return orderRepository
-        .findById(entity.getOrder().getId())
-        .map(clientOrderFulfillmentService::describeByLine)
-        .orElseGet(Map::of);
+  private Optional<OrderEntity> orderOf(ClientOrderRequestEntity entity) {
+    return entity.getOrder() == null
+        ? Optional.empty()
+        : orderRepository.findById(entity.getOrder().getId());
   }
 
   private ClientOrderRequestItemEntity toItemEntity(

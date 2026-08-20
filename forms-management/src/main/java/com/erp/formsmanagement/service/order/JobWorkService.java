@@ -3,7 +3,6 @@ package com.erp.formsmanagement.service.order;
 import com.erp.api.ordermanagement.model.JobWork;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.api.ordermanagement.model.PaginatedResultJobWork;
-import com.erp.api.ordermanagement.model.UpdateJobWorkBajaar;
 import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkReturnState;
@@ -19,13 +18,6 @@ public interface JobWorkService
   JobWork updateStatus(Long orderItemId, Long id, UpdateJobWorkStatus request);
 
   JobWork updateType(Long orderItemId, Long id, UpdateJobWorkType request);
-
-  /**
-   * Sets which market rate a job work is priced against. Only ROJNU carries an amount — for FIXED
-   * the amount belongs to the {@code jobwork.fixed.bajaar} setting, so anything sent with it is
-   * discarded rather than frozen onto the row.
-   */
-  JobWork updateBajaar(Long id, UpdateJobWorkBajaar request);
 
   /** Create a job work that is NOT tied to any order item (Manual mode). */
   JobWork createManual(NewJobWork request);

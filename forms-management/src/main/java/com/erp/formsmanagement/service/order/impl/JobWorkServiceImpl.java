@@ -3,7 +3,6 @@ package com.erp.formsmanagement.service.order.impl;
 import com.erp.api.ordermanagement.model.JobWork;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.api.ordermanagement.model.PaginatedResultJobWork;
-import com.erp.api.ordermanagement.model.UpdateJobWorkBajaar;
 import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.constant.Constant;
@@ -12,7 +11,6 @@ import com.erp.formsmanagement.clientportal.service.ClientOrderFulfillmentServic
 import com.erp.formsmanagement.domain.entity.inventory.InventoryEntity;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
-import com.erp.formsmanagement.domain.entity.order.BajaarType;
 import com.erp.formsmanagement.domain.entity.order.ElementType;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkOrderItemEntity;
@@ -25,7 +23,6 @@ import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.mapper.order.JobWorkMapper;
-import com.erp.formsmanagement.service.master.AppSettingService;
 import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.formsmanagement.service.order.JobWorkStats;
@@ -44,6 +41,9 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +61,6 @@ public class JobWorkServiceImpl
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
   private final TranslationService translationService;
   private final ClientOrderFulfillmentService clientOrderFulfillmentService;
-  private final AppSettingService appSettingService;
 
   public JobWorkServiceImpl(
       JobWorkRepository jobWorkRepository,
@@ -70,7 +69,6 @@ public class JobWorkServiceImpl
       ItemBlueprintDataRepository itemBlueprintDataRepository,
       TranslationService translationService,
       ClientOrderFulfillmentService clientOrderFulfillmentService,
-      AppSettingService appSettingService,
       JobWorkMapper jobWorkMapper) {
     super(jobWorkRepository, jobWorkMapper);
     this.jobWorkRepository = jobWorkRepository;
@@ -79,23 +77,6 @@ public class JobWorkServiceImpl
     this.itemBlueprintDataRepository = itemBlueprintDataRepository;
     this.translationService = translationService;
     this.clientOrderFulfillmentService = clientOrderFulfillmentService;
-    this.appSettingService = appSettingService;
-  }
-
-  /**
-   * Fills in the amount a FIXED job work is priced at.
-   *
-   * <p>The fixed rate is stored once, in settings, and never copied onto the row — so it is
-   * resolved on the way out. That is what makes "change it in Settings and every fixed chitthi
-   * follows" true rather than a promise. ROJNU rows already carry their own amount and pass
-   * through untouched.
-   */
-  private JobWork withResolvedBajaar(JobWork dto) {
-    if (dto != null
-        && dto.getBajaarType() == com.erp.api.ordermanagement.model.BajaarType.FIXED) {
-      dto.setBajaarValue(appSettingService.getDouble(AppSettingService.JOBWORK_FIXED_BAJAAR));
-    }
-    return dto;
   }
 
   /**
@@ -416,7 +397,7 @@ public class JobWorkServiceImpl
 
     return PageMapper.toResult(
         results,
-        entity -> withResolvedBajaar(mapper().toDomain(entity)),
+        mapper()::toDomain,
         PaginatedResultJobWork::new,
         PaginatedResultJobWork::setData);
   }
@@ -430,17 +411,32 @@ public class JobWorkServiceImpl
             .and(jobWorkRepository.filterByType(type))
             .and(jobWorkRepository.filterByReturnState(returnState));
 
-    Page<JobWorkEntity> results =
-        jobWorkRepository.findAll(
-            spec,
-            PaginationUtils.getPageRequest(
-                query.page(), query.size(), query.direction(), query.sortBy()));
+    Page<JobWorkEntity> results = jobWorkRepository.findAll(spec, globalPageRequest(query));
 
     return PageMapper.toResult(
         results,
-        entity -> withResolvedBajaar(mapper().toDomain(entity)),
+        mapper()::toDomain,
         PaginatedResultJobWork::new,
         PaginatedResultJobWork::setData);
+  }
+
+  /**
+   * The chitthi list reads by item.
+   *
+   * <p>A supervisor working the list is holding one item at a time — every chitthi for it, whatever
+   * day it was raised — so the item is what the page is ordered by, and newest-first only breaks
+   * ties within an item. Case is ignored so \Grip\ and \grip\ do not sort into two runs of the
+   * same item. An explicit {@code sortBy} from the caller still wins.
+   */
+  private Pageable globalPageRequest(GetAllQuery<Void> query) {
+    if (query.sortBy().isPresent()) {
+      return PaginationUtils.getPageRequest(
+          query.page(), query.size(), query.direction(), query.sortBy());
+    }
+    return PageRequest.of(
+        query.page().orElse(0),
+        query.size().orElse(10),
+        Sort.by(Sort.Order.asc("size.item.itemName").ignoreCase(), Sort.Order.desc("createdAt")));
   }
 
   @Override
@@ -475,7 +471,7 @@ public class JobWorkServiceImpl
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     entity.setStatus(JobWorkStatus.valueOf(request.getStatus().name()));
     clientOrderFulfillmentService.syncByOrderItem(entity.getOrderItem());
-    return withResolvedBajaar(mapper().toDomain(entity));
+    return mapper().toDomain(entity);
   }
 
   @Override
@@ -487,28 +483,7 @@ public class JobWorkServiceImpl
             .orElseThrow(
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     entity.setJobWorkType(JobWorkType.valueOf(request.getJobWorkType().name()));
-    return withResolvedBajaar(mapper().toDomain(entity));
-  }
-
-  @Override
-  @Transactional
-  public JobWork updateBajaar(Long id, UpdateJobWorkBajaar request) {
-    JobWorkEntity entity =
-        jobWorkRepository
-            .findById(id)
-            .orElseThrow(
-                () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
-
-    BajaarType type =
-        request.getBajaarType() == null
-            ? null
-            : BajaarType.valueOf(request.getBajaarType().name());
-    entity.setBajaarType(type);
-    // A FIXED job work owns no amount of its own; clearing it here means switching FIXED -> ROJNU
-    // starts from an empty box rather than inheriting whatever the house rate happened to be.
-    entity.setBajaarValue(type == BajaarType.ROJNU ? request.getBajaarValue() : null);
-
-    return withResolvedBajaar(mapper().toDomain(entity));
+    return mapper().toDomain(entity);
   }
 
   /**

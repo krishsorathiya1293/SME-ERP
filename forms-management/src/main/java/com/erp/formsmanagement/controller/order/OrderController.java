@@ -1,10 +1,12 @@
 package com.erp.formsmanagement.controller.order;
 
 import com.erp.api.ordermanagement.OrderOrderManagementApi;
+import com.erp.api.ordermanagement.model.MergeOrdersRequest;
 import com.erp.api.ordermanagement.model.NewOrder;
 import com.erp.api.ordermanagement.model.Order;
 import com.erp.api.ordermanagement.model.PaginatedPartyOrdersResponse;
 import com.erp.api.ordermanagement.model.PaginatedResultOrder;
+import com.erp.api.ordermanagement.model.UpdateOrderScrap;
 import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.controller.GetAllDelegateV1;
 import com.erp.formsmanagement.mapper.order.OrderMapper;
@@ -18,6 +20,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -51,6 +56,33 @@ public class OrderController
   }
 
   /**
+   * Sets the scrap agreed for an order. Keyed on the order alone — the scrap belongs to the order,
+   * and the callers that set it (the orders sheet, and approving a client's request) reach it by
+   * id without a party in hand.
+   */
+  @PutMapping("/api/v1/orders/{orderId}/scrap")
+  public ResponseEntity<Order> updateOrderScrap(
+      @PathVariable Long orderId, @RequestBody UpdateOrderScrap request) {
+    return ResponseEntity.ok(orderService.updateScrap(orderId, request.getScrap()));
+  }
+
+  /**
+   * Folds several of a party's orders into one merged order. See {@link OrderService#mergeOrders}
+   * for why a new order is created rather than one of them being grown into.
+   */
+  @PostMapping("/api/v1/orders/merge")
+  public ResponseEntity<Order> mergeOrders(@RequestBody MergeOrdersRequest request) {
+    return ResponseEntity.ok(orderService.mergeOrders(request.getOrderIds(), request.getScrap()));
+  }
+
+  /** Puts a merged order back into the orders it was made from. */
+  @PostMapping("/api/v1/orders/{orderId}/unmerge")
+  public ResponseEntity<Void> unmergeOrder(@PathVariable Long orderId) {
+    orderService.unmergeOrder(orderId);
+    return ResponseEntity.noContent().build();
+  }
+
+  /**
    * Global orders listing — flat list across every party. Backs the operations
    * dashboard's Orders KPIs and charts.
    */
@@ -60,7 +92,7 @@ public class OrderController
       @RequestParam(required = false) Integer size) {
     int p = page != null ? page : 0;
     int sz = size != null ? size : 500;
-    var pageResult = orderRepository.findAll(PageRequest.of(p, sz));
+    var pageResult = orderRepository.findAll(orderRepository.notMergedAway(), PageRequest.of(p, sz));
     return ResponseEntity.ok(
         pageResult.getContent().stream().map(orderMapper::toDomain).toList());
   }

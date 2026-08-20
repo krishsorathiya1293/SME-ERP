@@ -16,18 +16,21 @@ import org.springframework.stereotype.Component;
 public class ClientOrderRequestMapper {
 
   public OrderRequest toDomain(ClientOrderRequestEntity entity, String username) {
-    return toDomain(entity, username, Map.of());
+    return toDomain(entity, username, Map.of(), null);
   }
 
   /**
    * @param fulfillmentByLine per-line progress from the order this request became, keyed by {@link
    *     ClientOrderFulfillmentService#lineKey}. Empty for a request that hasn't been approved into
    *     an order yet.
+   * @param scrap the scrap on that order. Read from the order rather than copied onto the request,
+   *     so the approvals screen and the orders sheet can never drift apart on it.
    */
   public OrderRequest toDomain(
       ClientOrderRequestEntity entity,
       String username,
-      Map<String, ItemFulfillment> fulfillmentByLine) {
+      Map<String, ItemFulfillment> fulfillmentByLine,
+      Double scrap) {
     return new OrderRequest()
         .id(entity.getId())
         .partyId(entity.getParty() == null ? null : entity.getParty().getId())
@@ -37,6 +40,7 @@ public class ClientOrderRequestMapper {
             entity.getStatus() == null ? null : OrderRequestStatus.valueOf(entity.getStatus().name()))
         .orderDate(entity.getOrderDate())
         .orderId(entity.getOrder() == null ? null : entity.getOrder().getId())
+        .scrap(scrap)
         .items(toItems(entity.getItems(), fulfillmentByLine))
         .createdAt(
             entity.getCreatedAt() == null ? null : entity.getCreatedAt().atOffset(ZoneOffset.UTC));

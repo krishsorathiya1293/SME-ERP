@@ -4,7 +4,6 @@ import com.erp.api.ordermanagement.JobWorkOrderManagementApi;
 import com.erp.api.ordermanagement.model.JobWork;
 import com.erp.api.ordermanagement.model.NewJobWork;
 import com.erp.api.ordermanagement.model.PaginatedResultJobWork;
-import com.erp.api.ordermanagement.model.UpdateJobWorkBajaar;
 import com.erp.api.ordermanagement.model.UpdateJobWorkStatus;
 import com.erp.api.ordermanagement.model.UpdateJobWorkType;
 import com.erp.controller.AbstractCrudControllerV2;
@@ -45,16 +44,6 @@ public class JobWorkController
   @PostMapping("/api/v1/job-works/manual")
   public ResponseEntity<JobWork> createManualJobWork(@RequestBody NewJobWork newJobWork) {
     return ResponseEntity.status(HttpStatus.CREATED).body(jobWorkService.createManual(newJobWork));
-  }
-
-  /**
-   * Sets the bajaar (market rate) a job work is priced against. Keyed on the job work alone —
-   * manual chitthis have no order item, and the choice has nothing to do with one either.
-   */
-  @PutMapping("/api/v1/job-works/{id}/bajaar")
-  public ResponseEntity<JobWork> updateJobWorkBajaar(
-      @PathVariable Long id, @RequestBody UpdateJobWorkBajaar request) {
-    return ResponseEntity.ok(jobWorkService.updateBajaar(id, request));
   }
 
   /** Update a Manual job work — not tied to any order item. */
