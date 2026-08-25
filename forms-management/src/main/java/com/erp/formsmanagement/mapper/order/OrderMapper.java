@@ -23,6 +23,7 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
 
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "party", ignore = true)
+  @Mapping(target = "completed", ignore = true)
   @Mapping(target = "mergedInto", ignore = true)
   @Mapping(target = "mergedSources", ignore = true)
   @Mapping(target = "orderItems", source = "items")
@@ -32,10 +33,11 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
    * The scrap is deliberately not updated here. Editing an order means resending every line, and
    * the sheet that does so has no reason to know the agreed scrap — leaving it mapped meant any
    * ordinary edit silently cleared it. It is set once on create and changed through its own
-   * endpoint after that.
+   * endpoint after that. The completed tick is left out for exactly the same reason.
    */
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "scrap", ignore = true)
+  @Mapping(target = "completed", ignore = true)
   @Mapping(target = "mergedInto", ignore = true)
   @Mapping(target = "mergedSources", ignore = true)
   @Mapping(target = "orderItems", source = "items")

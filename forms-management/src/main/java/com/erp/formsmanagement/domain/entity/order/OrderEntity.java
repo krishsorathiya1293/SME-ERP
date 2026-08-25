@@ -3,6 +3,7 @@ package com.erp.formsmanagement.domain.entity.order;
 import com.erp.audit.AuditInfo;
 import com.erp.formsmanagement.domain.entity.master.PartyEntity;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -48,6 +49,18 @@ public class OrderEntity extends AuditInfo {
    * before the number is, and a 0 would read as "agreed at nothing".
    */
   private Double scrap;
+
+  /**
+   * Ticked by hand when the works is finished with this order, which takes it off the sheet.
+   *
+   * <p>Deliberately separate from the derived {@code OrderStatus}: an order is routinely done in
+   * the works' eyes while the figures still read as open — a line dispatched short by agreement, a
+   * balance written off — and none of that is a movement anybody records, so nothing could derive
+   * it. Equally, a supervisor tidying their screen must never be able to rewrite what the works
+   * actually did, which is what the client portal reads. So this hides a row and says nothing else.
+   */
+  @Column(nullable = false)
+  private boolean completed = false;
 
   @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<OrderItemEntity> orderItems;

@@ -2,6 +2,7 @@ package com.erp.formsmanagement.service.inventory.impl;
 
 import com.erp.api.itemmanagement.model.NewSize;
 import com.erp.api.itemmanagement.model.Size;
+import com.erp.api.itemmanagement.model.UpdateSizeHighlight;
 import com.erp.constant.Constant;
 import com.erp.exception.EntityNotFoundException;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
@@ -61,6 +62,26 @@ public class ItemBlueprintDataServiceImpl
             () ->
                 new EntityNotFoundException(
                     "Size not found with id: " + sizeId + " for item: " + itemId));
+  }
+
+  @Override
+  @Transactional
+  public Size updateHighlight(Long sizeId, UpdateSizeHighlight request) {
+    ItemBlueprintDataEntity entity =
+        itemBlueprintDataRepository
+            .findById(sizeId)
+            .orElseThrow(() -> new EntityNotFoundException("Size not found with id: " + sizeId));
+
+    String color = request.getHighlightColor() == null ? null : request.getHighlightColor().getValue();
+    entity.setHighlightColor(color);
+    // No colour means no highlight, so the note goes with it rather than lingering invisibly on a
+    // row that no longer looks marked.
+    entity.setHighlightNote(color == null ? null : blankToNull(request.getHighlightNote()));
+    return mapper().toDomain(entity);
+  }
+
+  private static String blankToNull(String value) {
+    return value == null || value.isBlank() ? null : value.trim();
   }
 
   /** Override to add parent-ownership check before deleting. */

@@ -609,6 +609,27 @@ components:
         pcsWeight:
           type: number
           format: double
+        highlightColor:
+          $ref: '#/components/schemas/HighlightColor'
+        highlightNote:
+          type: string
+          description: Why the row is marked. Shown on hover and in the highlight popover.
+
+    HighlightColor:
+      type: string
+      description: >-
+        The stock master row highlight, marked up the way a spreadsheet is. A name rather than a
+        hex value so the palette stays the console's and a row keeps reading correctly if the
+        theme moves. Null means an unmarked row.
+      enum: [ amber, green, rose, blue ]
+
+    UpdateSizeHighlight:
+      type: object
+      properties:
+        highlightColor:
+          $ref: '#/components/schemas/HighlightColor'
+        highlightNote:
+          type: string
 
     # -------- Inventory request uses names (no ids) --------
     NewInventory:

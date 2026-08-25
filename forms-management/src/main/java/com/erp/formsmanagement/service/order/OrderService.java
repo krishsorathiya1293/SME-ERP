@@ -31,6 +31,15 @@ public interface OrderService
   Order updateScrap(Long orderId, Double scrap);
 
   /**
+   * Ticks (or un-ticks) an order as manually completed, which takes it off the orders sheet.
+   *
+   * <p>Its own call rather than part of the order update for the same reason as the scrap: it is
+   * set long after the order is on the books, by someone tidying a screen who has no business
+   * resending every line to do it.
+   */
+  Order updateCompleted(Long orderId, boolean completed);
+
+  /**
    * Folds several orders of one party into a single merged order.
    *
    * <p>Two orders for the same item, size and finish are one job on the floor — 100 Kg and 200 Kg

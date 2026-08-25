@@ -112,6 +112,19 @@ public class OrderServiceImpl
     return mapper().toDomain(order);
   }
 
+  @Override
+  @Transactional
+  public Order updateCompleted(Long orderId, boolean completed) {
+    OrderEntity order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, orderId)));
+    order.setCompleted(completed);
+    return mapper().toDomain(order);
+  }
+
   // ── Merging orders ────────────────────────────────────────────────────────
 
   /**

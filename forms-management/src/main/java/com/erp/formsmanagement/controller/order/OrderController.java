@@ -6,6 +6,7 @@ import com.erp.api.ordermanagement.model.NewOrder;
 import com.erp.api.ordermanagement.model.Order;
 import com.erp.api.ordermanagement.model.PaginatedPartyOrdersResponse;
 import com.erp.api.ordermanagement.model.PaginatedResultOrder;
+import com.erp.api.ordermanagement.model.UpdateOrderCompleted;
 import com.erp.api.ordermanagement.model.UpdateOrderScrap;
 import com.erp.controller.AbstractCrudControllerV2;
 import com.erp.controller.GetAllDelegateV1;
@@ -64,6 +65,17 @@ public class OrderController
   public ResponseEntity<Order> updateOrderScrap(
       @PathVariable Long orderId, @RequestBody UpdateOrderScrap request) {
     return ResponseEntity.ok(orderService.updateScrap(orderId, request.getScrap()));
+  }
+
+  /**
+   * Ticks an order as manually completed, which takes it off the orders sheet. Keyed on the order
+   * alone, like the scrap — the sheet has the order id and nothing else in hand.
+   */
+  @PutMapping("/api/v1/orders/{orderId}/completed")
+  public ResponseEntity<Order> updateOrderCompleted(
+      @PathVariable Long orderId, @RequestBody UpdateOrderCompleted request) {
+    return ResponseEntity.ok(
+        orderService.updateCompleted(orderId, Boolean.TRUE.equals(request.getCompleted())));
   }
 
   /**

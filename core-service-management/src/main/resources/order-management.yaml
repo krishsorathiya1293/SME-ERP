@@ -820,6 +820,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrderItem'
+        completed:
+          type: boolean
+          description: >-
+            Ticked by hand when the works is finished with the order, which takes it off the orders
+            sheet. Separate from status on purpose: an order is routinely done in the works' eyes
+            while the figures still read as open, and nothing could derive that. It hides a row and
+            says nothing else.
         createdAt:
           type: string
           format: date
@@ -877,6 +884,14 @@ components:
       properties:
         scrap:
           $ref: '#/components/schemas/OrderScrap'
+
+    UpdateOrderCompleted:
+      type: object
+      required:
+        - completed
+      properties:
+        completed:
+          type: boolean
 
     PartyOrdersResponse:
       type: object
