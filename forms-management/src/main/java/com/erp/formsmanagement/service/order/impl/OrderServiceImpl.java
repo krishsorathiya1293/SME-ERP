@@ -122,6 +122,41 @@ public class OrderServiceImpl
                 () ->
                     new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, orderId)));
     order.setCompleted(completed);
+    // The order's tick means "every line of it", so it carries down. Otherwise an order ticked
+    // whole would still show its lines as outstanding on a sheet that now reads the line.
+    List<OrderItemEntity> lines = order.getOrderItems();
+    if (lines != null) {
+      lines.forEach(line -> line.setCompleted(completed));
+    }
+    return mapper().toDomain(order);
+  }
+
+  /**
+   * Ticks one line. Keyed on the line's own id, like the job-work status endpoint above it: the
+   * caller has the row in front of it and no business resending the order to change one boolean.
+   *
+   * <p>The parent order follows the lines rather than leading them -- it reads as completed once
+   * every line is, and reopens the moment one is un-ticked -- so the two can never disagree.
+   */
+  @Override
+  @Transactional
+  public Order updateItemCompleted(Long orderItemId, boolean completed) {
+    OrderItemEntity item =
+        orderItemRepository
+            .findById(orderItemId)
+            .orElseThrow(
+                () ->
+                    new EntityNotFoundException(
+                        String.format(Constant.ENTITY_NOT_FOUND, orderItemId)));
+    item.setCompleted(completed);
+
+    OrderEntity order = item.getOrder();
+    if (order == null) {
+      throw new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, orderItemId));
+    }
+    List<OrderItemEntity> lines = order.getOrderItems();
+    order.setCompleted(
+        lines != null && !lines.isEmpty() && lines.stream().allMatch(OrderItemEntity::isCompleted));
     return mapper().toDomain(order);
   }
 

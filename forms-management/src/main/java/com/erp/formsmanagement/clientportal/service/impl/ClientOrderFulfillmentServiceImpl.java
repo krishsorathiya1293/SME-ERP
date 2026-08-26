@@ -217,10 +217,20 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
     // weight); without one they are genuinely unknown, and null says so rather than showing a 0
     // that reads as "nothing left".
     double inPlatingKg = clampToZero(sentKg - returnedKg - ghatiKg);
-    Double readyToDispatchKg =
-        dispatchedKg == null
-            ? (dispatchedPc > 0 ? null : clampToZero(returnedKg))
-            : clampToZero(returnedKg - dispatchedKg);
+    // Written long-hand rather than as a conditional expression on purpose. Mixing a Double
+    // branch with a primitive double branch makes the WHOLE expression a double, so Java unboxes
+    // the Double one -- and unboxing null threw NullPointerException on any line whose size has no
+    // 1-pc weight the moment anything was dispatched against it. An if/else has no such promotion.
+    Double readyToDispatchKg;
+    if (dispatchedKg != null) {
+      readyToDispatchKg = clampToZero(returnedKg - dispatchedKg);
+    } else if (dispatchedPc > 0) {
+      // No Kg basis and something has gone out: what is left is genuinely unknown, and null says
+      // so rather than showing a 0 that reads as "nothing left".
+      readyToDispatchKg = null;
+    } else {
+      readyToDispatchKg = clampToZero(returnedKg);
+    }
 
     // Dispatch does not require plating — stock can go straight out. Anything dispatched beyond
     // what came back from the plater was therefore shipped without ever being sent, so it has to

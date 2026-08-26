@@ -22,12 +22,17 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
   @Mapping(target = "itemSize", ignore = true)
   @Mapping(target = "mergedIntoItem", ignore = true)
   @Mapping(target = "mergedSourceItems", ignore = true)
+  @Mapping(target = "completed", ignore = true)
   OrderItemEntity toEntity(NewOrderItem newOrderItem);
 
+  // Ignored on update for the same reason scrap and the order's own tick are: editing an order
+  // resends every line, and leaving this mapped means an ordinary edit silently un-ticks a line
+  // somebody had already finished with.
   @Mapping(target = "order", ignore = true)
   @Mapping(target = "itemSize", ignore = true)
   @Mapping(target = "mergedIntoItem", ignore = true)
   @Mapping(target = "mergedSourceItems", ignore = true)
+  @Mapping(target = "completed", ignore = true)
   void updateEntity(@MappingTarget OrderItemEntity entity, NewOrderItem newOrderItem);
 
   @Mapping(target = "itemSize", expression = "java(toItemSize(entity))")

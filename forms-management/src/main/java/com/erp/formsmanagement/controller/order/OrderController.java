@@ -79,6 +79,19 @@ public class OrderController
   }
 
   /**
+   * Ticks a single LINE as manually completed. Keyed on the line's own id, like the job-work
+   * status endpoint: five items on one order finish at five different times, so the tick has to
+   * work at the level the sheet does. Reuses {@link UpdateOrderCompleted} -- it is one boolean and
+   * a second identical schema would say nothing new.
+   */
+  @PutMapping("/api/v1/order-items/{orderItemId}/completed")
+  public ResponseEntity<Order> updateOrderItemCompleted(
+      @PathVariable Long orderItemId, @RequestBody UpdateOrderCompleted request) {
+    return ResponseEntity.ok(
+        orderService.updateItemCompleted(orderItemId, Boolean.TRUE.equals(request.getCompleted())));
+  }
+
+  /**
    * Folds several of a party's orders into one merged order. See {@link OrderService#mergeOrders}
    * for why a new order is created rather than one of them being grown into.
    */

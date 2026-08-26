@@ -1019,6 +1019,12 @@ components:
           format: double
         jobActionDone:
           type: boolean
+        completed:
+          type: boolean
+          description: >-
+            The manual "done with it" tick, held on the line. One order routinely carries several
+            items that finish at different times, so this is what the sheet filters on; the
+            order's own flag means every line of it.
         platingType:
           $ref: '#/components/schemas/JobPlatingType'
         jobWorkNo:

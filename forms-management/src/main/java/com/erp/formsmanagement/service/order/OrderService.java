@@ -40,6 +40,14 @@ public interface OrderService
   Order updateCompleted(Long orderId, boolean completed);
 
   /**
+   * Ticks or un-ticks a single line, which is the level the sheet actually works at: five items on
+   * one order finish at five different times.
+   *
+   * @return the parent order as it now reads, lines included
+   */
+  Order updateItemCompleted(Long orderItemId, boolean completed);
+
+  /**
    * Folds several orders of one party into a single merged order.
    *
    * <p>Two orders for the same item, size and finish are one job on the floor — 100 Kg and 200 Kg

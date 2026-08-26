@@ -2,6 +2,7 @@ package com.erp.formsmanagement.domain.entity.order;
 
 import com.erp.audit.AuditInfo;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -99,6 +100,21 @@ public class OrderItemEntity extends AuditInfo {
   private List<OrderItemEntity> mergedSourceItems = new ArrayList<>();
 
   private Boolean jobActionDone;
+
+  /**
+   * The manual "done with it" tick, held on the LINE rather than the order.
+   *
+   * <p>One order routinely carries five items that finish at five different times, so a tick that
+   * could only say "all of it" or "none of it" was useless: ticking the two that were settled took
+   * the other three off the sheet with them. The parent order keeps its own flag, meaning every
+   * line of it, so nothing that already reads the order-level tick breaks.
+   *
+   * <p>Deliberately separate from the derived stage, for the same reason the order's is: a
+   * supervisor tidying their screen must never be able to rewrite what the works actually did,
+   * which is what the client portal reads. This hides a row and says nothing else.
+   */
+  @Column(nullable = false)
+  private boolean completed = false;
 
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
