@@ -52,15 +52,8 @@ public class OrderDispatchServiceImpl
     double alreadyDispatched = orderDispatchRepository.sumDispatchPcsByOrderItemId(itemId);
     double orderQty = orderItem.getQtyPc() != null ? orderItem.getQtyPc() : 0;
 
-    if (alreadyDispatched + newPcs > orderQty) {
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST,
-          String.format("Cannot dispatch %.0f pc — only %.0f pc remaining (order: %.0f, already dispatched: %.0f)",
-              newPcs, orderQty - alreadyDispatched, orderQty, alreadyDispatched));
-    }
-
     entity.setOrderItem(orderItem);
-    orderItem.setPendingPc(orderQty - (alreadyDispatched + newPcs));
+    orderItem.setPendingPc(pendingAfter(orderQty, alreadyDispatched + newPcs));
     orderItemRepository.save(orderItem);
     clientOrderFulfillmentService.syncByOrderItem(orderItem);
   }
@@ -75,15 +68,8 @@ public class OrderDispatchServiceImpl
         - (entity.getDispatchPcs() != null ? entity.getDispatchPcs() : 0);
     double orderQty = orderItem.getQtyPc() != null ? orderItem.getQtyPc() : 0;
 
-    if (alreadyDispatched + updatedPcs > orderQty) {
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST,
-          String.format("Cannot dispatch %.0f pc — only %.0f pc remaining (order: %.0f, already dispatched: %.0f)",
-              updatedPcs, orderQty - alreadyDispatched, orderQty, alreadyDispatched));
-    }
-
     entity.setOrderItem(orderItem);
-    orderItem.setPendingPc(orderQty - (alreadyDispatched + updatedPcs));
+    orderItem.setPendingPc(pendingAfter(orderQty, alreadyDispatched + updatedPcs));
     orderItemRepository.save(orderItem);
     clientOrderFulfillmentService.syncByOrderItem(orderItem);
   }
@@ -99,9 +85,25 @@ public class OrderDispatchServiceImpl
 
     double remaining = orderDispatchRepository.sumDispatchPcsByOrderItemId(orderItem.getId());
     double orderQty = orderItem.getQtyPc() != null ? orderItem.getQtyPc() : 0;
-    orderItem.setPendingPc(orderQty - remaining);
+    orderItem.setPendingPc(pendingAfter(orderQty, remaining));
     orderItemRepository.save(orderItem);
     clientOrderFulfillmentService.syncByOrderItem(orderItem);
+  }
+
+  /**
+   * What is still owed on the line after {@code dispatched} pieces have gone.
+   *
+   * <p>There is deliberately no ceiling on what may be dispatched. The works routinely send more
+   * than the order says — an over-run gets given rather than scrapped — and the old cap turned
+   * that ordinary event into a 400 the office could not get past. Recording what actually left the
+   * building beats recording what was supposed to.
+   *
+   * <p>Pending is floored at zero because it answers "how much do we still owe", and nobody owes a
+   * negative quantity. The surplus is not lost: {@code totalDispatchedPc} keeps the true figure,
+   * so the two together still say "ordered 100, sent 120".
+   */
+  private static double pendingAfter(double orderQty, double dispatched) {
+    return Math.max(0d, orderQty - dispatched);
   }
 
   @Override

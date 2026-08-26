@@ -1039,6 +1039,15 @@ components:
           items:
             type: integer
             format: int64
+        jobWorkSentPc:
+          type: number
+          format: double
+          description: >-
+            Pieces of this line already sent out on a chitthi, across every batch. A line goes to
+            the plater in instalments, so this is what separates "100 of 200 gone" from "all 200
+            gone" — the jobActionDone flag beside it only ever said whether anything had left.
+            On a chitthi covering several lines it is this line's own allocated share, never the
+            batch total.
 
     OrderItemSize:
       type: object

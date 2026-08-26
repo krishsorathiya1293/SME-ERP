@@ -4,6 +4,8 @@ import com.erp.api.ordermanagement.model.NewOrderItem;
 import com.erp.api.ordermanagement.model.OrderItem;
 import com.erp.api.ordermanagement.model.OrderItemSize;
 import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
+import com.erp.formsmanagement.domain.entity.order.JobWorkOrderItemEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.mapper.EntityMapper;
 import java.util.List;
@@ -30,6 +32,7 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
 
   @Mapping(target = "itemSize", expression = "java(toItemSize(entity))")
   @Mapping(target = "mergedFromItemIds", expression = "java(toMergedFromItemIds(entity))")
+  @Mapping(target = "jobWorkSentPc", expression = "java(toJobWorkSentPc(entity))")
   OrderItem toDomain(OrderItemEntity entity);
 
   List<OrderItem> toDomainList(List<OrderItemEntity> entities);
@@ -51,6 +54,43 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
       return List.of();
     }
     return sources.stream().map(OrderItemEntity::getId).toList();
+  }
+
+  /**
+   * Pieces of this line already out on a chitthi, summed across every batch.
+   *
+   * <p>The order sheet had only {@code jobActionDone} — a yes/no that says something left, and
+   * nothing about how much. A 200 pc line with 100 sent looks identical to one sent in full, so
+   * the other 100 quietly never go. This is the figure that tells them apart.
+   *
+   * <p>A chitthi covering several lines is counted by this line's own allocation rather than the
+   * batch total; a plain one is counted whole. The primary line of a merged chitthi reaches it
+   * both ways, so the allocation wins and it is never counted twice.
+   */
+  default Double toJobWorkSentPc(OrderItemEntity entity) {
+    double sent = 0d;
+
+    List<JobWorkEntity> own = entity.getJobWorks();
+    if (own != null) {
+      for (JobWorkEntity jobWork : own) {
+        List<JobWorkOrderItemEntity> allocations = jobWork.getMergedOrderItems();
+        boolean split = allocations != null && !allocations.isEmpty();
+        if (!split && jobWork.getQtyPc() != null) {
+          sent += jobWork.getQtyPc();
+        }
+      }
+    }
+
+    List<JobWorkOrderItemEntity> shares = entity.getJobWorkAllocations();
+    if (shares != null) {
+      for (JobWorkOrderItemEntity share : shares) {
+        if (share.getQtyPc() != null) {
+          sent += share.getQtyPc();
+        }
+      }
+    }
+
+    return sent;
   }
 
   @AfterMapping

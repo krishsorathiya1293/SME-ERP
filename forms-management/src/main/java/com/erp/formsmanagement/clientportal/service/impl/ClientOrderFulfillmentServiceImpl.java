@@ -252,10 +252,16 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
   /**
    * The single coarse stage for the admin badge. Quantity-wise a line is usually in several at
    * once; this reports the furthest thing that has happened to it.
+   *
+   * <p>DISPATCHED lands on the first piece out rather than the last, matching {@code
+   * OrderMapper.toStatus} — one threshold, so the badge here and the status on the order sheet can
+   * never disagree about the same line. This is a label only: the stage QUANTITIES beside it are
+   * untouched and still split the line honestly across approved / in plating / ready / dispatched,
+   * so a part-shipped line reports the real numbers even while it reads as dispatched.
    */
   private OrderItemStage stageOf(
       double orderedPc, double dispatchedPc, double sentKg, double returnedKg) {
-    if (orderedPc > 0 && dispatchedPc >= orderedPc - EPSILON) {
+    if (dispatchedPc > EPSILON) {
       return OrderItemStage.DISPATCHED;
     }
     if (returnedKg > EPSILON) {

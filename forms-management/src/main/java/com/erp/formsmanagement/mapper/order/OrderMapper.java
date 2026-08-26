@@ -64,7 +64,13 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
    * reasoning as the job-work return state, which is likewise computed rather than kept.
    *
    * <p>CREATED means nothing has left the building: no line sent to a plater, nothing dispatched.
-   * DISPATCHED means every line has gone in full. Anything in between is IN_JOB_WORK.
+   * DISPATCHED means every line has started going out. Anything in between is IN_JOB_WORK.
+   *
+   * <p>A line counts as dispatched on its FIRST piece, not its last. The works asked for this: a
+   * line is finished in their eyes once the goods are on the lorry, and the tail — a short
+   * delivery settled by agreement, a balance written off — is often never recorded as a movement,
+   * so waiting for the full count left lines open forever. The quantities are untouched and still
+   * say exactly how much went, so nothing is hidden by the flag moving earlier.
    */
   default OrderStatus toStatus(OrderEntity entity) {
     List<OrderItemEntity> items = entity.getOrderItems();
@@ -84,7 +90,7 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
       if (sent || dispatched > 0) {
         anyMovement = true;
       }
-      if (ordered <= 0 || dispatched < ordered) {
+      if (dispatched <= 0) {
         allDispatched = false;
       }
     }
