@@ -16,6 +16,9 @@ import com.erp.exportmanagement.DocumentRenderService;
 import com.erp.service.DocumentFormat;
 import com.erp.exception.EntityNotFoundException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +39,47 @@ public class ReportExportService {
   private final SalesOrderRepository salesOrderRepository;
   private final DocumentRenderService documentRenderService;
 
+  /**
+   * Statements list chitthis in Ch. No. order, not date order: several go out on one day, and the
+   * date alone leaves them in whatever order the database returns (VF-2 above VF-1). The number
+   * restarts every month -- the month the chitthi was created, which a backdated chitthi date need
+   * not match -- so it sorts by that month first, then the number. Rows with no number fall back
+   * to their date, after the numbered ones of their month.
+   */
+  private static final Comparator<JobWorkEntity> JOB_WORK_CH_NO_ORDER =
+      Comparator.comparing((JobWorkEntity jw) -> monthOf(jw.getCreatedAt(), jw.getJobDate()))
+          .thenComparing(JobWorkEntity::getJobWorkNo, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(JobWorkEntity::getJobDate, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(JobWorkEntity::getId, Comparator.nullsLast(Comparator.naturalOrder()));
+
+  /** The same rule for gres, whose serial carries its own "YYYY-MM". */
+  private static final Comparator<GresFillingEntity> GRES_CH_NO_ORDER =
+      Comparator.comparing(
+              (GresFillingEntity g) ->
+                  g.getChNoYearMonth() != null
+                      ? g.getChNoYearMonth()
+                      : monthOf(g.getCreatedAt(), g.getChitthiDate()))
+          .thenComparing(GresFillingEntity::getChNoSerial, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(GresFillingEntity::getChitthiDate, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(GresFillingEntity::getId, Comparator.nullsLast(Comparator.naturalOrder()));
+
+  /** "YYYY-MM" of the creation time, or of the chitthi date when a row has none. */
+  private static String monthOf(LocalDateTime createdAt, LocalDate fallback) {
+    if (createdAt != null) {
+      return YearMonth.from(createdAt).toString();
+    }
+    return fallback != null ? YearMonth.from(fallback).toString() : "9999-12";
+  }
+
   @Transactional(readOnly = true)
   public byte[] generateGresFillingReportPdf(Long partyId, LocalDate startDate, LocalDate endDate) {
     PartyEntity party = getParty(partyId);
-    List<GresFillingEntity> records = gresFillingRepository.findByPartyIdAndChitthiDateBetweenOrderByChitthiDateAsc(partyId, startDate, endDate);
+    List<GresFillingEntity> records =
+        gresFillingRepository
+            .findByPartyIdAndChitthiDateBetweenOrderByChitthiDateAsc(partyId, startDate, endDate)
+            .stream()
+            .sorted(GRES_CH_NO_ORDER)
+            .toList();
 
     double totalNetWeight = 0;
     double totalGhati = 0;
@@ -74,7 +114,12 @@ public class ReportExportService {
   @Transactional(readOnly = true)
   public byte[] generateJobWorkReportPdf(Long partyId, LocalDate startDate, LocalDate endDate) {
     PartyEntity party = getParty(partyId);
-    List<JobWorkEntity> records = jobWorkRepository.findByPartyIdAndJobDateBetweenOrderByJobDateAsc(partyId, startDate, endDate);
+    List<JobWorkEntity> records =
+        jobWorkRepository
+            .findByPartyIdAndJobDateBetweenOrderByJobDateAsc(partyId, startDate, endDate)
+            .stream()
+            .sorted(JOB_WORK_CH_NO_ORDER)
+            .toList();
 
     List<JobWorkEntity> outsideRecords =
         records.stream().filter(jw -> jw.getJobWorkType() == JobWorkType.OUTSIDE).toList();
