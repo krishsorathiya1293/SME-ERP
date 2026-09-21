@@ -421,12 +421,13 @@ public class JobWorkServiceImpl
   }
 
   /**
-   * The chitthi list reads by item.
+   * The chitthi list reads newest-raised first.
    *
-   * <p>A supervisor working the list is holding one item at a time — every chitthi for it, whatever
-   * day it was raised — so the item is what the page is ordered by, and newest-first only breaks
-   * ties within an item. Case is ignored so \Grip\ and \grip\ do not sort into two runs of the
-   * same item. An explicit {@code sortBy} from the caller still wins.
+   * <p>What a supervisor wants on page 1 is what was just raised — the chitthi they are still
+   * holding, to record a return against it or to correct it. Grouping by item instead buried a
+   * fresh chitthi on whatever page its item happened to fall on, so the item is now something to
+   * search for, not something the page is ordered by. The id breaks ties within the same instant
+   * so a row never shifts between pages. An explicit {@code sortBy} from the caller still wins.
    */
   private Pageable globalPageRequest(GetAllQuery<Void> query) {
     if (query.sortBy().isPresent()) {
@@ -436,7 +437,7 @@ public class JobWorkServiceImpl
     return PageRequest.of(
         query.page().orElse(0),
         query.size().orElse(10),
-        Sort.by(Sort.Order.asc("size.item.itemName").ignoreCase(), Sort.Order.desc("createdAt")));
+        Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
   }
 
   @Override
