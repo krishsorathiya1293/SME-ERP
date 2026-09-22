@@ -27,7 +27,9 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
 
   // Ignored on update for the same reason scrap and the order's own tick are: editing an order
   // resends every line, and leaving this mapped means an ordinary edit silently un-ticks a line
-  // somebody had already finished with.
+  // somebody had already finished with. The id is ignored too: the line to update is chosen by it
+  // in the service, so it must never be overwritten from the payload.
+  @Mapping(target = "id", ignore = true)
   @Mapping(target = "order", ignore = true)
   @Mapping(target = "itemSize", ignore = true)
   @Mapping(target = "mergedIntoItem", ignore = true)

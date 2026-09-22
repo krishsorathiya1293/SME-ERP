@@ -1,6 +1,7 @@
 package com.erp.formsmanagement.service.order.impl;
 
 import com.erp.api.ordermanagement.model.NewOrder;
+import com.erp.api.ordermanagement.model.NewOrderItem;
 import com.erp.api.ordermanagement.model.Order;
 import com.erp.api.ordermanagement.model.OrderParty;
 import com.erp.api.ordermanagement.model.PaginatedPartyOrdersResponse;
@@ -15,6 +16,7 @@ import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
+import com.erp.formsmanagement.mapper.order.OrderItemMapper;
 import com.erp.formsmanagement.mapper.order.OrderMapper;
 import com.erp.formsmanagement.service.order.OrderService;
 import com.erp.service.AbstractSpecificationServiceV2;
@@ -47,18 +49,21 @@ public class OrderServiceImpl
   private final PartyRepository partyRepository;
   private final ClientOrderRequestRepository clientOrderRequestRepository;
   private final OrderItemRepository orderItemRepository;
+  private final OrderItemMapper orderItemMapper;
 
   public OrderServiceImpl(
       OrderRepository orderRepository,
       OrderMapper orderMapper,
       PartyRepository partyRepository,
       ClientOrderRequestRepository clientOrderRequestRepository,
-      OrderItemRepository orderItemRepository) {
+      OrderItemRepository orderItemRepository,
+      OrderItemMapper orderItemMapper) {
     super(orderRepository, orderMapper);
     this.orderRepository = orderRepository;
     this.partyRepository = partyRepository;
     this.clientOrderRequestRepository = clientOrderRequestRepository;
     this.orderItemRepository = orderItemRepository;
+    this.orderItemMapper = orderItemMapper;
   }
 
   /**
@@ -361,6 +366,59 @@ public class OrderServiceImpl
   @Override
   protected void afterUpdate(OrderEntity entity, Long partyId, NewOrder request) {
     afterCreate(entity, partyId, request);
+    reconcileItems(entity, request);
+  }
+
+  /**
+   * Applies an edit to an order's lines <em>by id</em>, in place, instead of rebuilding the whole
+   * collection.
+   *
+   * <p>The order sheet edits one line but resends every line on the order, so the naive mapping
+   * ({@code orderItems = items}) cleared the collection and inserted fresh rows for all of them.
+   * With {@code orphanRemoval=true} and a delete-cascade on {@code order_item}, that silently took
+   * each line's dispatches, job works and returns down with the old rows, and every new row came
+   * back with {@code completed=false} — so an order dispatched and ticked complete fell back to
+   * Active with its history gone the moment anything on it was edited.
+   *
+   * <p>Now a line carrying its {@code id} is matched to the existing row and only its editable
+   * fields are copied over; its children and its completed tick are never touched. A line with no
+   * id is a genuine addition. A line that exists on the order but is absent from the edit is a
+   * genuine removal — it is dropped, and orphan-removal + the FK cascade take its history with it
+   * (removal is intended here, unlike the wholesale wipe this replaced).
+   */
+  private void reconcileItems(OrderEntity order, NewOrder request) {
+    List<NewOrderItem> requested = request.getItems() == null ? List.of() : request.getItems();
+    if (order.getOrderItems() == null) {
+      order.setOrderItems(new ArrayList<>());
+    }
+    List<OrderItemEntity> existing = order.getOrderItems();
+
+    Map<Long, OrderItemEntity> byId =
+        existing.stream()
+            .filter(item -> item.getId() != null)
+            .collect(Collectors.toMap(OrderItemEntity::getId, Function.identity(), (a, b) -> a));
+
+    Set<Long> keptIds = new LinkedHashSet<>();
+    List<OrderItemEntity> toAdd = new ArrayList<>();
+
+    for (NewOrderItem req : requested) {
+      OrderItemEntity target = req.getId() == null ? null : byId.get(req.getId());
+      if (target != null) {
+        // Editable fields only — updateEntity ignores id / order / itemSize / completed and the
+        // merge links, so dispatches, job works, returns and the completed tick all survive.
+        orderItemMapper.updateEntity(target, req);
+        target.setOrder(order);
+        keptIds.add(target.getId());
+      } else {
+        OrderItemEntity created = orderItemMapper.toEntity(req);
+        created.setOrder(order);
+        toAdd.add(created);
+      }
+    }
+
+    // Mutate the managed collection in place — never swap the reference, or orphan-removal trips.
+    existing.removeIf(item -> item.getId() != null && !keptIds.contains(item.getId()));
+    existing.addAll(toAdd);
   }
 
   @Override

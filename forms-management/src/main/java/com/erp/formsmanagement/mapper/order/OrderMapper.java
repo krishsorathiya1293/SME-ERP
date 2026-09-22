@@ -34,13 +34,20 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
    * the sheet that does so has no reason to know the agreed scrap — leaving it mapped meant any
    * ordinary edit silently cleared it. It is set once on create and changed through its own
    * endpoint after that. The completed tick is left out for exactly the same reason.
+   *
+   * <p>{@code orderItems} is left out too, and reconciled by id in
+   * {@link com.erp.formsmanagement.service.order.impl.OrderServiceImpl#afterUpdate} instead. If it
+   * were mapped, MapStruct would clear the collection and rebuild it from scratch — and since the
+   * collection is {@code orphanRemoval=true} with a delete-cascade behind it, that quietly deleted
+   * every edited order's dispatches, job works and returns, and reset each line's completed tick.
+   * Reconciling by id keeps the rows the edit did not touch exactly as they were.
    */
   @Mapping(target = "party", ignore = true)
   @Mapping(target = "scrap", ignore = true)
   @Mapping(target = "completed", ignore = true)
   @Mapping(target = "mergedInto", ignore = true)
   @Mapping(target = "mergedSources", ignore = true)
-  @Mapping(target = "orderItems", source = "items")
+  @Mapping(target = "orderItems", ignore = true)
   void updateEntity(@MappingTarget OrderEntity entity, NewOrder newOrder);
 
   @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toLocalDate")

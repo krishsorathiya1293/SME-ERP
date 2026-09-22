@@ -955,6 +955,14 @@ components:
         - itemSizeId
       type: object
       properties:
+        id:
+          type: integer
+          format: int64
+          description: >-
+            The existing order line this entry updates, on an edit. Present ⇒ the line is matched
+            by id and updated in place, so its dispatches, job works and completed tick survive.
+            Absent ⇒ a brand-new line. On create it is always absent. A line that exists on the
+            order but is missing from an update's item list is removed (and its history with it).
         itemSizeId:
           type: integer
           format: int64
