@@ -40,26 +40,24 @@ public class ReportExportService {
   private final DocumentRenderService documentRenderService;
 
   /**
-   * Statements list chitthis newest-raised first, the same order as the job work page, so the row
-   * a supervisor just raised is at the top of both. Creation time -- not the job date -- is what
-   * orders them: several chitthis go out on one day, and a backdated job date would otherwise sink
-   * a chitthi raised today below one raised last week. Rows predating the created_at stamp fall
-   * back to their job date, and the id breaks the remaining ties so the order is stable between
-   * two prints of the same statement.
+   * Statements list chitthis in Ch. No. order, oldest first -- F-1, F-2, F-3 down the page, the way
+   * the party reads their own book and the way a statement totals up. Not newest-first like the job
+   * work page: that put a statement upside down (F-32 above F-31 ... above F-13), and a range
+   * running into the next month put that month's F-1..F-4 at the very top.
    *
-   * <p>Ch. No. still prints per row; it simply no longer drives the order. The number restarts
-   * every month, so within a month newest-created is also descending Ch. No.
+   * <p>Not date order either: several chitthis go out on one day, and the date alone leaves them
+   * in whatever order the database returns. The number restarts every month -- the month the
+   * chitthi was created (see JobWorkServiceImpl.assignJobWorkNo), which a backdated job date need
+   * not match -- so it sorts by that month first, then the number. Rows with no number fall back
+   * to their date, after the numbered ones of their month.
    */
-  private static final Comparator<JobWorkEntity> JOB_WORK_LATEST_FIRST =
-      Comparator.comparing(
-              (JobWorkEntity jw) -> raisedAt(jw.getCreatedAt(), jw.getJobDate()),
-              Comparator.reverseOrder())
-          .thenComparing(JobWorkEntity::getId, Comparator.nullsLast(Comparator.reverseOrder()));
+  private static final Comparator<JobWorkEntity> JOB_WORK_CH_NO_ORDER =
+      Comparator.comparing((JobWorkEntity jw) -> monthOf(jw.getCreatedAt(), jw.getJobDate()))
+          .thenComparing(JobWorkEntity::getJobWorkNo, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(JobWorkEntity::getJobDate, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(JobWorkEntity::getId, Comparator.nullsLast(Comparator.naturalOrder()));
 
-  /**
-   * Gres statements keep Ch. No. order: their serial is the number the client's own sheet is
-   * read in, and it carries its own "YYYY-MM" so the monthly restart sorts correctly.
-   */
+  /** The same rule for gres, whose serial carries its own "YYYY-MM". */
   private static final Comparator<GresFillingEntity> GRES_CH_NO_ORDER =
       Comparator.comparing(
               (GresFillingEntity g) ->
@@ -69,17 +67,6 @@ public class ReportExportService {
           .thenComparing(GresFillingEntity::getChNoSerial, Comparator.nullsLast(Comparator.naturalOrder()))
           .thenComparing(GresFillingEntity::getChitthiDate, Comparator.nullsLast(Comparator.naturalOrder()))
           .thenComparing(GresFillingEntity::getId, Comparator.nullsLast(Comparator.naturalOrder()));
-
-  /**
-   * When a row was raised: its creation stamp, or the start of its own date for rows written
-   * before created_at existed. Rows with neither sort last in a newest-first list.
-   */
-  private static LocalDateTime raisedAt(LocalDateTime createdAt, LocalDate fallback) {
-    if (createdAt != null) {
-      return createdAt;
-    }
-    return fallback != null ? fallback.atStartOfDay() : LocalDateTime.MIN;
-  }
 
   /** "YYYY-MM" of the creation time, or of the chitthi date when a row has none. */
   private static String monthOf(LocalDateTime createdAt, LocalDate fallback) {
@@ -136,7 +123,7 @@ public class ReportExportService {
         jobWorkRepository
             .findByPartyIdAndJobDateBetweenOrderByJobDateAsc(partyId, startDate, endDate)
             .stream()
-            .sorted(JOB_WORK_LATEST_FIRST)
+            .sorted(JOB_WORK_CH_NO_ORDER)
             .toList();
 
     List<JobWorkEntity> outsideRecords =
