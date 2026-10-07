@@ -375,6 +375,34 @@ paths:
           $ref: '#/components/responses/NotFoundError'
 
   # -------------------- JOB WORK (order-item-scoped) --------------------
+  /api/v1/job-works/next-number:
+    get:
+      operationId: getNextJobWorkNumber
+      tags:
+        - JobWork
+      summary: Preview the next job-work number for a party
+      description: Returns the current next number for the party. The number is not reserved and may change if another job work is saved first.
+      parameters:
+        - name: partyId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Previewed Chithi number
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /api/v1/order-items/{orderItemId}/job-works:
     get:
       operationId: getAllJobWorks
