@@ -1,5 +1,7 @@
 package com.erp.formsmanagement.util;
 
+import java.util.Arrays;
+
 /**
  * Builds the party-wise job work number shown on the app list and the printed chitthi, e.g.
  * {@code AZ-1} (Azzad) or {@code ZP-2} (Ziya Process). The party code is derived from the party
@@ -15,7 +17,10 @@ public final class JobWorkNumber {
     if (partyName == null) {
       return "XX";
     }
-    String[] words = partyName.trim().split("\\s+");
+    String[] words =
+        Arrays.stream(partyName.trim().split("\\s+"))
+            .filter(word -> !word.equals("-"))
+            .toArray(String[]::new);
     StringBuilder code = new StringBuilder();
     if (words.length >= 2) {
       for (String w : words) {
