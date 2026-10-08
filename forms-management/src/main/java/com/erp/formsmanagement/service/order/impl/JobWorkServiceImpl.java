@@ -150,6 +150,7 @@ public class JobWorkServiceImpl
   protected void afterUpdate(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
     linkRelations(entity, orderItemId, request);
     // jobWorkNo is never changed on update — keep the originally assigned number
+    syncChitthiNoWithJobWorkLabel(entity);
     applyMergedOrderItems(entity, request);
     syncCoveredOrderItems(entity);
   }
@@ -260,19 +261,41 @@ public class JobWorkServiceImpl
       return;
     }
 
+    Integer next = nextJobWorkNo(entity.getParty().getId());
+    entity.setJobWorkNo(next);
+    entity.setJobWorkLabel(JobWorkNumber.label(entity.getParty().getName(), next));
+    syncChitthiNoWithJobWorkLabel(entity);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public String getNextJobWorkNumber(Long partyId) {
+    PartyEntity party =
+        partyRepository
+            .findById(partyId)
+            .orElseThrow(() -> new EntityNotFoundException("Party not found: " + partyId));
+    return JobWorkNumber.label(party.getName(), nextJobWorkNo(partyId));
+  }
+
+  private Integer nextJobWorkNo(Long partyId) {
     LocalDateTime now = LocalDateTime.now();
     YearMonth yearMonth = YearMonth.from(now);
-
     LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
     LocalDateTime endDate = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+    Integer max = jobWorkRepository.findMaxJobWorkNoForPartyAndMonth(partyId, startDate, endDate);
+    return (max == null ? 0 : max) + 1;
+  }
 
-    Integer max =
-        jobWorkRepository.findMaxJobWorkNoForPartyAndMonth(
-            entity.getParty().getId(), startDate, endDate);
-
-    entity.setJobWorkNo((max == null ? 0 : max) + 1);
-    entity.setJobWorkLabel(
-        JobWorkNumber.label(entity.getParty().getName(), entity.getJobWorkNo()));
+  /** Keeps the saved Chitthi No. identical to the assigned party-wise job-work number. */
+  private void syncChitthiNoWithJobWorkLabel(JobWorkEntity entity) {
+    String label = entity.getJobWorkLabel();
+    if (label == null && entity.getParty() != null && entity.getJobWorkNo() != null) {
+      label = JobWorkNumber.label(entity.getParty().getName(), entity.getJobWorkNo());
+      entity.setJobWorkLabel(label);
+    }
+    if (label != null) {
+      entity.setChitthiNo(label);
+    }
   }
 
   private void linkRelations(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
@@ -516,6 +539,7 @@ public class JobWorkServiceImpl
             .orElseThrow(
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
     applyManualFields(entity, request);
+    syncChitthiNoWithJobWorkLabel(entity);
     return mapper().toDomain(jobWorkRepository.save(entity));
   }
 

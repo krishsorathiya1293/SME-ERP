@@ -19,6 +19,9 @@ public interface JobWorkService
 
   JobWork updateType(Long orderItemId, Long id, UpdateJobWorkType request);
 
+  /** Preview the next party-wise job-work number without reserving it. */
+  String getNextJobWorkNumber(Long partyId);
+
   /** Create a job work that is NOT tied to any order item (Manual mode). */
   JobWork createManual(NewJobWork request);
 

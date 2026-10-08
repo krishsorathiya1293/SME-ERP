@@ -53,6 +53,12 @@ public class JobWorkController
     return ResponseEntity.ok(jobWorkService.updateManual(id, newJobWork));
   }
 
+  /** Returns a preview of the next party-wise number; it is not reserved until the job work saves. */
+  @GetMapping("/api/v1/job-works/next-number")
+  public ResponseEntity<String> getNextJobWorkNumber(@RequestParam Long partyId) {
+    return ResponseEntity.ok(jobWorkService.getNextJobWorkNumber(partyId));
+  }
+
   /**
    * Global job-work listing used by the operations dashboard and the plating
    * analytics pages. Unlike the OpenAPI-generated per-order-item endpoint,
