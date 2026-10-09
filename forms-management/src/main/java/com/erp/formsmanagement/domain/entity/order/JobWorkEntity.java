@@ -59,6 +59,8 @@ public class JobWorkEntity extends AuditInfo {
   private LocalDate jobDate;
   private Double qtyPc;
   private Double qtyKg;
+  /** The effective per-piece weight used to calculate this job work's piece quantity. */
+  private Double pcsWeight;
   private String finish;
   private Double elementCount;
 

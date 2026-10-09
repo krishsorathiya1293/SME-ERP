@@ -1275,6 +1275,10 @@ components:
         qtyKg:
           type: number
           format: double
+        pcsWeight:
+          type: number
+          format: double
+          description: Effective 1-piece weight used for this job work
         finish:
           type: string
         elementCount:
