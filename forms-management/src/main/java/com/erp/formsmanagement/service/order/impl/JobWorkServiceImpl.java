@@ -358,6 +358,7 @@ public class JobWorkServiceImpl
     ItemBlueprintDataEntity size = entity.getSize();
     Double pcsWeight =
         request.getPcsWeight() != null ? request.getPcsWeight() : (size != null ? size.getPcsWeight() : null);
+    entity.setPcsWeight(pcsWeight);
     Double totalPcs = (pcsWeight != null && pcsWeight > 0) ? netKg / pcsWeight : null;
     entity.setQtyPc(totalPcs);
 
