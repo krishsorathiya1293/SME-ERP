@@ -1,0 +1,2 @@
+ALTER TABLE job_works
+    ADD COLUMN IF NOT EXISTS pcs_weight DOUBLE PRECISION;
