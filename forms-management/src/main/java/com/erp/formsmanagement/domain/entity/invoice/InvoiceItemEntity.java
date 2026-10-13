@@ -38,6 +38,7 @@ public class InvoiceItemEntity {
   private ItemCurrency currency;
 
   private Integer totalQuantity;
+  private String unit;
   private Integer qtyPerCarton;
   private Integer noOfCartons;
   private Double grossWeightKg;

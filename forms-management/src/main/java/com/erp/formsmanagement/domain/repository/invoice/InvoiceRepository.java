@@ -3,6 +3,7 @@ package com.erp.formsmanagement.domain.repository.invoice;
 import com.erp.formsmanagement.domain.entity.invoice.InvoiceEntity;
 import com.erp.formsmanagement.domain.entity.invoice.InvoiceType;
 import com.erp.repository.CoreRepository;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -20,4 +21,10 @@ public interface InvoiceRepository extends CoreRepository<InvoiceEntity, Long> {
   }
 
   Optional<InvoiceEntity> findByIdAndInvoiceType(Long id, InvoiceType invoiceType);
+
+  Optional<InvoiceEntity> findFirstByGroupIdAndInvoiceType(Long groupId, InvoiceType invoiceType);
+
+  List<InvoiceEntity> findByGroupId(Long groupId);
+
+  List<InvoiceEntity> findByInvoiceNoIgnoreCase(String invoiceNo);
 }

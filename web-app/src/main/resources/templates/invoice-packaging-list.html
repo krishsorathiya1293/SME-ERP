@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 
 <head>
@@ -567,6 +567,34 @@
                 line-height: 1.2;
             }
         }
+
+        /* --- invoice redesign --- */
+        .pre-line { white-space: pre-line; display: block; }
+        .to-order {
+            display: table;
+            background-color: #fff2b3;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 2px 6px;
+            margin-bottom: 4px;
+            border-radius: 3px;
+            color: #261911;
+        }
+        .addr-content strong.party { font-size: 12px; margin-top: 2px; }
+        .addr-content .contact { display: block; margin-top: 4px; }
+        .carton-box {
+            width: 260px;
+            border: 1px solid #d8e1e6;
+            padding: 8px 10px;
+            margin: 0 0 8px -10px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #343434;
+        }
+        .items-table tfoot td { font-weight: 700; font-size: 9.5px; background-color: #f7fbfd; }
+        .for-company { width: 100%; text-align: center; font-size: 11px; font-weight: 700; margin-bottom: 38px; position: relative; z-index: 1; }
+        .rate-note { font-size: 9px; color: #737373; text-align: right; margin: 0 -9px 4px 0; }
     </style>
 </head>
 
@@ -582,10 +610,7 @@
             <div class="header-right">
                 <div class="logo-placeholder"><img
                         th:src="${companyLogoDataUri}"
-                        style="width: 400px; height: auto"
-                        alt="Company Logo"
-                />
-                </div>
+                        style="width: 400px; height: auto;" alt="Company Logo"/></div>
             </div>
         </div>
 
@@ -596,321 +621,205 @@
             <div class="export-title-box">
                 <h2>Packing List</h2>
             </div>
-            <div class="lut-box" th:if="${invoice.arnNo != null}">
-            <span
-            >SUPPLY MEANT FOR EXPORT UNDER BOND OR LUT WITHOUT PAYMENT OF
-              INTEGRATED TAX (IGST), LUT</span
-            ><br/>
-                <span th:text="'ARN No: ' + ${invoice.arnNo}"
-                >ARN No: AD240125093952T</span
-                >
+            <div class="lut-box" th:if="${lutEnabled == true and invoice != null and !#strings.isEmpty(invoice.arnNo)}">
+                <span>SUPPLY MEANT FOR EXPORT UNDER BOND OR LUT WITHOUT PAYMENT OF INTEGRATED TAX (IGST),
+                    LUT ARN. NO. </span><span th:text="${invoice.arnNo}">AD240325016572F</span>
             </div>
         </div>
 
         <!-- Address Grid -->
         <div class="address-grid">
-            <!-- Exporter -->
             <div class="addr-col">
                 <div class="addr-header">Exporter</div>
                 <div class="addr-content">
-                    <span class="addr-label">Company Name</span>
-                    <span th:text="${invoice.exporterCompanyName}"
-                    >Ishita Industries</span
-                    >
-
-                    <span class="addr-label">Address</span>
-                    <span th:text="${invoice.exporterAddress}">Address here</span>
-
-                    <span class="addr-label">Contact Number</span>
-                    <span th:text="${invoice.exporterContactNo}"
-                    >+91 72289 81407</span
-                    >
+                    <strong class="party" th:text="${invoice.exporterCompanyName}">ISHITA INDUSTRIES</strong>
+                    <span class="pre-line" th:text="${invoice.exporterAddress}">Address</span>
+                    <span class="contact" th:if="${!#strings.isEmpty(invoice.exporterContactNo)}"
+                          th:text="'Phone : ' + ${invoice.exporterContactNo}">+91 72289 81407</span>
                 </div>
             </div>
 
-            <!-- Importer (Bill To) -->
             <div class="addr-col">
                 <div class="addr-header">Importer (Bill To)</div>
                 <div class="addr-content">
-                    <strong
-                            th:text="'To the Order (' + ${invoice.billToCountry} + ')'"
-                            th:if="${invoice.billToCountry != null}"
-                    >To the Order (USA)</strong
-                    >
-
-                    <span class="addr-label">Bill To</span>
-                    <span th:text="${invoice.billToName}">Det Danske Madhus</span>
-
-                    <span class="addr-label">Address</span>
-                    <span th:utext="${invoice.billToAddress}">Address here</span>
-
-                    <span class="addr-label">Contact Number</span>
-                    <span th:text="${invoice.billToContactNo}">+91 72289 81407</span>
+                    <div class="to-order" th:if="${!#strings.isEmpty(invoice.billToCountry)}"
+                         th:text="'To The Order - ' + ${invoice.billToCountry}">To The Order - Denmark</div>
+                    <strong class="party" th:text="${invoice.billToName}">ABC Limited</strong>
+                    <span class="pre-line" th:text="${invoice.billToAddress}">Address</span>
+                    <span class="contact" th:if="${!#strings.isEmpty(invoice.billToContactNo)}"
+                          th:text="'Contact : ' + ${invoice.billToContactNo}">+45 0000</span>
                 </div>
             </div>
 
-            <!-- Importer (Ship To) -->
             <div class="addr-col">
                 <div class="addr-header">Importer (Ship To)</div>
                 <div class="addr-content">
-                    <strong
-                            th:text="'To the Order (' + ${invoice.shipToCountry} + ')'"
-                            th:if="${invoice.shipToCountry != null}"
-                    >To the Order (USA)</strong
-                    >
-
-                    <span class="addr-label">Ship To</span>
-                    <span th:text="${invoice.shipToName}">Det Danske Madhus</span>
-
-                    <span class="addr-label">Address</span>
-                    <span th:utext="${invoice.shipToAddress}">Address here</span>
-
-                    <span class="addr-label">Contact Number</span>
-                    <span th:text="${invoice.shipToContactNo}">+91 72289 81407</span>
+                    <div class="to-order" th:if="${!#strings.isEmpty(invoice.shipToCountry)}"
+                         th:text="'To The Order - ' + ${invoice.shipToCountry}">To The Order - Denmark</div>
+                    <strong class="party" th:text="${invoice.shipToName}">ABC Limited</strong>
+                    <span class="pre-line" th:text="${invoice.shipToAddress}">Address</span>
+                    <span class="contact" th:if="${!#strings.isEmpty(invoice.shipToContactNo)}"
+                          th:text="'Contact : ' + ${invoice.shipToContactNo}">+45 0000</span>
                 </div>
             </div>
         </div>
 
-        <!-- RODTEP Bar -->
-        <div class="rodtep-bar" th:if="${invoice.rodtep != null}">
-            WE INTEND TO CLAIM REWARDS UNDER THE REMISSION OF DUTIES AND TAXES ON
-            EXPORTED PRODUCTS(RoDTEP) <span th:text="${invoice.rodtep}">xxxxx </span> SCHEME.
+        <!-- RoDTEP Bar: newer invoices store the whole sentence, older ones only the scheme code -->
+        <div class="rodtep-bar" th:if="${!#strings.isEmpty(invoice.rodtep)}">
+            <span th:if="${#strings.containsIgnoreCase(invoice.rodtep, 'rodtep')}" th:text="${invoice.rodtep}"></span>
+            <span th:unless="${#strings.containsIgnoreCase(invoice.rodtep, 'rodtep')}"
+                  th:text="'WE INTEND TO CLAIM REWARDS UNDER THE REMISSION OF DUTIES AND TAXES ON EXPORTED PRODUCTS (RoDTEP) ' + ${invoice.rodtep} + ' SCHEME.'"></span>
         </div>
 
         <!-- Details Grid -->
         <div class="details-grid">
-            <!-- Col 1 -->
             <div>
                 <div class="detail-item">
                     <span class="detail-label">Invoice No :-</span>
-                    <span class="detail-value" th:text="${invoice.invoiceNo}"
-                    >01</span
-                    >
+                    <span class="detail-value" th:text="${invoice.invoiceNo}"></span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Invoice Date :-</span>
-                    <span
-                            class="detail-value"
-                            th:text="${#temporals.format(invoice.invoiceDate, 'dd/MM/yyyy')}"
-                    >01/01/2026</span
-                    >
+                    <span class="detail-value" th:text="${invoiceDateText}"></span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">GST No :-</span>
-                    <span class="detail-value" th:text="${invoice.gstNo}"
-                    >24AAGFI3929N1Z1</span
-                    >
+                    <span class="detail-value" th:text="${invoice.gstNo}"></span>
                 </div>
                 <div class="detail-item-1">
                     <span class="detail-label">IEC Code :-</span>
-                    <span class="detail-value" th:text="${invoice.iecCode}"
-                    >AAGFI3929N</span
-                    >
+                    <span class="detail-value" th:text="${invoice.iecCode}"></span>
                 </div>
             </div>
-            <!-- Col 2 -->
             <div>
                 <div class="detail-item">
-                    <span class="detail-label">P/O No :-</span>
-                    <span class="detail-value" th:text="${invoice.poNo}"
-                    >6792659</span
-                    >
+                    <span class="detail-label">Buyer PO No. :-</span>
+                    <span class="detail-value" th:text="${invoice.poNo} + (${poDateText} != '' ? ' (' + ${poDateText} + ')' : '')"></span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Incoterms :-</span>
-                    <span class="detail-value" th:text="${invoice.incoterms}"
-                    >F.O.B</span
-                    >
+                    <span class="detail-value" th:text="${invoice.incoterms}"></span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Payment Terms :-</span>
-                    <span class="detail-value" th:text="${invoice.paymentTerms}"
-                    >T/T Net 15 B/L</span
-                    >
+                    <span class="detail-value" th:text="${invoice.paymentTerms}"></span>
                 </div>
                 <div class="detail-item-1">
                     <span class="detail-label">Pre-Carriage :-</span>
-                    <span class="detail-value" th:text="${invoice.preCarriage}"
-                    >Jamnagar</span
-                    >
+                    <span class="detail-value" th:text="${invoice.preCarriage}"></span>
                 </div>
             </div>
-            <!-- Col 3 -->
             <div>
                 <div class="detail-item">
-                    <span class="detail-label">Country of origin :-</span>
-                    <span class="detail-value" th:text="${invoice.countryOfOrigin}">India</span>
+                    <span class="detail-label">Place of Pre-Carriage :-</span>
+                    <span class="detail-value" th:text="${invoice.placeOfPreCarriage}"></span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Country of Destination :-</span>
-                    <span class="detail-value" th:text="${invoice.countryOfFinalDestination}">Denmark</span>
+                    <span class="detail-label">Country of Origin :-</span>
+                    <span class="detail-value" th:text="${invoice.countryOfOrigin}"></span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Port of loading :-</span>
-                    <span class="detail-value" th:text="${invoice.portOfLoading}">Nhava Sheva</span>
+                    <span class="detail-label">Final Destination :-</span>
+                    <span class="detail-value" th:text="${invoice.countryOfFinalDestination}"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Port of Loading :-</span>
+                    <span class="detail-value" th:text="${invoice.portOfLoading}"></span>
                 </div>
                 <div class="detail-item-1">
-                    <span class="detail-label">Port of discharge :-</span>
-                    <span class="detail-value" th:text="${invoice.portOfDischarge}"
-                    >Dallas Port</span
-                    >
+                    <span class="detail-label">Port of Discharge :-</span>
+                    <span class="detail-value" th:text="${invoice.portOfDischarge}"></span>
                 </div>
             </div>
         </div>
 
         <!-- Items Table -->
-        <!-- Items Table (UPDATED as per screenshot) -->
         <table class="items-table">
             <thead>
             <tr>
-                <th style="width: 8%">Item No.</th>
-                <th style="width: 38%">Description</th>
-                <th style="width: 11%">Total Qty. (Pcs)</th>
-                <th style="width: 11%">No Of Cartons</th>
-                <th style="width: 11%">Qty/Cartoon (Pcs)</th>
-                <th style="width: 11%">Gross Weight<br/>(Kgs)</th>
-                <th style="width: 10%">Net Weight<br/>(Kgs)</th>
+                <th style="width: 7%">Item No.</th>
+                <th style="width: 35%">Part No. / Description of Goods</th>
+                <th style="width: 12%">Total Qty (Pcs)</th>
+                <th style="width: 12%">Qty / Carton (Pcs)</th>
+                <th style="width: 10%">No. of Cartons</th>
+                <th style="width: 12%">Gross Weight<br/>(Kgs)</th>
+                <th style="width: 12%">Net Weight<br/>(Kgs)</th>
             </tr>
             </thead>
-
             <tbody>
             <tr th:each="item : ${invoice.items}">
-                <td style="text-align:center;" th:text="${item.itemNo}">01</td>
-
+                <td style="text-align:center;" th:text="${item.itemNo}">1</td>
                 <td class="desc-cell">
-                    <span class="desc-text" th:text="${item.partNo}">FHCS316L</span>
-                    <span class="desc-text" th:text="${item.description}">10-32 X 5/16 A/F E.S.P Hex</span>
+                    <span class="desc-text" th:text="${item.partNo}">1234</span>
+                    <span class="desc-text" th:text="${item.description}">Brass Fasteners</span>
                 </td>
-
                 <td style="text-align:center;"
-                    th:text="${#numbers.formatDecimal(item.totalQuantity, 1, 0)}">1012000
-                </td>
-
+                    th:text="${item.totalQuantity != null ? #numbers.formatInteger(item.totalQuantity, 1, 'COMMA') : ''}">1200</td>
                 <td style="text-align:center;"
-                    th:text="${#numbers.formatDecimal(item.qtyPerCarton, 1, 0)}">22000
-                </td>
-
+                    th:text="${item.qtyPerCarton != null ? #numbers.formatInteger(item.qtyPerCarton, 1, 'COMMA') : ''}">150</td>
+                <td style="text-align:center;" th:text="${item.noOfCartons}">8</td>
                 <td style="text-align:center;"
-                    th:text="${#numbers.formatDecimal(item.noOfCartons, 1, 0)}">46
-                </td>
-
+                    th:text="${item.grossWeightKg != null ? #numbers.formatDecimal(item.grossWeightKg, 1, 3) : ''}">10.000</td>
                 <td style="text-align:center;"
-                    th:text="${#numbers.formatDecimal(item.grossWeightKg, 1, 3)}">828.000
-                </td>
-
-                <td style="text-align:center;"
-                    th:text="${#numbers.formatDecimal(item.netWeightKg, 1, 3)}">787.060
-                </td>
+                    th:text="${item.netWeightKg != null ? #numbers.formatDecimal(item.netWeightKg, 1, 3) : ''}">9.500</td>
             </tr>
             </tbody>
-
-            <tfoot>
+            <tfoot th:with="totalGross=${#aggregates.sum(invoice.items.![grossWeightKg != null ? grossWeightKg : 0])},
+                            totalNet=${#aggregates.sum(invoice.items.![netWeightKg != null ? netWeightKg : 0])}">
             <tr>
-                <td colspan="2" style="text-align:center; font-weight:700; font-size:16px; padding:10px 4px;">
-                    Total
-                </td>
-
-                <!-- Total Qty -->
-                <td style="text-align:center; font-weight:700; font-size:12px;"
-                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.items.![totalQuantity]), 1, 0)}">
-                    0
-                </td>
-
-                <!-- Qty per carton (blank like screenshot) -->
+                <td colspan="2" style="text-align:center;">Total</td>
+                <td style="text-align:center;" th:text="${#numbers.formatInteger(totalUnits, 1, 'COMMA')}">1200</td>
                 <td></td>
-
-                <!-- No of cartons total -->
-                <td style="text-align:center; font-weight:700; font-size:12px;"
-                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.items.![noOfCartons]), 1, 0)}">
-                    0
-                </td>
-
-                <!-- Gross weight total -->
-                <td style="text-align:center; font-weight:700; font-size:12px;"
-                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.items.![grossWeightKg]), 1, 3)}">
-                    0.000
-                </td>
-
-                <!-- Net weight total -->
-                <td style="text-align:center; font-weight:700; font-size:12px;"
-                    th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.items.![netWeightKg]), 1, 3)}">
-                    0.000
-                </td>
+                <td style="text-align:center;" th:text="${totalCartons}">8</td>
+                <td style="text-align:center;" th:text="${#numbers.formatDecimal(totalGross, 1, 3)}">10.000</td>
+                <td style="text-align:center;" th:text="${#numbers.formatDecimal(totalNet, 1, 3)}">9.500</td>
             </tr>
             </tfoot>
         </table>
 
         <!-- Footer Area -->
         <div class="footer-section">
-            <!-- Footer Left -->
             <div class="footer-left">
-                <div class="bank-box">
-                    <div>
-                        <span th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.items.![noOfCartons]), 1, 0)}">0</span>
-                        Carton with
-                        <span th:text="${#numbers.formatDecimal(#aggregates.sum(invoice.items.![woodenPallets]), 1, 0)}">0</span>
-                        Wooden Palate.
-                    </div>
-
+                <div class="carton-box" th:if="${totalCartons > 0}">
+                    <span th:text="'Total ' + ${totalCartons} + ' Carton' + (${totalCartons} > 1 ? 's' : '') + ' (' + ${cartonRange} + ')'">Total 8 Cartons (01 - 08)</span>
+                    <span th:if="${totalPallets > 0}"
+                          th:text="' with ' + ${totalPallets} + ' Wooden Pallet' + (${totalPallets} > 1 ? 's' : '')"></span>
                 </div>
 
-                <div class="declaration-text" th:if="${invoice.rexNo != null}">
-                    <span th:text="${invoice.exporterCompanyName}">Ishita Industries</span> having REX reg n°
-                    <span th:text="${invoice.rexNo}">INREXGQIPMxxxxx</span> of the
-                    products covered by this document declare that, except where
-                    otherwise clearly indicated, these products are of India
-                    preferential origin according to rules of origin of the
-                    generalised system of preferences of the European Union and that
-                    the origin criterion met is "P".
+                <div class="declaration-text" th:if="${!#strings.isEmpty(invoice.rexNo)}">
+                    <span th:text="${invoice.exporterCompanyName}">ISHITA INDUSTRIES</span> having REX reg n°
+                    <span th:text="${invoice.rexNo}">INAAGFI3929N</span> of the products covered by this document
+                    declares that, except where otherwise clearly indicated, these products are of India preferential
+                    origin according to rules of origin of the generalized system of preferences of the European Union
+                    and that the origin criterion met is "P".
                 </div>
             </div>
-
-            <!-- Footer Right -->
             <div class="footer-right">
-                <table class="totals-table" th:with="totalQuantity=${#aggregates.sum(invoice.items.![totalQuantity])},
-         totalCartons=${#aggregates.sum(invoice.items.![noOfCartons])},
-         totalGross=${#aggregates.sum(invoice.items.![grossWeightKg])},
-         totalNet=${#aggregates.sum(invoice.items.![netWeightKg])}">
+                <table class="totals-table" th:with="totalGross=${#aggregates.sum(invoice.items.![grossWeightKg != null ? grossWeightKg : 0])},
+                                 totalNet=${#aggregates.sum(invoice.items.![netWeightKg != null ? netWeightKg : 0])}">
                     <tr>
-                        <td class="footer-title u-line"><strong>Total Packages (Cartons) :</strong></td>
-                        <td class="amount u-line "
-                            th:text="${#numbers.formatDecimal(totalCartons, 1, 0)}">
-                            56
-                        </td>
+                        <td class="footer-title"><strong>Total Packages (Cartons) :</strong></td>
+                        <td class="amount" th:text="${totalCartons}">8</td>
                     </tr>
-
-
                     <tr>
-                        <td class="footer-title u-line"><strong>Total Quantity (Pcs) :</strong></td>
-                        <td class="amount u-line "
-                            th:text="${#numbers.formatDecimal(totalQuantity, 1, 0)}">
-                            10,44,000
-                        </td>
+                        <td class="footer-title"><strong>Total Quantity (Pcs) :</strong></td>
+                        <td class="amount" th:text="${#numbers.formatInteger(totalUnits, 1, 'COMMA')}">1200</td>
                     </tr>
-
                     <tr>
-                        <td class="footer-title u-line"><strong>Total Net Weight (Kgs) :</strong></td>
-                        <td class="amount u-line "
-                            th:text="${#numbers.formatDecimal(totalNet, 1, 3)}">
-                            934.305
-                        </td>
+                        <td class="footer-title"><strong>Total Net Weight (Kgs) :</strong></td>
+                        <td class="amount" th:text="${#numbers.formatDecimal(totalNet, 1, 3)}">9.500</td>
                     </tr>
-
                     <tr>
                         <td class="footer-title"><strong>Total Gross Weight (Kgs) :</strong></td>
-                        <td class="amount"
-                            th:text="${#numbers.formatDecimal(totalGross, 1, 3)}">
-                            982.350
-                        </td>
+                        <td class="amount" th:text="${#numbers.formatDecimal(totalGross, 1, 3)}">10.000</td>
                     </tr>
-
                 </table>
 
                 <div class="stamp-area">
-                    <img th:src="${stampDataUri}"
-                         alt="Stamp"/>
-                    <div class="sign-date">Founder & CEO ~ Bhavesh Ajudia</div>
-                    <div class="sign-text"><span th:text="${todayDate}"
+                    <div class="for-company" th:text="'For ' + ${#strings.toUpperCase(invoice.exporterCompanyName)}">For ISHITA INDUSTRIES</div>
+                    <img th:src="${stampDataUri}" alt="Stamp"/>
+                    <div class="sign-date">Founder &amp; CEO ~ Bhavesh Ajudia.</div>
+                    <div class="sign-text"><span th:text="'Date : ' + ${todayDate}"
                                                  style="display: flex; justify-content: center">Date</span></div>
                 </div>
             </div>
@@ -919,9 +828,8 @@
 
     <div class="bottom-disclaimer">
         <b>Declaration</b> :- We hereby declare that the information provided in this invoice is true and correct, and
-        that the
-        value stated represents the actual transaction value of the goods described herein. We further certify that the
-        above-mentioned goods are of Indian origin.
+        that the value stated represents the actual transaction value of the goods described herein. We further certify
+        that the above-mentioned goods are of Indian origin.
     </div>
 </div>
 </body>

@@ -4,6 +4,7 @@ import com.erp.api.invoicemanagement.InvoiceInvoiceManagementApi;
 import com.erp.api.invoicemanagement.model.Invoice;
 import com.erp.api.invoicemanagement.model.NewInvoice;
 import com.erp.api.invoicemanagement.model.PaginatedResultInvoice;
+import com.erp.api.invoicemanagement.model.PastImporter;
 import com.erp.controller.AbstractCrudControllerV1;
 import com.erp.formsmanagement.service.invoice.InvoiceService;
 import com.erp.util.GetAllQuery;
@@ -17,8 +18,16 @@ public class InvoiceController
     extends AbstractCrudControllerV1<NewInvoice, Invoice, String, PaginatedResultInvoice>
     implements InvoiceInvoiceManagementApi {
 
+  private final InvoiceService invoiceService;
+
   public InvoiceController(InvoiceService s) {
     super(s, s);
+    this.invoiceService = s;
+  }
+
+  @Override
+  public ResponseEntity<List<PastImporter>> getPastImporters() {
+    return ResponseEntity.ok(invoiceService.getPastImporters());
   }
 
   @Override

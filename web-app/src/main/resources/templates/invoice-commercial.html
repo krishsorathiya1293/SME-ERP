@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 
 <head>
@@ -511,13 +511,73 @@
                 line-height: 1.2;
             }
         }
+
+        /* --- invoice redesign --- */
+        .pre-line { white-space: pre-line; display: block; }
+        .to-order {
+            display: table;
+            background-color: #fff2b3;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 2px 6px;
+            margin-bottom: 4px;
+            border-radius: 3px;
+            color: #261911;
+        }
+        .addr-content strong.party { font-size: 12px; margin-top: 2px; }
+        .addr-content .contact { display: block; margin-top: 4px; }
+        .carton-box {
+            width: 260px;
+            border: 1px solid #d8e1e6;
+            padding: 8px 10px;
+            margin: 0 0 8px -10px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #343434;
+        }
+        .items-table tfoot td { font-weight: 700; font-size: 9.5px; background-color: #f7fbfd; }
+        .for-company { width: 100%; text-align: center; font-size: 11px; font-weight: 700; margin-bottom: 38px; position: relative; z-index: 1; }
+        .rate-note { font-size: 9px; color: #737373; text-align: right; margin: 0 -9px 4px 0; }
+
+        /* --- commercial invoice, laid out like the client's EX-07 sheet --- */
+        .ci-title { text-align: center; font-size: 18px; font-weight: 700; letter-spacing: 1px; color: #261911;
+                    background-color: #ebf5fb; border: 1px solid #d8e1e6; border-radius: 5px; padding: 6px; margin: 4px 0 6px; }
+        .lut-line { font-size: 8.5px; font-weight: 500; color: #343434; text-align: center; margin-bottom: 6px; }
+        .ci-grid { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 6px; }
+        .ci-grid td { border: 1px solid #d8e1e6; padding: 4px 6px; vertical-align: top; }
+        .ci-label { color: #737373; width: 17%; }
+        .ci-value { color: #261911; width: 33%; }
+        .ci-strong { font-weight: 700; }
+        .ci-parties { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 10px; table-layout: fixed; }
+        .ci-parties td { border: 1px solid #d8e1e6; padding: 6px 8px; vertical-align: top; line-height: 1.35; color: #343434; }
+        .ci-party-left { width: 50%; }
+        .ci-party-head { font-weight: 700; font-size: 10.5px; color: #261911; margin-bottom: 3px; text-decoration: underline; }
+        .ci-gap { margin-top: 8px; }
+        .ci-party-name { font-weight: 700; font-size: 11px; color: #261911; }
+        .ci-delivery-name { font-weight: 700; font-size: 13px; color: #261911; margin-bottom: 2px; }
+        .ci-delivery { font-size: 11px; }
+        .ci-items td { font-size: 9.5px; }
+        .ci-rodtep { font-size: 9px; font-weight: 700; color: #343434; border: 1px solid #d8e1e6; border-radius: 5px;
+                     padding: 6px 8px; margin: 0 0 8px -10px; width: 280px; }
+        .ci-remark { font-size: 10px; color: #343434; border: 1px solid #d8e1e6; border-radius: 5px; padding: 6px 8px;
+                     margin-left: -10px; width: 280px; line-height: 1.5; }
+        .ci-boxes { font-weight: 700; background-color: #fff2b3; display: inline-block; padding: 0 3px; }
+        .ci-totals { width: 330px; margin: 0 0 6px auto; border-collapse: collapse; font-size: 10px; }
+        .ci-totals th { background-color: #ebf5fb; font-size: 9px; padding: 4px 6px; border: 1px solid #d8e1e6; text-align: right; }
+        .ci-totals td { padding: 4px 6px; border: 1px solid #d8e1e6; text-align: right; color: #343434; }
+        .ci-totals td:first-child { text-align: left; color: #737373; }
+        .ci-totals .ci-strong td { font-weight: 700; color: #261911; }
+        .ci-calc { font-size: 8px; color: #737373; text-align: left; }
+        .ci-total td { font-weight: 700; font-size: 11.5px; color: #261911 !important; background-color: #f7fbfd; }
     </style>
 </head>
 
 <body>
+<!-- Layout follows the client's own commercial invoice sheet (EX-07 Co.Invoice): document facts on
+     top, Notify Party + Consigner beside the Delivery Address, then the goods with an INR column. -->
 <div class="main">
     <div class="page-container">
-        <!-- Top Header -->
         <div class="top-header">
             <div class="header-left">
                 <div class="since">Since 1994</div>
@@ -532,261 +592,172 @@
 
         <div class="border"></div>
 
-        <!-- Blue Header Row -->
-        <div class="blue-header-row">
-            <div class="export-title-box">
-                <h2>Commercial Invoice</h2>
-            </div>
-            <div class="lut-box" th:if="${invoice.arnNo != null}">
-                    <span>SUPPLY MEANT FOR EXPORT UNDER BOND OR LUT WITHOUT PAYMENT OF INTEGRATED TAX (IGST),
-                        LUT</span><br/>
-                <span th:text="'ARN No: ' + ${invoice.arnNo}">ARN No: AD240125093952T</span>
-            </div>
+        <div class="ci-title">COMMERCIAL INVOICE</div>
+
+        <div class="lut-line" th:if="${lutEnabled == true and invoice != null and !#strings.isEmpty(invoice.arnNo)}">
+            SUPPLY MEANT FOR EXPORT UNDER BOND OR LUT WITHOUT PAYMENT OF INTEGRATED TAX (IGST), LUT ARN. NO.
+            <span th:text="${invoice.arnNo}">AD240325016572F</span>
         </div>
 
-        <!-- Address Grid -->
-        <div class="address-grid">
-            <!-- Exporter -->
-            <div class="addr-col">
-                <div class="addr-header">Exporter</div>
-                <div class="addr-content">
-                    <span class="addr-label">Company Name</span>
-                    <span th:text="${invoice.exporterCompanyName}">Ishita Industries</span>
+        <!-- Document facts -->
+        <table class="ci-grid">
+            <tr>
+                <td class="ci-label">Bill No.</td>
+                <td class="ci-value ci-strong" th:text="${invoice.invoiceNo}">EX-03</td>
+                <td class="ci-label">Country of Origin</td>
+                <td class="ci-value ci-strong" th:text="${invoice.countryOfOrigin}">INDIA</td>
+            </tr>
+            <tr>
+                <td class="ci-label">Date</td>
+                <td class="ci-value ci-strong" th:text="${invoiceDateText}">16-May-2026</td>
+                <td class="ci-label">Country of Final Destination</td>
+                <td class="ci-value"></td>
+            </tr>
+            <tr>
+                <td class="ci-label">IEC No.</td>
+                <td class="ci-value" th:text="${invoice.iecCode}">AAGFI3929N</td>
+                <td class="ci-label">Port of Loading</td>
+                <td class="ci-value ci-strong" th:text="${invoice.portOfLoading}">Nhava Sheva</td>
+            </tr>
+            <tr>
+                <td class="ci-label">GST No.</td>
+                <td class="ci-value" th:text="${invoice.gstNo}">24AAGFI3929N1Z1</td>
+                <td class="ci-label">Port of Discharge</td>
+                <td class="ci-value"></td>
+            </tr>
+            <tr>
+                <td class="ci-label">Pre-Carriage</td>
+                <td class="ci-value"
+                    th:text="${invoice.preCarriage} + (${#strings.isEmpty(invoice.placeOfPreCarriage)} ? '' : ' (' + ${invoice.placeOfPreCarriage} + ')')">By Road (Jamnagar)</td>
+                <td class="ci-label">Order Number</td>
+                <td class="ci-value"></td>
+            </tr>
+        </table>
 
-                    <span class="addr-label">Address</span>
-                    <span th:text="${invoice.exporterAddress}">Address here</span>
+        <!-- Parties -->
+        <table class="ci-parties">
+            <tr>
+                <td class="ci-party-left">
+                    <div class="ci-party-head">Notify Party : ( Bill To )</div>
+                    <div class="to-order" th:if="${!#strings.isEmpty(invoice.commercialBillToCountry)}"
+                         th:text="'To The Order - ' + ${invoice.commercialBillToCountry}">To The Order - Denmark</div>
+                    <div class="ci-party-name" th:text="${invoice.commercialBillToName}">Notify Party</div>
+                    <div class="pre-line" th:text="${invoice.commercialBillToAddress}">Address</div>
+                    <div th:if="${!#strings.isEmpty(invoice.commercialBillToContactNo)}"
+                         th:text="'Contact : ' + ${invoice.commercialBillToContactNo}"></div>
 
-                    <span class="addr-label">Contact Number</span>
-                    <span th:text="${invoice.exporterContactNo}">+91 72289 81407</span>
-                </div>
-            </div>
+                    <div class="ci-party-head ci-gap">Consigner</div>
+                    <div class="ci-party-name" th:text="${invoice.exporterCompanyName}">ISHITA INDUSTRIES</div>
+                    <div class="pre-line" th:text="${invoice.exporterAddress}">Address</div>
+                    <div th:if="${!#strings.isEmpty(invoice.exporterContactNo)}"
+                         th:text="'Phone : ' + ${invoice.exporterContactNo}">Phone : +91 7228981407</div>
+                </td>
+                <td class="ci-party-right">
+                    <div class="ci-party-head">Delivery Address : ( Ship To )</div>
+                    <div class="to-order" th:if="${!#strings.isEmpty(invoice.commercialShipToCountry)}"
+                         th:text="'To The Order - ' + ${invoice.commercialShipToCountry}">To The Order - Denmark</div>
+                    <div class="ci-delivery-name" th:text="${invoice.commercialShipToName}">Hetanshi Shipping Agencies</div>
+                    <div class="pre-line ci-delivery" th:text="${invoice.commercialShipToAddress}">Address</div>
+                    <div class="ci-delivery" th:if="${!#strings.isEmpty(invoice.commercialShipToContactNo)}"
+                         th:text="'Mob. : ' + ${invoice.commercialShipToContactNo}">Mob.</div>
+                </td>
+            </tr>
+        </table>
 
-            <!-- Importer (Bill To) -->
-            <div class="addr-col">
-                <div class="addr-header">Importer (Bill To)</div>
-                <div class="addr-content">
-                    <strong th:text="'To the Order (' + ${invoice.billToCountry} + ')'"
-                            th:if="${invoice.billToCountry != null}">To the Order (USA)</strong>
-
-                    <span class="addr-label">Bill To</span>
-                    <span th:text="${invoice.billToName}">Det Danske Madhus</span>
-
-                    <span class="addr-label">Address</span>
-                    <span th:utext="${invoice.billToAddress}">Address here</span>
-
-                    <span class="addr-label">Contact Number</span>
-                    <span th:text="${invoice.billToContactNo}">+91 72289 81407</span>
-                </div>
-            </div>
-
-            <!-- Importer (Ship To) -->
-            <div class="addr-col">
-                <div class="addr-header">Importer (Ship To)</div>
-                <div class="addr-content">
-                    <strong th:text="'To the Order (' + ${invoice.shipToCountry} + ')'"
-                            th:if="${invoice.shipToCountry != null}">To the Order (USA)</strong>
-
-                    <span class="addr-label">Ship To</span>
-                    <span th:text="${invoice.shipToName}">Det Danske Madhus</span>
-
-                    <span class="addr-label">Address</span>
-                    <span th:utext="${invoice.shipToAddress}">Address here</span>
-
-                    <span class="addr-label">Contact Number</span>
-                    <span th:text="${invoice.shipToContactNo}">+91 72289 81407</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- RODTEP Bar -->
-        <div class="rodtep-bar" th:if="${invoice.rodtep != null}">
-            WE INTEND TO CLAIM REWARDS UNDER THE REMISSION OF DUTIES AND TAXES ON
-            EXPORTED PRODUCTS(RoDTEP) <span th:text="${invoice.rodtep}">xxxxx </span> SCHEME.
-        </div>
-
-        <!-- Details Grid -->
-        <div class="details-grid">
-            <!-- Col 1 -->
-            <div>
-                <div class="detail-item">
-                    <span class="detail-label">Invoice No :-</span>
-                    <span class="detail-value" th:text="${invoice.invoiceNo}">01</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Invoice Date :-</span>
-                    <span class="detail-value"
-                          th:text="${#temporals.format(invoice.invoiceDate, 'dd/MM/yyyy')}">01/01/2026</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">GST No :-</span>
-                    <span class="detail-value" th:text="${invoice.gstNo}">24AAGFI3929N1Z1</span>
-                </div>
-                <div class="detail-item-1">
-                    <span class="detail-label">IEC Code :-</span>
-                    <span class="detail-value" th:text="${invoice.iecCode}">AAGFI3929N</span>
-                </div>
-            </div>
-            <!-- Col 2 -->
-            <div>
-                <div class="detail-item">
-                    <span class="detail-label">P/O No :-</span>
-                    <span class="detail-value">--</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Incoterms :-</span>
-                    <span class="detail-value" th:text="${invoice.incoterms}">F.O.B</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Payment Terms :-</span>
-                    <span class="detail-value">--</span>
-                </div>
-                <div class="detail-item-1">
-                    <span class="detail-label">Pre-Carriage :-</span>
-                    <span class="detail-value" th:text="${invoice.preCarriage}">Jamnagar</span>
-                </div>
-            </div>
-            <!-- Col 3 -->
-            <div>
-                <div class="detail-item">
-                    <span class="detail-label">Country of origin :-</span>
-                    <span class="detail-value" th:text="${invoice.countryOfOrigin}">India</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Country of Destination :-</span>
-                    <span class="detail-value">--</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Port of loading :-</span>
-                    <span class="detail-value" th:text="${invoice.portOfLoading}">Nhava Sheva</span>
-                </div>
-                <div class="detail-item-1">
-                    <span class="detail-label">Port of discharge :-</span>
-                    <span class="detail-value">--</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Items Table -->
-        <table class="items-table">
+        <!-- Goods -->
+        <table class="items-table ci-items">
             <thead>
             <tr>
                 <th style="width: 7%">Item No.</th>
-                <th style="width: 36%">Part No.</th>
-                <th style="width: 9%">HS Code</th>
-                <th style="width: 8%">Qty (Pcs)</th>
-                <th style="width: 12%">Unit Price (<span th:text="${currencyType}">USD</span>)</th>
-                <th style="width: 13%">Total Amount (<span th:text="${currencyType}">USD</span>)</th>
-                <th style="width: 15%">Total Amount (INR)</th>
+                <th style="width: 37%">Description</th>
+                <th style="width: 12%">Qty-Pcs</th>
+                <th style="width: 12%">Unit Price</th>
+                <th style="width: 15%">Amount <span th:text="${currencyType}">USD</span></th>
+                <th style="width: 17%">Amount In INR</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="item : ${invoice.items}">
-                <td style="text-align: center" th:text="${item.itemNo}">01</td>
+                <td style="text-align: center" th:text="${item.itemNo}">1</td>
                 <td class="desc-cell">
-                    <span class="desc-text" th:text="${item.partNo}">FHCS316L </span>
+                    <span class="desc-text" th:if="${!#strings.isEmpty(item.partNo)}" th:text="${item.partNo}">1234</span>
+                    <span class="desc-text"
+                          th:text="${item.description} + (${#strings.isEmpty(item.hsCode)} ? '' : ' HS Code = ' + ${item.hsCode})">Brass Fastner Parts HS Code = 74153390</span>
                 </td>
-                <td style="text-align: center" th:text="${item.hsCode}">7318</td>
-                <td style="text-align: center" th:text="${item.totalQuantity}">560</td>
-                <td style="text-align: center" th:text="${#numbers.formatDecimal(item.unitPriceUsd, 1, 3)}">
-                    12.000
-                </td>
+                <td style="text-align: center" th:text="${#numbers.formatInteger(item.totalQuantity, 1, 'COMMA')}">990,000</td>
                 <td style="text-align: center"
-                    th:text="${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd, 1, 2)}">6720.00
-                </td>
-                <td style="text-align: center"
-                    th:text="${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd*item.currencyCurrentPrice, 1, 2)}">
-                    6720.00
-                </td>
+                    th:text="${currencySymbol} + ${#numbers.formatDecimal(item.unitPriceUsd, 1, 'COMMA', 4, 'POINT')}">$0.0134</td>
+                <td style="text-align: right"
+                    th:text="${currencySymbol} + ' ' + ${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd, 1, 'COMMA', 2, 'POINT')}">$ 13,266.00</td>
+                <td style="text-align: right"
+                    th:text="'₹ ' + ${#numbers.formatDecimal(item.totalQuantity * item.unitPriceUsd * rate, 1, 'COMMA', 2, 'POINT')}">₹ 12,39,707.70</td>
             </tr>
             </tbody>
         </table>
 
-        <!-- Footer Area -->
         <div class="footer-section">
-            <!-- Footer Left -->
             <div class="footer-left">
-
+                <div class="ci-rodtep" th:if="${!#strings.isEmpty(invoice.rodtep)}">
+                    <span th:if="${#strings.containsIgnoreCase(invoice.rodtep, 'rodtep')}" th:text="${invoice.rodtep}"></span>
+                    <span th:unless="${#strings.containsIgnoreCase(invoice.rodtep, 'rodtep')}"
+                          th:text="'WE INTEND TO CLAIM REWARDS UNDER THE REMISSION OF DUTIES AND TAXES ON EXPORTED PRODUCTS (RoDTEP) ' + ${invoice.rodtep} + ' SCHEME.'"></span>
+                </div>
+                <div class="ci-remark">
+                    <div class="ci-party-head">Remark</div>
+                    <div th:if="${!#strings.isEmpty(invoice.incoterms)}"
+                         th:text="'Incoterms = ' + ${invoice.incoterms} + (${#strings.isEmpty(invoice.portOfLoading)} ? '' : ' ' + ${invoice.portOfLoading} + ' Port')">Incoterms = F.O.B Nhava-Sheva Port</div>
+                    <div class="ci-boxes" th:if="${totalCartons > 0}"
+                         th:text="'No. of Total Box :- ' + ${totalCartons} + ' Carton' + (${totalCartons} > 1 ? 's' : '') + ' (' + ${cartonRange} + ')' + (${totalPallets} > 0 ? ' with ' + ${totalPallets} + ' Wooden Box Pallet' + (${totalPallets} > 1 ? 's' : '') : '')">No. of Total Box :- 54 Cartons with 3 Wooden Box Pallets</div>
+                    <div th:if="${rate > 0}"
+                         th:text="'Exchange rate : 1 ' + ${currencyType} + ' = ₹ ' + ${#numbers.formatDecimal(rate, 1, 'COMMA', 2, 'POINT')}">Exchange rate : 1 USD = ₹ 93.45</div>
+                </div>
             </div>
 
-            <!-- Footer Right -->
             <div class="footer-right">
-                <table class="totals-table" th:with="subtotal=${#aggregates.sum(invoice.items.![totalQuantity * unitPriceUsd])},
-                                 freight=${invoice.freightCost != null ? invoice.freightCost : 0},
-                                 insurance=${invoice.insuranceCost != null ? invoice.insuranceCost : 0},
-                                 other=${invoice.otherCost != null ? invoice.otherCost : 0},
-                                 grandTotal=${subtotal + freight + insurance + other},
-                                 rate=${(invoice.items != null and !invoice.items.isEmpty() and invoice.items[0].currencyCurrentPrice != null)
-              ? invoice.items[0].currencyCurrentPrice : 1}">
+                <table class="ci-totals">
                     <tr>
-                        <td class="footer-title"><strong>Sub Total <strong
-                                th:text="'('+${currencyType}+'):-'"></strong></strong></td>
-                        <td class="amount">
-                            <strong th:text="${currencyType=='USD'?'$':'€'}"></strong>
-                            <strong th:text="${#numbers.formatDecimal(subtotal, 1, 2)}"></strong>
-                        </td>
-                        <td class="amount">
-                            <strong th:text="'₹ ' + ${#numbers.formatDecimal(subtotal*rate, 1, 2)}"></strong>
-                        </td>
+                        <th></th>
+                        <th th:text="${currencyType}">USD</th>
+                        <th>INR</th>
                     </tr>
-                    <tr th:if="${invoice.freightCost != null and invoice.freightCost > 0}">
-                        <td class="footer-title">Freight Cost
-                            <th:block th:text="' ('+${currencyType}+'):-'"></th:block>
-                        </td>
-                        <td class="amount">
-                            <th:block th:text="${currencyType=='USD'?'$':'€'}"></th:block>
-                            <th:block th:text="${#numbers.formatDecimal(invoice.freightCost, 1, 2)}"></th:block>
-                        </td>
-                        <td class="amount">
-                            <th:block
-                                    th:text="'₹ ' + ${#numbers.formatDecimal(invoice.freightCost*rate, 1, 2)}"></th:block>
-                        </td>
+                    <tr class="ci-strong">
+                        <td>Sub Total</td>
+                        <td th:text="${currencySymbol} + ' ' + ${#numbers.formatDecimal(subtotal, 1, 'COMMA', 2, 'POINT')}">$ 15,642.00</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal(subtotal * rate, 1, 'COMMA', 2, 'POINT')}">₹ 14,60,999.70</td>
                     </tr>
-                    <tr th:if="${invoice.insuranceCost != null and invoice.insuranceCost > 0}">
-                        <td class="footer-title">Insurance Cost
-                            <th:block th:text="' ('+${currencyType}+'):-'"></th:block>
-                        </td>
-                        <td class="amount">
-                            <th:block th:text="${currencyType=='USD'?'$':'€'}"></th:block>
-                            <th:block
-                                    th:text="${#numbers.formatDecimal(invoice.insuranceCost, 1, 2)}"></th:block>
-                        </td>
-                        <td class="amount">
-                            <th:block
-                                    th:text="'₹ ' + ${#numbers.formatDecimal(invoice.insuranceCost*rate, 1, 2)}"></th:block>
-                        </td>
+                    <tr>
+                        <td>Freight Costs</td>
+                        <td th:text="${currencySymbol} + ' ' + ${#numbers.formatDecimal(invoice.freightCost != null ? invoice.freightCost : 0, 1, 'COMMA', 2, 'POINT')}">$ 0.00</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal((invoice.freightCost != null ? invoice.freightCost : 0) * rate, 1, 'COMMA', 2, 'POINT')}">₹ 0.00</td>
                     </tr>
-                    <tr th:if="${invoice.otherCost != null and invoice.otherCost > 0}">
-                        <td class="footer-title">Other Cost
-                            <th:block th:text="' ('+${currencyType}+'):-'"></th:block>
-                        </td>
-                        <td class="amount">
-                            <th:block th:text="${currencyType=='USD'?'$':'€'}"></th:block>
-                            <th:block th:text="${#numbers.formatDecimal(invoice.otherCost, 1, 2)}"></th:block>
-                        </td>
-                        <td class="amount">
-                            <th:block
-                                    th:text="'₹ ' + ${#numbers.formatDecimal(invoice.otherCost*rate, 1, 2)}"></th:block>
-                        </td>
+                    <tr>
+                        <td>Insurance / Other Costs</td>
+                        <td th:text="${currencySymbol} + ' ' + ${#numbers.formatDecimal((invoice.insuranceCost != null ? invoice.insuranceCost : 0) + (invoice.otherCost != null ? invoice.otherCost : 0), 1, 'COMMA', 2, 'POINT')}">$ 0.00</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal(((invoice.insuranceCost != null ? invoice.insuranceCost : 0) + (invoice.otherCost != null ? invoice.otherCost : 0)) * rate, 1, 'COMMA', 2, 'POINT')}">₹ 0.00</td>
                     </tr>
-                    <tr class="final-row">
-                        <td class="footer-title"><strong>Grand Total <strong
-                                th:text="'('+${currencyType}+'):-'"></strong></strong></td>
-                        <td class="amount_last">
-                            <strong th:text="${currencyType=='USD'?'$':'€'}"></strong>
-                            <strong
-                                    th:text="${#numbers.formatDecimal(grandTotal, 1, 2)}"></strong>
+                    <tr th:if="${igstEnabled}">
+                        <td style="text-align: left">
+                            <div style="text-align: left; font-weight: 400; font-size: 10px; color: #737373"
+                                 th:text="'IGST ' + ${igstPercentText} + '%'">IGST 18%</div>
+                            <div class="ci-calc"
+                                 th:text="'₹ ' + ${#numbers.formatDecimal(igstBaseInr, 1, 'COMMA', 2, 'POINT')} + ' × ' + ${igstPercentText} + '%'">₹ 14,60,999.70 × 18%</div>
                         </td>
-                        <td class="amount_last"><strong
-                                th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal*rate, 1, 2)}"></strong>
-                        </td>
+                        <td>—</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal(igstInr, 1, 'COMMA', 2, 'POINT')}">₹ 2,62,979.95</td>
+                    </tr>
+                    <tr class="ci-total">
+                        <td>Total</td>
+                        <td th:text="${currencySymbol} + ' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}">$ 15,642.00</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal(grandTotalInr, 1, 'COMMA', 2, 'POINT')}">₹ 17,23,979.65</td>
                     </tr>
                 </table>
 
                 <div class="stamp-area">
-                    <img th:src="${stampDataUri}"
-                         alt="Stamp"/>
-                    <div class="sign-date">Founder & CEO ~ Bhavesh Ajudia</div>
-                    <div class="sign-text"><span th:text="${invoice.createdAt}">Date</span></div>
+                    <div class="for-company" th:text="'For ' + ${#strings.toUpperCase(invoice.exporterCompanyName)}">For ISHITA INDUSTRIES</div>
+                    <img th:src="${stampDataUri}" alt="Stamp"/>
+                    <div class="sign-date">Founder &amp; CEO ~ Bhavesh Ajudia.</div>
+                    <div class="sign-text"><span th:text="'Date : ' + ${todayDate}"
+                                                 style="display: flex; justify-content: center">Date</span></div>
                 </div>
             </div>
         </div>
@@ -794,9 +765,8 @@
 
     <div class="bottom-disclaimer">
         <b>Declaration</b> :- We hereby declare that the information provided in this invoice is true and correct, and
-        that the
-        value stated represents the actual transaction value of the goods described herein. We further certify that the
-        above-mentioned goods are of Indian origin.
+        that the value stated represents the actual transaction value of the goods described herein. We further certify
+        that the above-mentioned goods are of Indian origin.
     </div>
 </div>
 </body>

@@ -80,6 +80,22 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/invoice/importers:
+    get:
+      operationId: getPastImporters
+      tags:
+        - Invoice
+      summary: Importers (Bill To) used on past invoices, newest first, one per party
+      responses:
+        '200':
+          description: Past importers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PastImporter'
+
   /api/v1/invoice/{id}:
     get:
       operationId: getInvoiceById
@@ -261,6 +277,49 @@ components:
         invoiceType:
           $ref: '#/components/schemas/InvoiceType'
 
+        groupId:
+          type: integer
+          format: int64
+          description: Shared by the export / commercial / packing-list rows of one save
+        lutEnabled:
+          type: boolean
+        commercialBillToCountry:
+          type: string
+        commercialBillToName:
+          type: string
+        commercialBillToContactNo:
+          type: string
+        commercialBillToAddress:
+          type: string
+        commercialShipToCountry:
+          type: string
+        commercialShipToName:
+          type: string
+        commercialShipToContactNo:
+          type: string
+        commercialShipToAddress:
+          type: string
+        poDate:
+          type: string
+          format: date
+        placeOfPreCarriage:
+          type: string
+        currency:
+          $ref: '#/components/schemas/ItemCurrency'
+        exchangeRate:
+          type: number
+          format: double
+          description: INR for one unit of the invoice currency
+        igstEnabled:
+          type: boolean
+        igstPercent:
+          type: number
+          format: double
+          description: IGST rate in percent on the commercial invoice (default 18)
+        signDate:
+          type: string
+          format: date
+
         # Item Details
         items:
           $ref: '#/components/schemas/NewInvoiceItems'
@@ -359,6 +418,49 @@ components:
         portOfDischarge:
           type: string
 
+        groupId:
+          type: integer
+          format: int64
+          description: Shared by the export / commercial / packing-list rows of one save
+        lutEnabled:
+          type: boolean
+        commercialBillToCountry:
+          type: string
+        commercialBillToName:
+          type: string
+        commercialBillToContactNo:
+          type: string
+        commercialBillToAddress:
+          type: string
+        commercialShipToCountry:
+          type: string
+        commercialShipToName:
+          type: string
+        commercialShipToContactNo:
+          type: string
+        commercialShipToAddress:
+          type: string
+        poDate:
+          type: string
+          format: date
+        placeOfPreCarriage:
+          type: string
+        currency:
+          $ref: '#/components/schemas/ItemCurrency'
+        exchangeRate:
+          type: number
+          format: double
+          description: INR for one unit of the invoice currency
+        igstEnabled:
+          type: boolean
+        igstPercent:
+          type: number
+          format: double
+          description: IGST rate in percent on the commercial invoice (default 18)
+        signDate:
+          type: string
+          format: date
+
         # Item Details
         items:
           $ref: '#/components/schemas/InvoiceItems'
@@ -399,6 +501,22 @@ components:
         createdAt:
           type: string
           format: date
+    PastImporter:
+      type: object
+      properties:
+        country:
+          type: string
+        name:
+          type: string
+        contactNo:
+          type: string
+        address:
+          type: string
+        lastInvoiceNo:
+          type: string
+        lastInvoiceDate:
+          type: string
+          format: date
     InvoiceType:
       type: string
       enum:
@@ -428,6 +546,8 @@ components:
             type: string
           totalQuantity:
             type: integer
+          unit:
+            type: string
           unitPriceUsd:
             type: number
             format: double
@@ -481,6 +601,8 @@ components:
             type: string
           totalQuantity:
             type: integer
+          unit:
+            type: string
           unitPriceUsd:
             type: number
             format: double
@@ -511,6 +633,12 @@ components:
           type: integer
         invoiceNo:
           type: string
+        invoiceDate:
+          type: string
+          format: date
+        groupId:
+          type: integer
+          format: int64
         createdAt:
           type: string
           format: date

@@ -34,6 +34,12 @@ public class InvoiceEntity extends AuditInfo {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  /** Shared by the export / commercial / packing-list rows written by one save. */
+  private Long groupId;
+
+  /** Print the "supply meant for export under bond or LUT" line with the ARN no. */
+  private Boolean lutEnabled;
+
   // Exporter
   private String exporterCompanyName;
   private String exporterContactNo;
@@ -72,15 +78,32 @@ public class InvoiceEntity extends AuditInfo {
   @Convert(converter = EncryptedStringConverter.class)
   private String shipToAddress;
 
+  // Commercial invoice has its own Bill To / Ship To, typed by hand (often a shipping agent)
+  private String commercialBillToCountry;
+  private String commercialBillToName;
+  private String commercialBillToContactNo;
+
+  @Column(columnDefinition = "TEXT")
+  private String commercialBillToAddress;
+
+  private String commercialShipToCountry;
+  private String commercialShipToName;
+  private String commercialShipToContactNo;
+
+  @Column(columnDefinition = "TEXT")
+  private String commercialShipToAddress;
+
   // Invoice Details
   private String invoiceNo;
   private LocalDate invoiceDate;
   private String gstNo;
   private String iecCode;
   private String poNo;
+  private LocalDate poDate;
   private String incoterms;
   private String paymentTerms;
   private String preCarriage;
+  private String placeOfPreCarriage;
   private String countryOfOrigin;
   private String countryOfFinalDestination;
   private String portOfLoading;
@@ -96,6 +119,21 @@ public class InvoiceEntity extends AuditInfo {
   private String branch;
   private String accountNo;
   private String swiftCode;
+
+  // Currency for the whole invoice, and its INR rate on the day (commercial invoice INR column)
+  @Enumerated(EnumType.STRING)
+  private ItemCurrency currency;
+
+  private Double exchangeRate;
+
+  /** Add IGST 18% on the commercial invoice. */
+  private Boolean igstEnabled;
+
+  /** IGST rate in percent (default 18). */
+  private Double igstPercent;
+
+  /** Date printed under the signature. */
+  private LocalDate signDate;
 
   // Cost Details
   private Double freightCost;

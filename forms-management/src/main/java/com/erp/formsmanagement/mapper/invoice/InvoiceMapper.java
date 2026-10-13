@@ -18,9 +18,12 @@ public interface InvoiceMapper extends EntityMapper<InvoiceEntity, NewInvoice, I
   Invoice toDomain(InvoiceEntity entity);
 
   @Mapping(source = "rodtep", target = "rodTep")
+  @Mapping(target = "groupId", ignore = true)
   InvoiceEntity toEntity(NewInvoice newInvoice);
 
   @Mapping(source = "rodtep", target = "rodTep")
+  @Mapping(target = "groupId", ignore = true)
+  @Mapping(target = "invoiceType", ignore = true)
   void updateEntity(@MappingTarget InvoiceEntity entity, NewInvoice newInvoice);
 
   @AfterMapping
