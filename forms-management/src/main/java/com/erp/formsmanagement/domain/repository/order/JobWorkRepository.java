@@ -31,7 +31,7 @@ public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
       AND jw.createdAt >= :startDate
       AND jw.createdAt < :endDate
 """)
-  Integer findMaxJobWorkNoForPartyAndMonth(
+  Integer findMaxJobWorkNoForPartyInRange(
       @Param("partyId") Long partyId,
       @Param("startDate") LocalDateTime startDate,
       @Param("endDate") LocalDateTime endDate);

@@ -32,7 +32,7 @@ import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -251,9 +251,9 @@ public class JobWorkServiceImpl
   }
 
   /**
-   * Generates the party-wise job work number scoped to the current calendar month. Reads the
-   * current MAX for this party this month and increments by 1, so each party has its own sequence
-   * (AZ-1, AZ-2, ZP-1, …), the sequence resets when a new month begins, and deleting the latest
+   * Generates the party-wise job work number scoped to the current calendar year. Reads the
+   * current MAX for this party this year and increments by 1, so each party has its own sequence
+   * (AZ-1, AZ-2, ZP-1, …), the sequence resets when a new year begins, and deleting the latest
    * frees its number for reuse. No-op when the party isn't set yet.
    */
   private void assignJobWorkNo(JobWorkEntity entity) {
@@ -279,10 +279,10 @@ public class JobWorkServiceImpl
 
   private Integer nextJobWorkNo(Long partyId) {
     LocalDateTime now = LocalDateTime.now();
-    YearMonth yearMonth = YearMonth.from(now);
-    LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
-    LocalDateTime endDate = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
-    Integer max = jobWorkRepository.findMaxJobWorkNoForPartyAndMonth(partyId, startDate, endDate);
+    Year year = Year.from(now);
+    LocalDateTime startDate = year.atDay(1).atStartOfDay();
+    LocalDateTime endDate = year.plusYears(1).atDay(1).atStartOfDay();
+    Integer max = jobWorkRepository.findMaxJobWorkNoForPartyInRange(partyId, startDate, endDate);
     return (max == null ? 0 : max) + 1;
   }
 
