@@ -13,12 +13,16 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AttendancePunchRepository extends CoreRepository<AttendancePunchEntity, Long> {
 
-  /** Inserts one punch unless (emp_code, punch_time, terminal_sn) is already there. 1 = new. */
+  /**
+   * Inserts one punch unless (emp_code, punch_time, terminal_sn) is already there. 1 = new.
+   * Native SQL doesn't get hibernate.default_schema, so the table is schema-qualified (as the
+   * {@code @Formula}s in OrderItemEntity are).
+   */
   @Modifying
   @Query(
       value =
           """
-          INSERT INTO attendance_punch
+          INSERT INTO sme_erp.attendance_punch
               (emp_code, punch_time, punch_state, verify_type, terminal_sn, terminal_alias,
                source_id, created_at, last_updated_at)
           VALUES (:empCode, :punchTime, :punchState, :verifyType, :terminalSn, :terminalAlias,
