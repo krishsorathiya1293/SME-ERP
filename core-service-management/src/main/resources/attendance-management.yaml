@@ -1,0 +1,463 @@
+openapi: 3.0.3
+
+info:
+  title: Attendance Management API
+  version: 1.0.0
+  description: |
+    Face-recognition attendance pulled from the factory's EasyTime database.
+    The /sync endpoints are called by the Ishita HRMS desktop app on the factory PC and are
+    authenticated with the X-Sync-Key header (ATTENDANCE_SYNC_KEY), not a user JWT.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://sme-api.duckdns.org
+    description: Production Server
+
+tags:
+  - name: Attendance
+    description: Attendance read endpoints (ERP users)
+  - name: AttendanceSync
+    description: Machine-to-machine sync from the factory PC
+
+security:
+  - oauth2: [ ]
+
+paths:
+  # -------------------- SYNC (factory PC agent) --------------------
+  /api/v1/attendance/sync/punches:
+    post:
+      operationId: syncAttendancePunches
+      tags:
+        - AttendanceSync
+      summary: Push a batch of punches from EasyTime (duplicates are ignored)
+      security: [ ]
+      parameters:
+        - $ref: '#/components/parameters/syncKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PunchSyncBatch'
+      responses:
+        '200':
+          description: Batch accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResult'
+        '401':
+          description: Missing or wrong sync key
+
+  /api/v1/attendance/sync/employees:
+    post:
+      operationId: syncAttendanceEmployees
+      tags:
+        - AttendanceSync
+      summary: Push the EasyTime employee list (insert or update by empCode)
+      security: [ ]
+      parameters:
+        - $ref: '#/components/parameters/syncKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeSyncBatch'
+      responses:
+        '200':
+          description: Batch accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResult'
+        '401':
+          description: Missing or wrong sync key
+
+  /api/v1/attendance/sync/status:
+    get:
+      operationId: getAttendanceSyncStatus
+      tags:
+        - AttendanceSync
+      summary: Connectivity check for the agent - what the ERP already has
+      security: [ ]
+      parameters:
+        - $ref: '#/components/parameters/syncKeyHeader'
+      responses:
+        '200':
+          description: Current sync state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStatus'
+        '401':
+          description: Missing or wrong sync key
+
+  # -------------------- READ (ERP users) --------------------
+  /api/v1/attendance/daily:
+    get:
+      operationId: getDailyAttendance
+      tags:
+        - Attendance
+      summary: One row per active employee for a day - first in, last out, status
+      description: |
+        Active = punched at least once in the 30 days up to this date, so people who left (or were
+        never enrolled) don't show up as absent forever. Status ABSENT = active but no punch.
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/weeklyOffParam'
+      responses:
+        '200':
+          description: Daily attendance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyAttendance'
+
+  /api/v1/attendance/punches:
+    get:
+      operationId: getAttendancePunches
+      tags:
+        - Attendance
+      summary: Raw punches between two dates (inclusive, max 62 days)
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: empCode
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Punches, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttendancePunch'
+
+  /api/v1/attendance/monthly:
+    get:
+      operationId: getMonthlyAttendance
+      tags:
+        - Attendance
+      summary: Monthly register - every active employee x every day of the month
+      parameters:
+        - $ref: '#/components/parameters/monthParam'
+        - $ref: '#/components/parameters/weeklyOffParam'
+      responses:
+        '200':
+          description: Monthly register
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyAttendance'
+
+  /api/v1/attendance/monthly/export:
+    get:
+      operationId: exportMonthlyAttendance
+      tags:
+        - Attendance
+      summary: Monthly register as an Excel workbook
+      parameters:
+        - $ref: '#/components/parameters/monthParam'
+        - $ref: '#/components/parameters/weeklyOffParam'
+      responses:
+        '200':
+          description: Excel workbook (.xlsx)
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/v1/attendance/employees:
+    get:
+      operationId: getAttendanceEmployees
+      tags:
+        - Attendance
+      summary: Everyone enrolled on the face device, with their latest punch
+      responses:
+        '200':
+          description: Employees, by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttendanceEmployee'
+
+  /api/v1/attendance/health:
+    get:
+      operationId: getAttendanceHealth
+      tags:
+        - Attendance
+      summary: Is the factory PC sending data? (same as sync/status, for signed-in users)
+      responses:
+        '200':
+          description: Current sync state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStatus'
+
+components:
+  securitySchemes:
+    oauth2:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    monthParam:
+      name: month
+      in: query
+      required: true
+      description: yyyy-MM
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}$'
+        example: '2026-10'
+    weeklyOffParam:
+      name: weeklyOff
+      in: query
+      required: false
+      description: Factory's weekly holiday; a day off with no punch is WEEKLY_OFF, not ABSENT
+      schema:
+        type: string
+        enum: [ MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY ]
+    syncKeyHeader:
+      name: X-Sync-Key
+      in: header
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    PunchRecord:
+      type: object
+      required:
+        - empCode
+        - punchTime
+      properties:
+        sourceId:
+          type: integer
+          format: int64
+          description: EasyTime iclock_transaction.id
+        empCode:
+          type: string
+        punchTime:
+          type: string
+          description: Factory local time, yyyy-MM-ddTHH:mm:ss (no zone)
+          example: '2026-10-17T09:02:41'
+        punchState:
+          type: string
+        verifyType:
+          type: integer
+        terminalSn:
+          type: string
+        terminalAlias:
+          type: string
+
+    PunchSyncBatch:
+      type: object
+      required:
+        - punches
+      properties:
+        punches:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: '#/components/schemas/PunchRecord'
+
+    EmployeeRecord:
+      type: object
+      required:
+        - empCode
+      properties:
+        empCode:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        department:
+          type: string
+
+    EmployeeSyncBatch:
+      type: object
+      required:
+        - employees
+      properties:
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeRecord'
+
+    SyncResult:
+      type: object
+      properties:
+        received:
+          type: integer
+        inserted:
+          type: integer
+          description: Rows that were new (punches) or inserted/updated (employees)
+
+    SyncStatus:
+      type: object
+      properties:
+        totalPunches:
+          type: integer
+          format: int64
+        totalEmployees:
+          type: integer
+          format: int64
+        lastPunchTime:
+          type: string
+          description: Latest punch the ERP has, factory local time
+        lastSyncedAt:
+          type: string
+          description: When the ERP last received a new punch, server local time
+        agentLastSeenSecondsAgo:
+          type: integer
+          format: int64
+          description: Seconds since the factory PC last checked in (null = not since server start)
+
+    AttendancePunch:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        punchTime:
+          type: string
+        punchState:
+          type: string
+        verifyType:
+          type: integer
+        terminalSn:
+          type: string
+        terminalAlias:
+          type: string
+
+    AttendanceDayStatus:
+      type: string
+      description: |
+        PRESENT = in and out punched; AT_WORK = today, punched in, not out yet (counts as present);
+        MISSED_PUNCH = only one punch on a past day; ABSENT = no punch;
+        WEEKLY_OFF = weekly holiday with no punch; UPCOMING = date after today;
+        NOT_JOINED = before this employee's first-ever punch (new joiner)
+      enum: [ PRESENT, AT_WORK, MISSED_PUNCH, ABSENT, WEEKLY_OFF, UPCOMING, NOT_JOINED ]
+
+    DailyAttendance:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/AttendanceDayStatus'
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        department:
+          type: string
+        firstIn:
+          type: string
+          description: HH:mm:ss of the first punch of the day
+        lastOut:
+          type: string
+          description: HH:mm:ss of the last punch (null when only one punch)
+        punchCount:
+          type: integer
+        workedMinutes:
+          type: integer
+          description: lastOut - firstIn in minutes (0 when only one punch)
+
+    AttendanceDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/AttendanceDayStatus'
+        firstIn:
+          type: string
+        lastOut:
+          type: string
+        punchCount:
+          type: integer
+        workedMinutes:
+          type: integer
+
+    MonthlyAttendanceRow:
+      type: object
+      properties:
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        department:
+          type: string
+        presentDays:
+          type: integer
+          description: PRESENT + AT_WORK days
+        missedPunchDays:
+          type: integer
+        absentDays:
+          type: integer
+        totalWorkedMinutes:
+          type: integer
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttendanceDay'
+
+    MonthlyAttendance:
+      type: object
+      properties:
+        month:
+          type: string
+          example: '2026-10'
+        daysInMonth:
+          type: integer
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyAttendanceRow'
+
+    AttendanceEmployee:
+      type: object
+      properties:
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        department:
+          type: string
+        lastPunchTime:
+          type: string
+          description: Latest punch, factory local time (null = never punched)

@@ -156,6 +156,19 @@ public class OpenApiConfig {
   }
 
   @RestController
+  @RequestMapping("/doc/v3/attendance")
+  public class AttendanceDocumentationController {
+    @GetMapping
+    public String getOpenApiYaml() throws IOException {
+      String data = "";
+      ClassPathResource cpr = new ClassPathResource("attendance-management.yaml");
+      byte[] bdata = FileCopyUtils.copyToByteArray(cpr.getInputStream());
+      data = new String(bdata, StandardCharsets.UTF_8);
+      return data;
+    }
+  }
+
+  @RestController
   @RequestMapping("/doc/v3/client-portal")
   public class ClientPortalDocumentationController {
     @GetMapping
