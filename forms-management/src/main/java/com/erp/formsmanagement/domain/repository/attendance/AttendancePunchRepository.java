@@ -63,6 +63,9 @@ public interface AttendancePunchRepository extends CoreRepository<AttendancePunc
   @Query("select p.empCode, max(p.punchTime) from AttendancePunchEntity p group by p.empCode")
   List<Object[]> findLatestPunchPerEmployee();
 
+  @Query("select max(p.punchTime) from AttendancePunchEntity p where p.empCode = :code")
+  LocalDateTime findLatestPunchFor(@Param("code") String code);
+
   @Query("select max(p.punchTime) from AttendancePunchEntity p")
   LocalDateTime findLatestPunchTime();
 

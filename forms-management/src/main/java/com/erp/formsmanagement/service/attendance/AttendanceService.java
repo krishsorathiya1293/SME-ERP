@@ -13,6 +13,7 @@ import com.erp.api.attendancemanagement.model.SyncResult;
 import com.erp.api.attendancemanagement.model.SyncStatus;
 import com.erp.formsmanagement.domain.entity.attendance.AttendanceEmployeeEntity;
 import com.erp.formsmanagement.domain.entity.attendance.AttendancePunchEntity;
+import com.erp.formsmanagement.domain.entity.attendance.WorkDay;
 import com.erp.formsmanagement.domain.repository.attendance.AttendanceEmployeeRepository;
 import com.erp.formsmanagement.domain.repository.attendance.AttendancePunchRepository;
 import java.time.DayOfWeek;
@@ -46,8 +47,8 @@ import org.springframework.web.server.ResponseStatusException;
  *
  * <p>A day is read as: first punch = in, last punch = out. The device's in/out state is ignored —
  * workers routinely leave it on the wrong setting. A single punch is AT_WORK today and MISSED_PUNCH
- * on any earlier day. Days
- * are calendar days, so a night shift crossing midnight splits across two dates.
+ * on any earlier day. Days are the factory's 7 AM - 7 AM working days ({@link WorkDay}), so a
+ * night shift (in 8 PM, out 3 AM) is one day on the date it started.
  *
  * <p>"Active" employees (the ones a missing punch makes ABSENT) are those who punched at least
  * once in the {@value #ACTIVE_WINDOW_DAYS} days up to the period — otherwise everyone who ever
@@ -194,7 +195,7 @@ public class AttendanceService {
           new DailyAttendance()
               .empCode(code)
               .employeeName(nameOf(emp))
-              .department(emp == null ? null : emp.getDepartment())
+              .department(emp == null ? null : emp.getDepartmentName())
               .status(statusOf(date, day, off, joined.get(code)))
               .firstIn(day == null ? null : day.first.toLocalTime().toString())
               .lastOut(day == null || day.count < 2 ? null : day.last.toLocalTime().toString())
@@ -229,7 +230,7 @@ public class AttendanceService {
           new MonthlyAttendanceRow()
               .empCode(code)
               .employeeName(nameOf(emp))
-              .department(emp == null ? null : emp.getDepartment());
+              .department(emp == null ? null : emp.getDepartmentName());
       int present = 0, missed = 0, absent = 0, minutes = 0;
       List<AttendanceDay> days = new ArrayList<>();
       for (LocalDate d = first; !d.isAfter(last); d = d.plusDays(1)) {
@@ -280,7 +281,7 @@ public class AttendanceService {
           new AttendanceEmployee()
               .empCode(e.getEmpCode())
               .employeeName(e.getFullName())
-              .department(e.getDepartment())
+              .department(e.getDepartmentName())
               .lastPunchTime(t == null ? null : t.toString()));
     }
     latest.forEach(
@@ -322,7 +323,7 @@ public class AttendanceService {
         punchRepository.findByPunchTimeBetweenOrderByPunchTimeAsc(startOf(from), endOf(to))) {
       byEmp
           .computeIfAbsent(p.getEmpCode(), k -> new HashMap<>())
-          .computeIfAbsent(p.getPunchTime().toLocalDate(), k -> new DayPunches())
+          .computeIfAbsent(WorkDay.of(p.getPunchTime()), k -> new DayPunches())
           .add(p.getPunchTime());
     }
     return byEmp;
@@ -334,12 +335,18 @@ public class AttendanceService {
     codes.addAll(
         punchRepository.findEmpCodesWithPunchesBetween(
             startOf(from.minusDays(ACTIVE_WINDOW_DAYS)), endOf(to)));
+    // Deleted profiles never show; de-activated ones only on days they actually punched.
+    for (AttendanceEmployeeEntity e : employeeRepository.findByEmpCodeIn(codes)) {
+      if (e.isDeleted() || (!e.isActive() && !punchedInPeriod.contains(e.getEmpCode()))) {
+        codes.remove(e.getEmpCode());
+      }
+    }
     return codes;
   }
 
   private static AttendanceDayStatus statusOf(
       LocalDate date, DayPunches day, DayOfWeek off, LocalDate joinedOn) {
-    LocalDate today = LocalDate.now();
+    LocalDate today = WorkDay.today();
     if (day != null) {
       if (day.count >= 2) return AttendanceDayStatus.PRESENT;
       // One punch today just means they haven't left yet.
@@ -355,7 +362,7 @@ public class AttendanceService {
     if (codes.isEmpty()) return Map.of();
     Map<String, LocalDate> out = new HashMap<>();
     for (Object[] r : punchRepository.findFirstPunchFor(codes)) {
-      out.put((String) r[0], ((LocalDateTime) r[1]).toLocalDate());
+      out.put((String) r[0], WorkDay.of((LocalDateTime) r[1]));
     }
     return out;
   }
@@ -380,12 +387,13 @@ public class AttendanceService {
     return name == null ? "~" + code : name; // unnamed codes after the named people
   }
 
+  /** A day here is the factory's 7 AM - 7 AM working day ({@link WorkDay}). */
   private static LocalDateTime startOf(LocalDate d) {
-    return d.atStartOfDay();
+    return WorkDay.startOf(d);
   }
 
   private static LocalDateTime endOf(LocalDate d) {
-    return d.plusDays(1).atStartOfDay().minusNanos(1);
+    return WorkDay.endOf(d);
   }
 
   static YearMonth parseMonth(String month) {

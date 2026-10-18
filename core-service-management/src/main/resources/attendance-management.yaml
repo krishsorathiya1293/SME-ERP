@@ -19,6 +19,8 @@ tags:
     description: Attendance read endpoints (ERP users)
   - name: AttendanceSync
     description: Machine-to-machine sync from the factory PC
+  - name: Staff
+    description: Staff profiles, salary, upad, statement, dashboard (ERP-only data)
 
 security:
   - oauth2: [ ]
@@ -221,6 +223,418 @@ paths:
               schema:
                 $ref: '#/components/schemas/SyncStatus'
 
+  # ==================== STAFF & PAYROLL (ERP-only data) ====================
+  /api/v1/staff/dashboard:
+    get:
+      operationId: getStaffDashboard
+      tags: [ Staff ]
+      summary: Attendance and money at a glance for today
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffDashboard'
+
+  /api/v1/staff/settings:
+    get:
+      operationId: getStaffSettings
+      tags: [ Staff ]
+      summary: Pay-week start and weekly off
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffSettings'
+    put:
+      operationId: updateStaffSettings
+      tags: [ Staff ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffSettings'
+      responses:
+        '200':
+          description: Saved settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffSettings'
+
+  /api/v1/staff/departments:
+    get:
+      operationId: getStaffDepartments
+      tags: [ Staff ]
+      responses:
+        '200':
+          description: Departments with timings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffDepartment'
+    post:
+      operationId: createStaffDepartment
+      tags: [ Staff ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffDepartmentInput'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffDepartment'
+
+  /api/v1/staff/departments/{id}:
+    put:
+      operationId: updateStaffDepartment
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/idPathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffDepartmentInput'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffDepartment'
+    delete:
+      operationId: deleteStaffDepartment
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/idPathParam'
+      responses:
+        '204':
+          description: Deleted
+
+  /api/v1/staff/employees:
+    get:
+      operationId: getStaffEmployees
+      tags: [ Staff ]
+      summary: Employee cards - photo, phone, balance, upad (PagarGuru style)
+      parameters:
+        - name: includeInactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Employees by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffSummary'
+    post:
+      operationId: createStaffEmployee
+      tags: [ Staff ]
+      summary: Add employee (or fill in the profile of a device employee by code)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffProfileInput'
+      responses:
+        '200':
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffProfile'
+
+  /api/v1/staff/employees/{empCode}:
+    get:
+      operationId: getStaffEmployee
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      responses:
+        '200':
+          description: Full profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffProfile'
+    put:
+      operationId: updateStaffEmployee
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffProfileInput'
+      responses:
+        '200':
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffProfile'
+    delete:
+      operationId: deleteStaffEmployee
+      tags: [ Staff ]
+      summary: Delete profile (hidden from the ERP; punch history is kept)
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      responses:
+        '204':
+          description: Deleted
+
+  /api/v1/staff/employees/{empCode}/active:
+    put:
+      operationId: setStaffEmployeeActive
+      tags: [ Staff ]
+      summary: Re-activate / de-activate
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+        - name: active
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffProfile'
+
+  /api/v1/staff/employees/{empCode}/photos:
+    put:
+      operationId: updateStaffPhotos
+      tags: [ Staff ]
+      summary: Profile and Aadhar photos as data URLs (null = keep, empty = remove)
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffPhotosInput'
+      responses:
+        '204':
+          description: Saved
+
+  /api/v1/staff/employees/{empCode}/aadhar-photo:
+    get:
+      operationId: getStaffAadharPhoto
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      responses:
+        '200':
+          description: Aadhar photo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffImage'
+
+  /api/v1/staff/employees/{empCode}/days:
+    get:
+      operationId: getStaffDays
+      tags: [ Staff ]
+      summary: Day-by-day attendance with salary for a range
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+        - $ref: '#/components/parameters/fromParam'
+        - $ref: '#/components/parameters/toParam'
+      responses:
+        '200':
+          description: Days
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffDay'
+
+  /api/v1/staff/employees/{empCode}/days/{date}:
+    put:
+      operationId: adjustStaffDay
+      tags: [ Staff ]
+      summary: Edit attendance by hand for one day
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+        - $ref: '#/components/parameters/datePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceAdjustmentInput'
+      responses:
+        '200':
+          description: The recalculated day
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffDay'
+    delete:
+      operationId: clearStaffDayAdjustment
+      tags: [ Staff ]
+      summary: Remove the manual edit and go back to the device punches
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+        - $ref: '#/components/parameters/datePathParam'
+      responses:
+        '200':
+          description: The recalculated day
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffDay'
+
+  /api/v1/staff/employees/{empCode}/statement:
+    get:
+      operationId: getSalaryStatement
+      tags: [ Staff ]
+      summary: Employeewise attendance + salary detail report for a period
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+        - $ref: '#/components/parameters/fromParam'
+        - $ref: '#/components/parameters/toParam'
+      responses:
+        '200':
+          description: Statement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalaryStatement'
+
+  /api/v1/staff/employees/{empCode}/salary-payments:
+    get:
+      operationId: getSalaryPayments
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      responses:
+        '200':
+          description: Payments, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalaryPayment'
+    post:
+      operationId: createSalaryPayment
+      tags: [ Staff ]
+      summary: Pagar Didho - settle a period and record what was paid and how
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SalaryPaymentInput'
+      responses:
+        '200':
+          description: Recorded payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalaryPayment'
+
+  /api/v1/staff/salary-payments/{id}:
+    delete:
+      operationId: deleteSalaryPayment
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/idPathParam'
+      responses:
+        '204':
+          description: Deleted
+
+  /api/v1/staff/employees/{empCode}/upads:
+    get:
+      operationId: getUpads
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      responses:
+        '200':
+          description: Upad entries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Upad'
+    post:
+      operationId: createUpad
+      tags: [ Staff ]
+      summary: Add Upad entry (advance given)
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpadInput'
+      responses:
+        '200':
+          description: Recorded upad
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upad'
+
+  /api/v1/staff/upads/{id}:
+    delete:
+      operationId: deleteUpad
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/idPathParam'
+      responses:
+        '204':
+          description: Deleted
+
+  /api/v1/staff/employees/{empCode}/payment-history:
+    get:
+      operationId: getPaymentHistory
+      tags: [ Staff ]
+      summary: Period-wise (by pay mode) salary, loan, loan deduct, paid
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+        - $ref: '#/components/parameters/fromParam'
+        - $ref: '#/components/parameters/toParam'
+      responses:
+        '200':
+          description: History rows, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentHistoryRow'
+
 components:
   securitySchemes:
     oauth2:
@@ -229,6 +643,40 @@ components:
       bearerFormat: JWT
 
   parameters:
+    empCodePathParam:
+      name: empCode
+      in: path
+      required: true
+      schema:
+        type: string
+    idPathParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    datePathParam:
+      name: date
+      in: path
+      required: true
+      schema:
+        type: string
+        format: date
+    fromParam:
+      name: from
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+    toParam:
+      name: to
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
     monthParam:
       name: month
       in: query
@@ -461,3 +909,681 @@ components:
         lastPunchTime:
           type: string
           description: Latest punch, factory local time (null = never punched)
+
+    # ==================== STAFF & PAYROLL ====================
+    WeekDay:
+      type: string
+      enum: [ MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY ]
+
+    StaffSettings:
+      type: object
+      properties:
+        weekStart:
+          $ref: '#/components/schemas/WeekDay'
+        weeklyOff:
+          type: string
+          description: A WeekDay, or NONE
+          example: NONE
+
+    PayMode:
+      type: string
+      description: How often the worker is paid
+      enum: [ DAILY, WEEKLY, FIFTEEN_DAYS, MONTHLY ]
+
+    PaymentMode:
+      type: string
+      enum: [ CASH, UPI, BANK_TRANSFER, CHEQUE ]
+
+    Gender:
+      type: string
+      enum: [ MALE, FEMALE ]
+
+    StaffDepartmentInput:
+      type: object
+      required: [ name, inTime1, outTime1 ]
+      properties:
+        name:
+          type: string
+        inTime1:
+          type: string
+          description: HH:mm, morning in
+          example: '08:00'
+        outTime1:
+          type: string
+          example: '12:30'
+        inTime2:
+          type: string
+          description: HH:mm, back from break (empty = no break)
+          example: '13:30'
+        outTime2:
+          type: string
+          example: '19:20'
+
+    StaffDepartment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        inTime1:
+          type: string
+        outTime1:
+          type: string
+        inTime2:
+          type: string
+        outTime2:
+          type: string
+        breakMinutes:
+          type: integer
+        standardMinutes:
+          type: integer
+          description: Working minutes per day (both halves, break excluded)
+        employeeCount:
+          type: integer
+
+    StaffProfileInput:
+      type: object
+      required: [ empCode, name ]
+      properties:
+        empCode:
+          type: string
+          description: The worker code on the face device
+        name:
+          type: string
+        gender:
+          $ref: '#/components/schemas/Gender'
+        phone:
+          type: string
+        aadharNo:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        reference:
+          type: string
+        joiningDate:
+          type: string
+          format: date
+        departmentId:
+          type: integer
+          format: int64
+        perDaySalary:
+          type: number
+          format: double
+        otRatePerHour:
+          type: number
+          format: double
+          description: Empty = same as per-hour salary
+        payMode:
+          $ref: '#/components/schemas/PayMode'
+        openingBalance:
+          type: number
+          format: double
+          description: Carried from the old software; + = company owes the worker
+        openingLoan:
+          type: number
+          format: double
+          description: Upad still pending from the old software
+        balanceFrom:
+          type: string
+          format: date
+          description: Date the opening figures are as of; salary accrues from here
+
+    StaffPhotosInput:
+      type: object
+      properties:
+        photo:
+          type: string
+          description: data URL (about 480px JPEG); null = keep, empty = remove
+        photoThumb:
+          type: string
+          description: data URL (about 96px JPEG)
+        aadharPhoto:
+          type: string
+
+    StaffImage:
+      type: object
+      properties:
+        dataUrl:
+          type: string
+
+    StaffSummary:
+      type: object
+      properties:
+        empCode:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        departmentName:
+          type: string
+        photoThumb:
+          type: string
+        active:
+          type: boolean
+        perDaySalary:
+          type: number
+          format: double
+        payMode:
+          $ref: '#/components/schemas/PayMode'
+        balance:
+          type: number
+          format: double
+          description: + = company owes the worker (Jama), - = worker owes
+        pendingLoan:
+          type: number
+          format: double
+        salarySet:
+          type: boolean
+          description: Department and per-day salary are filled in
+        lastPunchTime:
+          type: string
+        todayStatus:
+          $ref: '#/components/schemas/StaffDayStatus'
+
+    StaffProfile:
+      type: object
+      properties:
+        empCode:
+          type: string
+        name:
+          type: string
+        deviceName:
+          type: string
+        gender:
+          $ref: '#/components/schemas/Gender'
+        phone:
+          type: string
+        aadharNo:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        reference:
+          type: string
+        joiningDate:
+          type: string
+          format: date
+        department:
+          $ref: '#/components/schemas/StaffDepartment'
+        perDaySalary:
+          type: number
+          format: double
+        perDayHours:
+          type: number
+          format: double
+        perHourSalary:
+          type: number
+          format: double
+        otRatePerHour:
+          type: number
+          format: double
+        payMode:
+          $ref: '#/components/schemas/PayMode'
+        openingBalance:
+          type: number
+          format: double
+        openingLoan:
+          type: number
+          format: double
+        balanceFrom:
+          type: string
+          format: date
+        active:
+          type: boolean
+        photo:
+          type: string
+        photoThumb:
+          type: string
+        hasAadharPhoto:
+          type: boolean
+        balance:
+          type: number
+          format: double
+        pendingLoan:
+          type: number
+          format: double
+        lastPaidTo:
+          type: string
+          format: date
+        suggestedPeriodFrom:
+          type: string
+          format: date
+          description: Next unpaid period for Salary Paid, by pay mode
+        suggestedPeriodTo:
+          type: string
+          format: date
+        lastPunchTime:
+          type: string
+
+    StaffDayStatus:
+      type: string
+      description: |
+        PRESENT, AT_WORK (today, not out yet), MISSED_PUNCH (one punch), ABSENT, WEEKLY_OFF,
+        UPCOMING (future), NOT_JOINED (before joining date), BEFORE_START (before balanceFrom,
+        shown but not paid by the ERP)
+      enum: [ PRESENT, AT_WORK, MISSED_PUNCH, ABSENT, WEEKLY_OFF, UPCOMING, NOT_JOINED, BEFORE_START ]
+
+    StaffDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/StaffDayStatus'
+        statusLabel:
+          type: string
+          example: Present (Late Commer)
+        late:
+          type: boolean
+        overtime:
+          type: boolean
+        halfDay:
+          type: boolean
+        manual:
+          type: boolean
+          description: Edited by hand (Edit Attendance)
+        note:
+          type: string
+        morningIn:
+          type: string
+          description: HH:mm
+        nightOut:
+          type: string
+        breakFrom:
+          type: string
+        breakTo:
+          type: string
+        breakMinutes:
+          type: integer
+        excessBreakMinutes:
+          type: integer
+        workedMinutes:
+          type: integer
+          description: Actual work = (out - in) - break
+        deduction:
+          type: number
+          format: double
+        addition:
+          type: number
+          format: double
+        payable:
+          type: number
+          format: double
+        punches:
+          type: array
+          items:
+            type: string
+
+    AttendanceAdjustmentInput:
+      type: object
+      properties:
+        inTime:
+          type: string
+          description: HH:mm
+        outTime:
+          type: string
+        breakMinutes:
+          type: integer
+          description: Empty = department break
+        absent:
+          type: boolean
+        note:
+          type: string
+
+    SalaryStatement:
+      type: object
+      properties:
+        empCode:
+          type: string
+        name:
+          type: string
+        photoThumb:
+          type: string
+        departmentName:
+          type: string
+        timing:
+          type: string
+          example: 08:00am TO 07:20pm (10:20 Hours / Break Hours 01:00)
+        joiningDate:
+          type: string
+          format: date
+        payMode:
+          $ref: '#/components/schemas/PayMode'
+        perDaySalary:
+          type: number
+          format: double
+        perHourSalary:
+          type: number
+          format: double
+        otRatePerHour:
+          type: number
+          format: double
+        standardMinutes:
+          type: integer
+        salarySet:
+          type: boolean
+        periodFrom:
+          type: string
+          format: date
+        periodTo:
+          type: string
+          format: date
+        totalDays:
+          type: integer
+        presentDays:
+          type: number
+          format: double
+        halfDays:
+          type: integer
+        absentDays:
+          type: integer
+        weeklyOffDays:
+          type: integer
+        lateDays:
+          type: integer
+        totalWorkedMinutes:
+          type: integer
+        totalDeduction:
+          type: number
+          format: double
+        totalAddition:
+          type: number
+          format: double
+        totalSalary:
+          type: number
+          format: double
+        openingBalance:
+          type: number
+          format: double
+        bonus:
+          type: number
+          format: double
+        loanDeduction:
+          type: number
+          format: double
+        salaryToPay:
+          type: number
+          format: double
+        paidAmount:
+          type: number
+          format: double
+        closingBalance:
+          type: number
+          format: double
+        loanBefore:
+          type: number
+          format: double
+          description: Upad pending at the start of the period (Baki Upad)
+        totalLoanGiven:
+          type: number
+          format: double
+        totalLoanDeducted:
+          type: number
+          format: double
+        pendingLoan:
+          type: number
+          format: double
+        payment:
+          $ref: '#/components/schemas/SalaryPayment'
+        overlapsPayment:
+          type: boolean
+          description: Part of this period is already settled by another payment
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffDay'
+
+    SalaryPaymentInput:
+      type: object
+      required: [ periodFrom, periodTo, paidAmount, paymentMode ]
+      properties:
+        periodFrom:
+          type: string
+          format: date
+        periodTo:
+          type: string
+          format: date
+        bonus:
+          type: number
+          format: double
+        loanDeduction:
+          type: number
+          format: double
+          description: Loan Jama - upad recovered from this salary
+        paidAmount:
+          type: number
+          format: double
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        paidOn:
+          type: string
+          format: date
+        note:
+          type: string
+
+    SalaryPayment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        periodFrom:
+          type: string
+          format: date
+        periodTo:
+          type: string
+          format: date
+        openingBalance:
+          type: number
+          format: double
+        totalSalary:
+          type: number
+          format: double
+        bonus:
+          type: number
+          format: double
+        loanDeduction:
+          type: number
+          format: double
+        payable:
+          type: number
+          format: double
+        paidAmount:
+          type: number
+          format: double
+        balanceAfter:
+          type: number
+          format: double
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        paidOn:
+          type: string
+          format: date
+        note:
+          type: string
+
+    UpadInput:
+      type: object
+      required: [ entryDate, amount, paymentMode ]
+      properties:
+        entryDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        note:
+          type: string
+
+    Upad:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        entryDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        note:
+          type: string
+
+    PaymentHistoryRow:
+      type: object
+      properties:
+        periodFrom:
+          type: string
+          format: date
+        periodTo:
+          type: string
+          format: date
+        totalSalary:
+          type: number
+          format: double
+        loanGiven:
+          type: number
+          format: double
+        loanDeducted:
+          type: number
+          format: double
+        paidSalary:
+          type: number
+          format: double
+        settled:
+          type: boolean
+        paymentModes:
+          type: string
+
+    StaffBrief:
+      type: object
+      properties:
+        empCode:
+          type: string
+        name:
+          type: string
+        photoThumb:
+          type: string
+        departmentName:
+          type: string
+        time:
+          type: string
+          description: HH:mm (in-time for late / at work)
+        amount:
+          type: number
+          format: double
+
+    RecentTransaction:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [ SALARY, UPAD ]
+        id:
+          type: integer
+          format: int64
+        empCode:
+          type: string
+        employeeName:
+          type: string
+        photoThumb:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        periodFrom:
+          type: string
+          format: date
+        periodTo:
+          type: string
+          format: date
+
+    StaffDashboard:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        activeStaff:
+          type: integer
+        present:
+          type: integer
+        atWork:
+          type: integer
+        late:
+          type: integer
+        absent:
+          type: integer
+        missedPunch:
+          type: integer
+        weeklyOff:
+          type: boolean
+        weekFrom:
+          type: string
+          format: date
+        weekTo:
+          type: string
+          format: date
+        salaryThisWeek:
+          type: number
+          format: double
+          description: Earned so far this pay week, all active staff
+        paidThisWeek:
+          type: number
+          format: double
+        upadThisWeek:
+          type: number
+          format: double
+        totalBalance:
+          type: number
+          format: double
+          description: Salary owed to staff right now (positive balances)
+        totalPendingLoan:
+          type: number
+          format: double
+        salaryNotSetCount:
+          type: integer
+        lateToday:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffBrief'
+        absentToday:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffBrief'
+        missedPunchYesterday:
+          type: array
+          description: One punch only yesterday - fix with Edit Attendance
+          items:
+            $ref: '#/components/schemas/StaffBrief'
+        topBalances:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffBrief'
+        recent:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentTransaction'
