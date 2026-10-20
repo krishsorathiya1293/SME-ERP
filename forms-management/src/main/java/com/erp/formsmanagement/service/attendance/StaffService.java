@@ -421,25 +421,47 @@ public class StaffService {
     AttendanceEmployeeEntity e = employee(empCode);
     if (date.isAfter(WorkDay.today())) throw bad("Can't edit a future day");
     boolean absent = Boolean.TRUE.equals(in.getAbsent());
-    LocalTime inTime = absent || isBlank(in.getInTime()) ? null : time(in.getInTime(), "In time");
-    LocalTime outTime = absent || isBlank(in.getOutTime()) ? null : time(in.getOutTime(), "Out time");
-    if (!absent && inTime == null) throw bad("Give the in time, or mark the day absent");
-    // An out after midnight (e.g. in 20:00, out 03:00) is the same working day.
-    if (inTime != null && outTime != null && !WorkDay.after(outTime, inTime)) {
-      throw bad("Out time must be after in time");
-    }
+    List<LocalTime> times = absent ? List.of() : adjustedTimes(in);
+    if (!absent && times.isEmpty()) throw bad("Give the in time, or mark the day absent");
     if (in.getBreakMinutes() != null && in.getBreakMinutes() < 0) throw bad("Break can't be negative");
     AttendanceAdjustmentEntity a =
         adjustments.findByEmpCodeAndWorkDate(e.getEmpCode(), date).orElseGet(AttendanceAdjustmentEntity::new);
     a.setEmpCode(e.getEmpCode());
     a.setWorkDate(date);
     a.setAbsent(absent);
-    a.setInTime(inTime);
-    a.setOutTime(outTime);
+    a.setInTime(times.isEmpty() ? null : times.get(0));
+    a.setOutTime(times.size() < 2 ? null : times.get(times.size() - 1));
+    a.setPunchTimes(
+        times.isEmpty() ? null : times.stream().map(LocalTime::toString).collect(Collectors.joining(",")));
     a.setBreakMinutes(absent ? null : in.getBreakMinutes());
     a.setNote(trim(in.getNote()));
     adjustments.save(a);
     return ledger(e, date, date).day(date);
+  }
+
+  /**
+   * The edited day's in/outs, in working-day order: the punches list, or in + out from older
+   * clients. An out after midnight (in 20:00, out 03:00) is the same working day.
+   */
+  private static List<LocalTime> adjustedTimes(AttendanceAdjustmentInput in) {
+    List<LocalTime> times = new ArrayList<>();
+    if (in.getPunches() != null && !in.getPunches().isEmpty()) {
+      for (String p : in.getPunches()) if (!isBlank(p)) times.add(time(p, "Punch time"));
+    } else {
+      if (!isBlank(in.getInTime())) times.add(time(in.getInTime(), "In time"));
+      if (!isBlank(in.getOutTime())) {
+        if (times.isEmpty()) throw bad("Give the in time, or mark the day absent");
+        LocalTime out = time(in.getOutTime(), "Out time");
+        if (!WorkDay.after(out, times.get(0))) throw bad("Out time must be after in time");
+        times.add(out);
+      }
+    }
+    if (times.size() > 20) throw bad("At most 20 punches in a day");
+    times.sort(Comparator.comparingInt(WorkDay::minuteOf));
+    for (int i = 1; i < times.size(); i++) {
+      if (times.get(i).equals(times.get(i - 1))) throw bad("Punch " + times.get(i) + " is there twice");
+    }
+    return times;
   }
 
   public StaffDay clearAdjustment(String empCode, LocalDate date) {

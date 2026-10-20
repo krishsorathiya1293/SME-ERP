@@ -842,7 +842,17 @@ components:
           type: integer
         workedMinutes:
           type: integer
-          description: lastOut - firstIn in minutes (0 when only one punch)
+          description: >
+            Time actually worked: lastOut - firstIn less the break (the out/in gaps when there
+            are 4+ punches, else the department break). Same figure as the staff profile.
+        punches:
+          type: array
+          description: Every in/out of the day, HH:mm, in order (the hand-edited ones when manual)
+          items:
+            type: string
+        manual:
+          type: boolean
+          description: The day was edited by hand in the staff profile
 
     AttendanceDay:
       type: object
@@ -860,6 +870,8 @@ components:
           type: integer
         workedMinutes:
           type: integer
+        manual:
+          type: boolean
 
     MonthlyAttendanceRow:
       type: object
@@ -1200,6 +1212,9 @@ components:
           type: string
         breakMinutes:
           type: integer
+        manualBreakMinutes:
+          type: integer
+          description: The break typed in by hand on an edited day (null = worked out)
         excessBreakMinutes:
           type: integer
         workedMinutes:
@@ -1216,20 +1231,33 @@ components:
           format: double
         punches:
           type: array
+          description: The day's in/outs, HH:mm, in order (the hand-edited ones when manual)
+          items:
+            type: string
+        devicePunches:
+          type: array
+          description: What the face device recorded that day, HH:mm, whether edited or not
           items:
             type: string
 
     AttendanceAdjustmentInput:
       type: object
       properties:
+        punches:
+          type: array
+          description: >
+            Every in/out of the day, HH:mm (in, out, in, out, ...). Takes the place of
+            inTime/outTime when given. Times before 7 AM are the next morning.
+          items:
+            type: string
         inTime:
           type: string
-          description: HH:mm
+          description: HH:mm (older clients; use punches)
         outTime:
           type: string
         breakMinutes:
           type: integer
-          description: Empty = department break
+          description: Empty = the out/in gaps when 4+ punches, else the department break
         absent:
           type: boolean
         note:

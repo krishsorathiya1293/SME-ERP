@@ -21,8 +21,9 @@ import java.util.List;
  * <p>The rule, which reproduces the client's PagarGuru statement to the paisa:
  *
  * <ul>
- *   <li>In = first punch, Out = last punch. Break = the gap between the 2nd and 3rd punch when
- *       there are 4+, otherwise the department break if the day spans it.
+ *   <li>In = first punch, Out = last punch. Punches alternate in, out, in, out: with 4+ the
+ *       break is every out→in gap (2nd→3rd, 4th→5th, ...), otherwise the department break if the
+ *       day spans it. A hand-edited day is read the same way from its edited list.
  *   <li>Actual work = (Out − In) − break. Standard = the department's two halves.
  *   <li>Per-hour = per-day salary ÷ standard hours. Short of standard → (−) deduction at per-hour;
  *       beyond it → (+) addition at the OT rate (per-hour when not set).
@@ -79,19 +80,17 @@ public final class StaffDayCalculator {
 
     StaffDay day = new StaffDay().date(date).late(false).overtime(false).halfDay(false);
     day.manual(adjustment != null).note(adjustment == null ? null : adjustment.getNote());
+    day.manualBreakMinutes(adjustment == null ? null : adjustment.getBreakMinutes());
     day.breakMinutes(0).excessBreakMinutes(0).workedMinutes(0);
     day.deduction(0.0).addition(0.0).payable(0.0);
 
-    List<LocalTime> times = new ArrayList<>();
-    if (adjustment != null) {
-      if (!adjustment.isAbsent()) {
-        if (adjustment.getInTime() != null) times.add(adjustment.getInTime());
-        if (adjustment.getOutTime() != null) times.add(adjustment.getOutTime());
-      }
-    } else if (punches != null) {
-      punches.stream().sorted().forEach(p -> times.add(p.toLocalTime().withSecond(0).withNano(0)));
+    List<LocalTime> device = new ArrayList<>();
+    if (punches != null) {
+      punches.stream().sorted().forEach(p -> device.add(p.toLocalTime().withSecond(0).withNano(0)));
     }
+    List<LocalTime> times = adjustment != null ? adjustment.times() : device;
     day.punches(times.stream().map(HM::format).toList());
+    day.devicePunches(device.stream().map(HM::format).toList());
 
     if (date.isAfter(today)) return status(day, StaffDayStatus.UPCOMING, "");
     if (rates.joiningDate() != null && date.isBefore(rates.joiningDate()) && times.isEmpty()) {
@@ -125,9 +124,9 @@ public final class StaffDayCalculator {
     int breakMinutes = 0;
     if (adjustment != null && adjustment.getBreakMinutes() != null) {
       breakMinutes = Math.max(0, adjustment.getBreakMinutes());
-    } else if (adjustment == null && times.size() >= 4) {
-      day.breakFrom(HM.format(times.get(1))).breakTo(HM.format(times.get(2)));
-      breakMinutes = WorkDay.between(times.get(1), times.get(2));
+    } else if (times.size() >= 4) {
+      breakMinutes = gapMinutes(times);
+      if (times.size() <= 5) day.breakFrom(HM.format(times.get(1))).breakTo(HM.format(times.get(2)));
     } else if (dept != null && dept.hasBreak()
         && WorkDay.after(dept.getInTime2(), in) && WorkDay.after(out, dept.getOutTime1())) {
       day.breakFrom(HM.format(dept.getOutTime1())).breakTo(HM.format(dept.getInTime2()));
@@ -159,6 +158,18 @@ public final class StaffDayCalculator {
       return status(day, StaffDayStatus.BEFORE_START, label + " · before ERP start");
     }
     return status(day, StaffDayStatus.PRESENT, label);
+  }
+
+  /**
+   * Minutes spent out between an out and the next in: the 2nd→3rd, 4th→5th, ... punch. The last
+   * punch is always the day's out, so a gap ending on it doesn't count.
+   */
+  static int gapMinutes(List<LocalTime> times) {
+    int sum = 0;
+    for (int i = 1; i + 1 < times.size() - 1; i += 2) {
+      sum += WorkDay.between(times.get(i), times.get(i + 1));
+    }
+    return sum;
   }
 
   private static StaffDay status(StaffDay day, StaffDayStatus s, String label) {

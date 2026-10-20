@@ -9,6 +9,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -31,10 +34,26 @@ public class AttendanceAdjustmentEntity extends AuditInfo {
   private LocalDate workDate;
   private LocalTime inTime;
   private LocalTime outTime;
+  // Every in/out as "HH:mm,HH:mm,...", in working-day order; null on edits made before V65.
+  private String punchTimes;
   // null = use the department break.
   private Integer breakMinutes;
   private boolean absent;
   private String note;
+
+  /** The day's in/outs in order: the full list when kept, else just in and out. */
+  public List<LocalTime> times() {
+    List<LocalTime> out = new ArrayList<>();
+    if (absent) return out;
+    if (punchTimes != null && !punchTimes.isBlank()) {
+      Arrays.stream(punchTimes.split(",")).map(String::trim).filter(t -> !t.isEmpty())
+          .map(LocalTime::parse).forEach(out::add);
+      return out;
+    }
+    if (inTime != null) out.add(inTime);
+    if (outTime != null) out.add(outTime);
+    return out;
+  }
 
   @Override
   public boolean equals(Object o) {

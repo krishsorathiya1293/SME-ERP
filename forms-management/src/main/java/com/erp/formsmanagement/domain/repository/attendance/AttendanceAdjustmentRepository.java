@@ -14,4 +14,6 @@ public interface AttendanceAdjustmentRepository extends CoreRepository<Attendanc
 
   List<AttendanceAdjustmentEntity> findByEmpCodeInAndWorkDateBetween(
       Collection<String> empCodes, LocalDate from, LocalDate to);
+
+  List<AttendanceAdjustmentEntity> findByWorkDateBetween(LocalDate from, LocalDate to);
 }

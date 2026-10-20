@@ -11,13 +11,15 @@ import com.erp.api.attendancemanagement.model.MonthlyAttendanceRow;
 import com.erp.api.attendancemanagement.model.PunchRecord;
 import com.erp.api.attendancemanagement.model.SyncResult;
 import com.erp.api.attendancemanagement.model.SyncStatus;
+import com.erp.api.attendancemanagement.model.StaffDay;
+import com.erp.formsmanagement.domain.entity.attendance.AttendanceAdjustmentEntity;
 import com.erp.formsmanagement.domain.entity.attendance.AttendanceEmployeeEntity;
 import com.erp.formsmanagement.domain.entity.attendance.AttendancePunchEntity;
 import com.erp.formsmanagement.domain.entity.attendance.WorkDay;
+import com.erp.formsmanagement.domain.repository.attendance.AttendanceAdjustmentRepository;
 import com.erp.formsmanagement.domain.repository.attendance.AttendanceEmployeeRepository;
 import com.erp.formsmanagement.domain.repository.attendance.AttendancePunchRepository;
 import java.time.DayOfWeek;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -47,7 +49,8 @@ import org.springframework.web.server.ResponseStatusException;
  *
  * <p>A day is read as: first punch = in, last punch = out. The device's in/out state is ignored —
  * workers routinely leave it on the wrong setting. A single punch is AT_WORK today and MISSED_PUNCH
- * on any earlier day. Days are the factory's 7 AM - 7 AM working days ({@link WorkDay}), so a
+ * on any earlier day. A day hand-edited in the staff profile replaces that day's punches here too,
+ * and hours come from {@link StaffDayCalculator}, so this view and the profile agree. Days are the factory's 7 AM - 7 AM working days ({@link WorkDay}), so a
  * night shift (in 8 PM, out 3 AM) is one day on the date it started.
  *
  * <p>"Active" employees (the ones a missing punch makes ABSENT) are those who punched at least
@@ -64,14 +67,17 @@ public class AttendanceService {
 
   private final AttendancePunchRepository punchRepository;
   private final AttendanceEmployeeRepository employeeRepository;
+  private final AttendanceAdjustmentRepository adjustmentRepository;
   private final AttendanceAgentHeartbeat heartbeat;
 
   public AttendanceService(
       AttendancePunchRepository punchRepository,
       AttendanceEmployeeRepository employeeRepository,
+      AttendanceAdjustmentRepository adjustmentRepository,
       AttendanceAgentHeartbeat heartbeat) {
     this.punchRepository = punchRepository;
     this.employeeRepository = employeeRepository;
+    this.adjustmentRepository = adjustmentRepository;
     this.heartbeat = heartbeat;
   }
 
@@ -182,25 +188,28 @@ public class AttendanceService {
   @Transactional(readOnly = true)
   public List<DailyAttendance> daily(LocalDate date, String weeklyOff) {
     DayOfWeek off = parseWeeklyOff(weeklyOff);
-    Map<String, Map<LocalDate, DayPunches>> byEmp = groupByEmployeeAndDay(date, date);
-    Set<String> codes = activeCodes(date, date, byEmp.keySet());
+    Map<String, Map<LocalDate, List<LocalDateTime>>> byEmp = groupByEmployeeAndDay(date, date);
+    Map<String, Map<LocalDate, AttendanceAdjustmentEntity>> edits = adjustmentsFor(date, date);
+    Set<String> codes = activeCodes(date, date, presentIn(byEmp, edits));
     Map<String, AttendanceEmployeeEntity> employees = employeesFor(codes);
     Map<String, LocalDate> joined = firstPunchDates(codes);
 
     List<DailyAttendance> result = new ArrayList<>();
     for (String code : codes) {
-      DayPunches day = byEmp.getOrDefault(code, Map.of()).get(date);
       AttendanceEmployeeEntity emp = employees.get(code);
+      DayRead day = read(date, emp, byEmp.get(code), edits.get(code));
       result.add(
           new DailyAttendance()
               .empCode(code)
               .employeeName(nameOf(emp))
               .department(emp == null ? null : emp.getDepartmentName())
               .status(statusOf(date, day, off, joined.get(code)))
-              .firstIn(day == null ? null : day.first.toLocalTime().toString())
-              .lastOut(day == null || day.count < 2 ? null : day.last.toLocalTime().toString())
-              .punchCount(day == null ? 0 : day.count)
-              .workedMinutes(day == null ? 0 : day.workedMinutes()));
+              .firstIn(day.firstIn())
+              .lastOut(day.lastOut())
+              .punchCount(day.count())
+              .workedMinutes(day.workedMinutes())
+              .punches(day.times())
+              .manual(day.manual()));
     }
     result.sort(
         Comparator.comparing(
@@ -217,14 +226,14 @@ public class AttendanceService {
     LocalDate first = ym.atDay(1);
     LocalDate last = ym.atEndOfMonth();
 
-    Map<String, Map<LocalDate, DayPunches>> byEmp = groupByEmployeeAndDay(first, last);
-    Set<String> codes = activeCodes(first, last, byEmp.keySet());
+    Map<String, Map<LocalDate, List<LocalDateTime>>> byEmp = groupByEmployeeAndDay(first, last);
+    Map<String, Map<LocalDate, AttendanceAdjustmentEntity>> edits = adjustmentsFor(first, last);
+    Set<String> codes = activeCodes(first, last, presentIn(byEmp, edits));
     Map<String, AttendanceEmployeeEntity> employees = employeesFor(codes);
     Map<String, LocalDate> joined = firstPunchDates(codes);
 
     List<MonthlyAttendanceRow> rows = new ArrayList<>();
     for (String code : codes) {
-      Map<LocalDate, DayPunches> empDays = byEmp.getOrDefault(code, Map.of());
       AttendanceEmployeeEntity emp = employees.get(code);
       MonthlyAttendanceRow row =
           new MonthlyAttendanceRow()
@@ -234,7 +243,7 @@ public class AttendanceService {
       int present = 0, missed = 0, absent = 0, minutes = 0;
       List<AttendanceDay> days = new ArrayList<>();
       for (LocalDate d = first; !d.isAfter(last); d = d.plusDays(1)) {
-        DayPunches day = empDays.get(d);
+        DayRead day = read(d, emp, byEmp.get(code), edits.get(code));
         AttendanceDayStatus st = statusOf(d, day, off, joined.get(code));
         switch (st) {
           case PRESENT, AT_WORK -> present++;
@@ -242,15 +251,16 @@ public class AttendanceService {
           case ABSENT -> absent++;
           default -> {}
         }
-        if (day != null) minutes += day.workedMinutes();
+        minutes += day.workedMinutes();
         days.add(
             new AttendanceDay()
                 .date(d)
                 .status(st)
-                .firstIn(day == null ? null : day.first.toLocalTime().toString())
-                .lastOut(day == null || day.count < 2 ? null : day.last.toLocalTime().toString())
-                .punchCount(day == null ? 0 : day.count)
-                .workedMinutes(day == null ? 0 : day.workedMinutes()));
+                .firstIn(day.firstIn())
+                .lastOut(day.lastOut())
+                .punchCount(day.count())
+                .workedMinutes(day.workedMinutes())
+                .manual(day.manual()));
       }
       rows.add(
           row.presentDays(present)
@@ -299,34 +309,80 @@ public class AttendanceService {
 
   // ------------------------------------------------------------------ helpers
 
-  /** First/last/count of one employee's punches on one calendar day. */
-  static final class DayPunches {
-    LocalDateTime first;
-    LocalDateTime last;
-    int count;
+  /**
+   * One employee's day as the ERP reads it: the device punches, or the hand edit that replaces
+   * them. {@code times} are HH:mm in order; worked is after the break, as on the profile.
+   */
+  record DayRead(List<String> times, int workedMinutes, boolean manual, boolean markedAbsent) {
+    static final DayRead NONE = new DayRead(List.of(), 0, false, false);
 
-    void add(LocalDateTime t) {
-      if (first == null || t.isBefore(first)) first = t;
-      if (last == null || t.isAfter(last)) last = t;
-      count++;
+    int count() {
+      return times.size();
     }
 
-    int workedMinutes() {
-      return count < 2 ? 0 : (int) Duration.between(first, last).toMinutes();
+    String firstIn() {
+      return times.isEmpty() ? null : times.get(0);
+    }
+
+    String lastOut() {
+      return times.size() < 2 ? null : times.get(times.size() - 1);
     }
   }
 
-  private Map<String, Map<LocalDate, DayPunches>> groupByEmployeeAndDay(
+  private static DayRead read(
+      LocalDate date,
+      AttendanceEmployeeEntity emp,
+      Map<LocalDate, List<LocalDateTime>> punches,
+      Map<LocalDate, AttendanceAdjustmentEntity> edits) {
+    AttendanceAdjustmentEntity edit = edits == null ? null : edits.get(date);
+    List<LocalDateTime> dayPunches = punches == null ? null : punches.get(date);
+    if (edit == null && dayPunches == null) return DayRead.NONE;
+    StaffDay d = StaffDayCalculator.calculate(date, dayPunches, edit, ratesOf(emp), WorkDay.today());
+    return new DayRead(
+        d.getPunches(),
+        d.getWorkedMinutes() == null ? 0 : d.getWorkedMinutes(),
+        edit != null,
+        edit != null && edit.isAbsent());
+  }
+
+  /** Only the department matters for hours (its break); pay isn't shown here. */
+  private static StaffDayCalculator.Rates ratesOf(AttendanceEmployeeEntity e) {
+    return new StaffDayCalculator.Rates(
+        e == null ? null : e.getStaffDepartment(), null, null, null, null, null);
+  }
+
+  private Map<String, Map<LocalDate, List<LocalDateTime>>> groupByEmployeeAndDay(
       LocalDate from, LocalDate to) {
-    Map<String, Map<LocalDate, DayPunches>> byEmp = new HashMap<>();
+    Map<String, Map<LocalDate, List<LocalDateTime>>> byEmp = new HashMap<>();
     for (AttendancePunchEntity p :
         punchRepository.findByPunchTimeBetweenOrderByPunchTimeAsc(startOf(from), endOf(to))) {
       byEmp
           .computeIfAbsent(p.getEmpCode(), k -> new HashMap<>())
-          .computeIfAbsent(WorkDay.of(p.getPunchTime()), k -> new DayPunches())
+          .computeIfAbsent(WorkDay.of(p.getPunchTime()), k -> new ArrayList<>())
           .add(p.getPunchTime());
     }
     return byEmp;
+  }
+
+  private Map<String, Map<LocalDate, AttendanceAdjustmentEntity>> adjustmentsFor(
+      LocalDate from, LocalDate to) {
+    Map<String, Map<LocalDate, AttendanceAdjustmentEntity>> out = new HashMap<>();
+    for (AttendanceAdjustmentEntity a : adjustmentRepository.findByWorkDateBetween(from, to)) {
+      out.computeIfAbsent(a.getEmpCode(), k -> new HashMap<>()).put(a.getWorkDate(), a);
+    }
+    return out;
+  }
+
+  /** Who was at work in the period: punched, or given times by hand. */
+  private static Set<String> presentIn(
+      Map<String, Map<LocalDate, List<LocalDateTime>>> byEmp,
+      Map<String, Map<LocalDate, AttendanceAdjustmentEntity>> edits) {
+    Set<String> codes = new LinkedHashSet<>(byEmp.keySet());
+    edits.forEach(
+        (code, days) -> {
+          if (days.values().stream().anyMatch(a -> !a.isAbsent())) codes.add(code);
+        });
+    return codes;
   }
 
   /** Employees who punched in the period, plus those who punched in the 30 days before it. */
@@ -345,10 +401,11 @@ public class AttendanceService {
   }
 
   private static AttendanceDayStatus statusOf(
-      LocalDate date, DayPunches day, DayOfWeek off, LocalDate joinedOn) {
+      LocalDate date, DayRead day, DayOfWeek off, LocalDate joinedOn) {
     LocalDate today = WorkDay.today();
-    if (day != null) {
-      if (day.count >= 2) return AttendanceDayStatus.PRESENT;
+    if (day.markedAbsent()) return AttendanceDayStatus.ABSENT;
+    if (day.count() > 0) {
+      if (day.count() >= 2) return AttendanceDayStatus.PRESENT;
       // One punch today just means they haven't left yet.
       return date.equals(today) ? AttendanceDayStatus.AT_WORK : AttendanceDayStatus.MISSED_PUNCH;
     }
