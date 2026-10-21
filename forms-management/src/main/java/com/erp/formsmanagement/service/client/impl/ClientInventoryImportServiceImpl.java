@@ -13,6 +13,11 @@ import com.erp.formsmanagement.service.client.ClientInventoryImportService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -50,6 +55,9 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
   private static final int COL_ROSEGOLD       = 20;
   private static final int COL_CLEARLACQ      = 21;
 
+  // A trailing thickness tag on a size, e.g. the "-2.5mm" in "3x1/2-2.5mm" (after normalising).
+  private static final Pattern THICKNESS_SUFFIX = Pattern.compile("-\\d+(\\.\\d+)?mm$");
+
   private final ClientInventoryRepository clientInventoryRepository;
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
   private final PartyRepository partyRepository;
@@ -81,6 +89,7 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
       // Item name ("Doz.") is a merged cell spanning its sizes — it appears only on the first row
       // of each group, so carry the last-seen value forward to the rows below it.
       String currentItemName = null;
+      Map<String, List<ItemBlueprintDataEntity>> sizesByItem = new HashMap<>();
 
       for (int i = 1; i <= sheet.getLastRowNum(); i++) {
         Row row = sheet.getRow(i);
@@ -101,13 +110,20 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
         // correct one. Rows with no resolvable item name cannot be matched. Uses the null-safe
         // lookup so mm-less items (e.g. "Super Marble", "Crank") — stored with sizeInMm = NULL in
         // the blueprint — still resolve when the client sheet leaves the mm cell blank.
-        ItemBlueprintDataEntity size = currentItemName == null
+        // If the exact text doesn't match, fall back to a loose compare within the same item (see
+        // findLooseMatch) — the stock master sometimes repeats the item's thickness in the size,
+        // e.g. "Z-3 (2.5mm)" stores "3 x 1/2 - 2.5mm" while client sheets just say "3 x 1/2".
+        final String groupName = currentItemName;
+        ItemBlueprintDataEntity size = groupName == null
             ? null
             : itemBlueprintDataRepository
-                .findByItemNameAndSizesNullSafe(currentItemName, inch, mm)
+                .findByItemNameAndSizesNullSafe(groupName, inch, mm)
                 .stream()
                 .findFirst()
-                .orElse(null);
+                .orElseGet(() -> findLooseMatch(
+                    sizesByItem.computeIfAbsent(groupName,
+                        itemBlueprintDataRepository::findByItem_ItemNameOrderByIdAsc),
+                    inch, mm));
 
         if (size == null) {
           rowsSkipped++;
@@ -205,6 +221,29 @@ public class ClientInventoryImportServiceImpl implements ClientInventoryImportSe
     }
 
     return null;
+  }
+
+  /**
+   * Finds the one size of an item whose inch and mm match the sheet after ignoring case, spacing
+   * and a trailing thickness tag ("- 2.5mm"). Only the item's own sizes are searched, so stripping
+   * the tag can't bind "Z-3 (2.5mm)" rows to "Z-3 (2mm)". Returns null when nothing or more than
+   * one size matches, rather than guessing.
+   */
+  private ItemBlueprintDataEntity findLooseMatch(
+      List<ItemBlueprintDataEntity> itemSizes, String inch, String mm) {
+    String wantInch = looseSize(inch);
+    String wantMm = looseSize(mm);
+    List<ItemBlueprintDataEntity> matches = itemSizes.stream()
+        .filter(b -> looseSize(b.getSizeInInch()).equals(wantInch)
+            && looseSize(b.getSizeInMm()).equals(wantMm))
+        .toList();
+    return matches.size() == 1 ? matches.get(0) : null;
+  }
+
+  private String looseSize(String value) {
+    if (value == null) return "";
+    String s = value.toLowerCase(Locale.ROOT).replaceAll("\\s+", "");
+    return THICKNESS_SUFFIX.matcher(s).replaceFirst("");
   }
 
   private void apply(ClientInventoryEntity entity, String field, Object value) {

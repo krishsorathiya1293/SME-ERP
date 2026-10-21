@@ -19,6 +19,8 @@ public interface ItemBlueprintDataRepository extends CoreRepository<ItemBlueprin
   Optional<ItemBlueprintDataEntity> findFirstByItem_ItemNameAndSizeInInchAndSizeInMm(
       String itemName, String sizeInInch, String sizeInMm);
 
+  List<ItemBlueprintDataEntity> findByItem_ItemNameOrderByIdAsc(String itemName);
+
   /**
    * Matches a blueprint size by item name + inch + mm, treating a NULL and an empty-string size the
    * same. The blueprint import stores {@code sizeInMm = NULL} for items that have no mm size (e.g.
