@@ -9,8 +9,11 @@ import com.erp.formsmanagement.domain.entity.inventory.ItemBlueprintDataEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkOrderItemEntity;
 import com.erp.formsmanagement.domain.entity.order.JobWorkReturnEntity;
+import com.erp.formsmanagement.domain.entity.order.MergeMoveKind;
+import com.erp.formsmanagement.domain.entity.order.OrderDispatchEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
 import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
+import com.erp.formsmanagement.domain.entity.order.OrderItemMergeMoveEntity;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -177,39 +180,17 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
         : toKg(orderedPc, pcsWeight);
 
     // When this line has been merged into another order, the work happens on the merged line and
-    // nothing at all is recorded here. What is reported is this line's share of that work --
-    // ordered against ordered -- so a client who ordered 100 Kg of a merged 300 sees a third of it
-    // and never the whole. `mergedShare` is 1.0 and `worked` is the line itself when unmerged.
+    // nothing at all is recorded here. What is reported is this line's part of that work, so a
+    // client who ordered 100 Kg of a merged 300 never sees the whole 300 against their order.
     OrderItemEntity worked = item.getMergedIntoItem() != null ? item.getMergedIntoItem() : item;
-    double mergedShare = mergedShareOf(item, worked);
-
-    // A chitthi can cover several order lines (see JobWorkOrderItemEntity), so the worked line's
-    // figures are its *share* of each one, not the whole. `shareOf` is 1.0 for an ordinary job
-    // work, so unmerged lines are unaffected.
-    List<JobWorkEntity> jobWorks = jobWorksTouching(worked);
-    double sentKg =
-        jobWorks.stream()
-                .mapToDouble(jw -> nullToZero(jw.getQtyKg()) * shareOf(jw, worked))
-                .sum()
-            * mergedShare;
-
-    double returnedKg =
-        jobWorks.stream()
-                .mapToDouble(
-                    jw -> sumReturns(jw, JobWorkReturnEntity::getReturnKg) * shareOf(jw, worked))
-                .sum()
-            * mergedShare;
-    double ghatiKg =
-        jobWorks.stream()
-                .mapToDouble(
-                    jw -> sumReturns(jw, JobWorkReturnEntity::getGhati) * shareOf(jw, worked))
-                .sum()
-            * mergedShare;
-
-    double dispatchedPc =
-        worked == item
-            ? dispatchedPc(item, orderedPc)
-            : clampToZero(dispatchedPc(worked, nullToZero(worked.getQtyPc())) * mergedShare);
+    Work work =
+        worked != item && worked.getMergeMoves() != null && !worked.getMergeMoves().isEmpty()
+            ? attributedWork(item, worked)
+            : sharedWork(item, worked, orderedPc);
+    double sentKg = work.sentKg();
+    double returnedKg = work.returnedKg();
+    double ghatiKg = work.ghatiKg();
+    double dispatchedPc = work.dispatchedPc();
     Double dispatchedKg = toKg(dispatchedPc, pcsWeight);
 
     // What's still with the plater is pure Kg arithmetic, so it always works. The other three need
@@ -257,6 +238,194 @@ public class ClientOrderFulfillmentServiceImpl implements ClientOrderFulfillment
         round3(sentKg),
         round3(returnedKg),
         round3(inPlatingKg));
+  }
+
+  /** What has happened to one line: Kg sent, returned and burnt off at the plater, pcs dispatched. */
+  private record Work(double sentKg, double returnedKg, double ghatiKg, double dispatchedPc) {}
+
+  /**
+   * The line's work when nothing was recorded against it before it was merged — an ordinary line,
+   * or one merged while still untouched. All the merged line's work is shared out by what each
+   * line ordered.
+   */
+  private Work sharedWork(OrderItemEntity item, OrderItemEntity worked, double orderedPc) {
+    // `mergedShare` is 1.0 and `worked` is the line itself when unmerged.
+    double mergedShare = mergedShareOf(item, worked);
+
+    // A chitthi can cover several order lines (see JobWorkOrderItemEntity), so the worked line's
+    // figures are its *share* of each one, not the whole. `shareOf` is 1.0 for an ordinary job
+    // work, so unmerged lines are unaffected.
+    List<JobWorkEntity> jobWorks = jobWorksTouching(worked);
+    double sentKg =
+        jobWorks.stream()
+                .mapToDouble(jw -> nullToZero(jw.getQtyKg()) * shareOf(jw, worked))
+                .sum()
+            * mergedShare;
+
+    double returnedKg =
+        jobWorks.stream()
+                .mapToDouble(
+                    jw -> sumReturns(jw, JobWorkReturnEntity::getReturnKg) * shareOf(jw, worked))
+                .sum()
+            * mergedShare;
+    double ghatiKg =
+        jobWorks.stream()
+                .mapToDouble(
+                    jw -> sumReturns(jw, JobWorkReturnEntity::getGhati) * shareOf(jw, worked))
+                .sum()
+            * mergedShare;
+
+    double dispatchedPc =
+        worked == item
+            ? dispatchedPc(item, orderedPc)
+            : clampToZero(dispatchedPc(worked, nullToZero(worked.getQtyPc())) * mergedShare);
+    return new Work(sentKg, returnedKg, ghatiKg, dispatchedPc);
+  }
+
+  /**
+   * The line's work when it was merged with chitthis or dispatches already behind it.
+   *
+   * <p>Those records moved onto the merged line, and {@link OrderItemMergeMoveEntity} remembers
+   * where each came from. A record made before the merge is credited in full to the order it was
+   * made for — the client whose 168 pcs had already gone out still sees 168 gone, and nobody else
+   * does. Only what was recorded after the merge is shared, and it is shared by what each line
+   * still had to go rather than by what it ordered, so a line that was mostly done is not credited
+   * twice over.
+   */
+  private Work attributedWork(OrderItemEntity item, OrderItemEntity merged) {
+    List<OrderItemEntity> sources = merged.getMergedSourceItems();
+    List<OrderItemMergeMoveEntity> moves = merged.getMergeMoves();
+    List<JobWorkEntity> jobWorks = jobWorksTouching(merged);
+
+    // Per chitthi: the part of it each source owned before the merge, and the part recorded since.
+    Map<Long, Map<Long, Double>> originByJobWork = new HashMap<>();
+    Map<Long, Double> postByJobWork = new HashMap<>();
+    Map<Long, Double> sentBefore = new HashMap<>();
+    for (JobWorkEntity jobWork : jobWorks) {
+      Map<Long, Double> origin = originOf(jobWork, merged, moves);
+      double owned = origin.values().stream().mapToDouble(Double::doubleValue).sum();
+      originByJobWork.put(jobWork.getId(), origin);
+      postByJobWork.put(jobWork.getId(), Math.max(0d, shareOf(jobWork, merged) - owned));
+      origin.forEach(
+          (sourceId, fraction) ->
+              sentBefore.merge(sourceId, nullToZero(jobWork.getQtyKg()) * fraction, Double::sum));
+    }
+
+    Map<Long, Double> stillToSend = new HashMap<>();
+    for (OrderItemEntity source : sources) {
+      double orderedKg = nullToZero(orderedKgOf(source));
+      stillToSend.put(
+          source.getId(), Math.max(0d, orderedKg - sentBefore.getOrDefault(source.getId(), 0d)));
+    }
+    double sendWeight = weightOf(item, merged, stillToSend);
+
+    double sentKg = 0d;
+    double returnedKg = 0d;
+    double ghatiKg = 0d;
+    for (JobWorkEntity jobWork : jobWorks) {
+      double fraction =
+          originByJobWork.get(jobWork.getId()).getOrDefault(item.getId(), 0d)
+              + postByJobWork.get(jobWork.getId()) * sendWeight;
+      sentKg += nullToZero(jobWork.getQtyKg()) * fraction;
+      returnedKg += sumReturns(jobWork, JobWorkReturnEntity::getReturnKg) * fraction;
+      ghatiKg += sumReturns(jobWork, JobWorkReturnEntity::getGhati) * fraction;
+    }
+
+    // Dispatches the same way: each moved one belongs to the line it was made for.
+    Map<Long, Long> dispatchSource = new HashMap<>();
+    moves.stream()
+        .filter(move -> move.getKind() == MergeMoveKind.DISPATCH)
+        .forEach(move -> dispatchSource.put(move.getRecordId(), move.getSourceItem().getId()));
+    Map<Long, Double> dispatchedBefore = new HashMap<>();
+    if (merged.getDispatches() != null) {
+      for (OrderDispatchEntity dispatch : merged.getDispatches()) {
+        Long sourceId = dispatchSource.get(dispatch.getId());
+        if (sourceId != null) {
+          dispatchedBefore.merge(sourceId, nullToZero(dispatch.getDispatchPcs()), Double::sum);
+        }
+      }
+    }
+    double totalDispatched = dispatchedPc(merged, nullToZero(merged.getQtyPc()));
+    double before = dispatchedBefore.values().stream().mapToDouble(Double::doubleValue).sum();
+    double after = Math.max(0d, totalDispatched - before);
+
+    Map<Long, Double> stillToGo = new HashMap<>();
+    for (OrderItemEntity source : sources) {
+      stillToGo.put(
+          source.getId(),
+          Math.max(
+              0d,
+              nullToZero(source.getQtyPc()) - dispatchedBefore.getOrDefault(source.getId(), 0d)));
+    }
+    double dispatchedPc =
+        dispatchedBefore.getOrDefault(item.getId(), 0d)
+            + after * weightOf(item, merged, stillToGo);
+
+    return new Work(sentKg, returnedKg, ghatiKg, clampToZero(dispatchedPc));
+  }
+
+  /**
+   * For one chitthi on a merged line, the fraction of it each source line owned before the merge.
+   * Empty for a chitthi raised after the merge.
+   */
+  private Map<Long, Double> originOf(
+      JobWorkEntity jobWork, OrderItemEntity merged, List<OrderItemMergeMoveEntity> moves) {
+    Map<Long, Double> origin = new HashMap<>();
+    List<JobWorkOrderItemEntity> allocations = jobWork.getMergedOrderItems();
+    if (allocations != null && !allocations.isEmpty()) {
+      // Split across several lines: each source owned the share it had on this chitthi.
+      double total = nullToZero(jobWork.getQtyKg());
+      if (total <= 0) {
+        return origin;
+      }
+      for (JobWorkOrderItemEntity allocation : allocations) {
+        if (allocation.getOrderItem() == null
+            || !merged.getId().equals(allocation.getOrderItem().getId())) {
+          continue;
+        }
+        moves.stream()
+            .filter(
+                move ->
+                    move.getKind() == MergeMoveKind.ALLOCATION
+                        && allocation.getId().equals(move.getRecordId()))
+            .forEach(
+                move ->
+                    origin.merge(
+                        move.getSourceItem().getId(),
+                        Math.min(1d, nullToZero(move.getQtyKg()) / total),
+                        Double::sum));
+      }
+      return origin;
+    }
+    // A plain chitthi belongs wholly to the line it was raised on.
+    moves.stream()
+        .filter(
+            move ->
+                move.getKind() == MergeMoveKind.JOB_WORK
+                    && jobWork.getId().equals(move.getRecordId()))
+        .findFirst()
+        .ifPresent(move -> origin.put(move.getSourceItem().getId(), 1d));
+    return origin;
+  }
+
+  /**
+   * This line's part of what was recorded after the merge: what it still had outstanding, over
+   * what every line still had. When nothing was outstanding anywhere, fall back to what it ordered.
+   */
+  private double weightOf(
+      OrderItemEntity item, OrderItemEntity merged, Map<Long, Double> outstanding) {
+    double total = outstanding.values().stream().mapToDouble(Double::doubleValue).sum();
+    if (total > EPSILON) {
+      return outstanding.getOrDefault(item.getId(), 0d) / total;
+    }
+    return mergedShareOf(item, merged);
+  }
+
+  private Double orderedKgOf(OrderItemEntity item) {
+    if (item.getQtyKg() != null && item.getQtyKg() > 0) {
+      return item.getQtyKg();
+    }
+    return toKg(nullToZero(item.getQtyPc()), pcsWeight(item));
   }
 
   /**

@@ -48,30 +48,30 @@ public interface OrderService
   Order updateItemCompleted(Long orderItemId, boolean completed);
 
   /**
-   * Folds several orders of one party into a single merged order.
+   * Folds order lines of one party together. Lines with the same size and plating become one
+   * merged line, on a merged order.
    *
-   * <p>Two orders for the same item, size and finish are one job on the floor — 100 Kg and 200 Kg
-   * go into the same drum — and saying so once, on the orders, is what lets every chitthi and
-   * dispatch after it follow without the merge being re-declared each time.
+   * <p>Two lines for the same item, size and finish are one job on the floor — 100 Kg and 200 Kg
+   * go into the same drum — and saying so once is what lets every chitthi and dispatch after it
+   * follow without the merge being re-declared each time.
    *
-   * <p>A new order is created rather than one source being grown into: the sources keep every row
-   * exactly as the party placed it, so the client portal still reports each request against what
-   * that request ordered, and un-merging is a matter of dropping the merged order.
+   * <p>A line may already be at the plater or partly dispatched. Its chitthis and dispatches move
+   * onto the merged line, and each move is remembered so un-merge can put it back. The source
+   * lines keep their own quantities, so the client portal still reports each request against what
+   * that request ordered. Completed lines cannot be merged.
    *
-   * <p>Only orders still {@code CREATED} may be merged. Once goods are with the plater or gone out,
-   * the quantity on the line is no longer just a number on a sheet and adding it to another
-   * order's would misreport work that has already happened.
-   *
-   * @param scrap the scrap for the merged order; null leaves it unset
+   * @param scrap the scrap for the merged order; null leaves it as it is
+   * @return the merged order
    */
-  Order mergeOrders(java.util.List<Long> orderIds, Double scrap);
+  Order mergeOrders(java.util.List<Long> orderItemIds, Double scrap);
 
   /**
-   * Undoes a merge, putting the source orders back exactly as they were.
+   * Undoes a merge: every source line comes back with the dispatches and chitthis that moved off
+   * it, and the merged order is removed.
    *
-   * <p>Allowed only while the merged order is still {@code CREATED}. Afterwards its lines carry
-   * chitthis and dispatches that belong to the merged quantity, and there is no honest way to
-   * divide that history back across the orders it came from.
+   * <p>Allowed only while nothing has been recorded on the merged order since the merge — no new
+   * dispatch or chitthi, and none of the moved ones edited. Work recorded against the combined
+   * quantity has no honest way of being divided back across the lines it came from.
    */
   void unmergeOrder(Long orderId);
 }

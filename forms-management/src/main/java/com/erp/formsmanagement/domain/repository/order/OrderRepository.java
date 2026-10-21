@@ -1,12 +1,11 @@
 package com.erp.formsmanagement.domain.repository.order;
 
 import com.erp.formsmanagement.domain.entity.order.OrderEntity;
+import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.repository.CoreRepository;
-import java.util.Collection;
-import java.util.List;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.util.Optional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 public interface OrderRepository extends CoreRepository<OrderEntity, Long> {
@@ -22,24 +21,47 @@ public interface OrderRepository extends CoreRepository<OrderEntity, Long> {
   }
 
   /**
-   * Hides orders that have been folded into a merged one.
+   * Hides orders whose every line has been folded into a merged line.
    *
-   * <p>The merged order stands in for its sources everywhere the book is read — listing both would
-   * show the same goods twice and double every total on the sheet. The sources are still there,
-   * untouched, for the client portal and for un-merging.
+   * <p>The merged line stands in for its sources everywhere the book is read — listing both would
+   * show the same goods twice and double every total on the sheet. An order with only some lines
+   * merged stays, showing the rest; its merged lines are left out when it is mapped. The sources
+   * are still there, untouched, for the client portal and for un-merging.
+   *
+   * <p>{@code mergedInto} is what orders merged before lines could be merged on their own were
+   * linked by; every line of such an order is folded too, so it is hidden either way.
    */
   default Specification<OrderEntity> notMergedAway() {
-    return (root, query, cb) -> cb.isNull(root.get("mergedInto"));
+    return (root, query, cb) -> {
+      Subquery<Long> visibleLine = query.subquery(Long.class);
+      Root<OrderItemEntity> line = visibleLine.from(OrderItemEntity.class);
+      visibleLine
+          .select(line.get("id"))
+          .where(cb.equal(line.get("order"), root), cb.isNull(line.get("mergedIntoItem")));
+
+      Subquery<Long> anyLine = query.subquery(Long.class);
+      Root<OrderItemEntity> any = anyLine.from(OrderItemEntity.class);
+      anyLine.select(any.get("id")).where(cb.equal(any.get("order"), root));
+
+      return cb.and(
+          cb.isNull(root.get("mergedInto")),
+          cb.or(cb.exists(visibleLine), cb.not(cb.exists(anyLine))));
+    };
   }
-
-  List<OrderEntity> findByParty_IdInAndMergedIntoIsNull(Collection<Long> partyIds);
-
-  Page<OrderEntity> findByParty_IdAndMergedIntoIsNull(Long partyId, Pageable pageable);
 
   /**
    * The client's own view, which is the mirror image of the admin's: the client placed two orders
    * and should keep seeing two. Merging them is the works' arrangement for getting the goods
    * plated, so it is the merged order that is hidden here, not the orders it was made from.
    */
-  Page<OrderEntity> findByParty_IdAndMergedSourcesIsEmpty(Long partyId, Pageable pageable);
+  default Specification<OrderEntity> notAMergedOrder() {
+    return (root, query, cb) -> {
+      Subquery<Long> foldedIn = query.subquery(Long.class);
+      Root<OrderItemEntity> source = foldedIn.from(OrderItemEntity.class);
+      foldedIn
+          .select(source.get("id"))
+          .where(cb.equal(source.get("mergedIntoItem").get("order"), root));
+      return cb.and(cb.isEmpty(root.get("mergedSources")), cb.not(cb.exists(foldedIn)));
+    };
+  }
 }

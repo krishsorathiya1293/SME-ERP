@@ -22,6 +22,8 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
   @Mapping(target = "itemSize", ignore = true)
   @Mapping(target = "mergedIntoItem", ignore = true)
   @Mapping(target = "mergedSourceItems", ignore = true)
+  @Mapping(target = "dispatches", ignore = true)
+  @Mapping(target = "mergeMoves", ignore = true)
   @Mapping(target = "completed", ignore = true)
   OrderItemEntity toEntity(NewOrderItem newOrderItem);
 
@@ -34,6 +36,8 @@ public interface OrderItemMapper extends EntityMapper<OrderItemEntity, NewOrderI
   @Mapping(target = "itemSize", ignore = true)
   @Mapping(target = "mergedIntoItem", ignore = true)
   @Mapping(target = "mergedSourceItems", ignore = true)
+  @Mapping(target = "dispatches", ignore = true)
+  @Mapping(target = "mergeMoves", ignore = true)
   @Mapping(target = "completed", ignore = true)
   void updateEntity(@MappingTarget OrderItemEntity entity, NewOrderItem newOrderItem);
 

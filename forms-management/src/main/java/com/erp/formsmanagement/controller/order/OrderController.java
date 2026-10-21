@@ -92,12 +92,13 @@ public class OrderController
   }
 
   /**
-   * Folds several of a party's orders into one merged order. See {@link OrderService#mergeOrders}
-   * for why a new order is created rather than one of them being grown into.
+   * Folds order lines of one party together into merged lines. See {@link
+   * OrderService#mergeOrders} for what moves and what stays.
    */
   @PostMapping("/api/v1/orders/merge")
   public ResponseEntity<Order> mergeOrders(@RequestBody MergeOrdersRequest request) {
-    return ResponseEntity.ok(orderService.mergeOrders(request.getOrderIds(), request.getScrap()));
+    return ResponseEntity.ok(
+        orderService.mergeOrders(request.getOrderItemIds(), request.getScrap()));
   }
 
   /** Puts a merged order back into the orders it was made from. */

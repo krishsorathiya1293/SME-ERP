@@ -99,6 +99,23 @@ public class OrderItemEntity extends AuditInfo {
   @OrderBy("id ASC")
   private List<OrderItemEntity> mergedSourceItems = new ArrayList<>();
 
+  /**
+   * The dispatches recorded against this line. Read-only here — dispatches are written through
+   * their own service, and {@link #totalDispatchedPc} stays the figure everything else reads. A
+   * merge needs the rows themselves, to move them onto the merged line.
+   */
+  @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY)
+  @OrderBy("id ASC")
+  private List<OrderDispatchEntity> dispatches = new ArrayList<>();
+
+  /**
+   * On a merged line: every dispatch and chitthi that moved onto it, and the line it came from.
+   * Empty on an ordinary line, and on a merged line whose sources had nothing recorded yet.
+   */
+  @OneToMany(mappedBy = "mergedItem", fetch = FetchType.LAZY)
+  @OrderBy("id ASC")
+  private List<OrderItemMergeMoveEntity> mergeMoves = new ArrayList<>();
+
   private Boolean jobActionDone;
 
   /**
@@ -122,6 +139,19 @@ public class OrderItemEntity extends AuditInfo {
   private JobPlatingType platingType;
 
   private Double jobWorkNo;
+
+  /**
+   * True once this line has been folded into a merged line. The order sheet hides it — the merged
+   * line stands in for it — but the client portal still reports against it.
+   */
+  public boolean isMergedAway() {
+    return mergedIntoItem != null;
+  }
+
+  /** True when this line sums others, i.e. it was made by a merge. */
+  public boolean isMergedLine() {
+    return mergedSourceItems != null && !mergedSourceItems.isEmpty();
+  }
 
   @Override
   public boolean equals(Object o) {

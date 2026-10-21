@@ -9,7 +9,14 @@ import com.erp.formsmanagement.domain.entity.order.OrderItemEntity;
 import com.erp.mapper.EntityMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -80,8 +87,14 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
    * say exactly how much went, so nothing is hidden by the flag moving earlier.
    */
   default OrderStatus toStatus(OrderEntity entity) {
-    List<OrderItemEntity> items = entity.getOrderItems();
-    if (items == null || items.isEmpty()) {
+    // Lines folded into a merge carry nothing any more — their dispatches and chitthis moved to the
+    // merged line — so they would hold the order back from DISPATCHED forever. They are read
+    // through the merged line instead.
+    List<OrderItemEntity> items =
+        entity.getOrderItems() == null
+            ? List.of()
+            : entity.getOrderItems().stream().filter(item -> !item.isMergedAway()).toList();
+    if (items.isEmpty()) {
       return OrderStatus.CREATED;
     }
 
@@ -114,11 +127,25 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
    * dates rather than one.
    */
   default List<MergedOrderSource> toMergedFrom(OrderEntity entity) {
-    List<OrderEntity> sources = entity.getMergedSources();
-    if (sources == null || sources.isEmpty()) {
-      return List.of();
+    // Read off the lines: a line merge folds in lines, not whole orders, so one source order may
+    // give a line to this merge and keep the rest. Orders merged before that were linked at the
+    // order level as well, and their lines point here too, so they come out the same.
+    Map<Long, OrderEntity> sources = new LinkedHashMap<>();
+    if (entity.getOrderItems() != null) {
+      entity.getOrderItems().stream()
+          .flatMap(line -> line.getMergedSourceItems().stream())
+          .map(OrderItemEntity::getOrder)
+          .filter(Objects::nonNull)
+          .forEach(order -> sources.putIfAbsent(order.getId(), order));
     }
-    return sources.stream()
+    if (entity.getMergedSources() != null) {
+      entity.getMergedSources().forEach(order -> sources.putIfAbsent(order.getId(), order));
+    }
+    return sources.values().stream()
+        .sorted(
+            Comparator.comparing(
+                    OrderEntity::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(OrderEntity::getId))
         .map(
             source ->
                 new MergedOrderSource()
@@ -126,6 +153,27 @@ public interface OrderMapper extends EntityMapper<OrderEntity, NewOrder, Order> 
                     .orderDate(source.getOrderDate())
                     .scrap(source.getScrap()))
         .toList();
+  }
+
+  /**
+   * Leaves lines folded into a merged line off the order. The merged line stands in for them on
+   * the sheet; listing both would count the same goods twice.
+   */
+  @AfterMapping
+  default void dropMergedAwayLines(@MappingTarget Order target, OrderEntity entity) {
+    if (target.getOrderItems() == null || entity.getOrderItems() == null) {
+      return;
+    }
+    Set<Long> hidden =
+        entity.getOrderItems().stream()
+            .filter(OrderItemEntity::isMergedAway)
+            .map(OrderItemEntity::getId)
+            .collect(Collectors.toSet());
+    if (!hidden.isEmpty()) {
+      target.setOrderItems(
+          new ArrayList<>(
+              target.getOrderItems().stream().filter(line -> !hidden.contains(line.getId())).toList()));
+    }
   }
 
   @AfterMapping

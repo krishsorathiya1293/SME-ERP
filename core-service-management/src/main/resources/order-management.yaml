@@ -884,14 +884,17 @@ components:
     MergeOrdersRequest:
       type: object
       required:
-        - orderIds
+        - orderItemIds
       properties:
-        orderIds:
+        orderItemIds:
           type: array
           description: >-
-            The orders to fold together. Two or more, all of the same party, and every one still
-            CREATED — an order with goods already at the plater or already gone cannot be merged,
-            because its quantity is no longer just a number on a sheet.
+            The order lines to fold together, all of one party. Lines with the same size and
+            plating become one merged line, so every chosen line needs at least one other with the
+            same size and plating, and the same packing. A line can be at the plater or partly
+            dispatched — its chitthis and dispatches move onto the merged line — but a completed
+            line cannot be merged. At most one already-merged line per size and plating may be
+            included; the others then join it.
           items:
             type: integer
             format: int64

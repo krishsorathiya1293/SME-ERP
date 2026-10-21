@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -118,7 +119,12 @@ public class ClientPortalServiceImpl implements ClientPortalService {
       Optional<String> sortDirection) {
     Long partyId = currentClientProvider.getActivePartyId();
     Pageable pageable = PaginationUtils.getPageRequest(page, size, sortDirection, sortBy);
-    Page<OrderEntity> orders = orderRepository.findByParty_IdAndMergedSourcesIsEmpty(partyId, pageable);
+    Page<OrderEntity> orders =
+        orderRepository.findAll(
+            Specification.<OrderEntity>where(
+                    (root, q, cb) -> cb.equal(root.get("party").get("id"), partyId))
+                .and(orderRepository.notAMergedOrder()),
+            pageable);
 
     var data = orders.getContent().stream().map(this::toClientOrder).toList();
 
@@ -338,6 +344,37 @@ public class ClientPortalServiceImpl implements ClientPortalService {
   }
 
   private ClientOrderItem toClientOrderItem(OrderItemEntity item, ItemFulfillment fulfillment) {
+    // A line folded into a merge keeps nothing of its own: its chitthis and dispatches moved to the
+    // merged line, where the work now happens. Its figures come from this line's part of that work
+    // (worked out in the fulfillment), and the job-work details from the merged line's chitthis.
+    if (item.isMergedAway()) {
+      OrderItemEntity worked = item.getMergedIntoItem();
+      Double dispatched = fulfillment == null ? null : fulfillment.dispatchedPc();
+      // Pending stays unset until something has gone out, as it does on an unmerged line. Written
+      // as if/else on purpose: a conditional mixing this Double with a double unboxes the null.
+      Double pending = item.getPendingPc();
+      if (item.getQtyPc() != null && dispatched != null && dispatched > 0) {
+        pending = Math.max(0d, item.getQtyPc() - dispatched);
+      }
+      boolean sent =
+          fulfillment != null && fulfillment.sentKg() != null && fulfillment.sentKg() > 0;
+      return baseClientOrderItem(item)
+          .pendingPc(pending)
+          .dispatchedPc(dispatched)
+          .jobActionDone(sent)
+          // Nothing of this line at the plater means no job work to show, merged or not.
+          .jobWork(sent ? toClientItemJobWork(worked.getJobWorks(), fulfillment) : null)
+          .stages(OrderLineStagesMapper.toStages(fulfillment));
+    }
+    return baseClientOrderItem(item)
+        .pendingPc(item.getPendingPc())
+        .dispatchedPc(item.getTotalDispatchedPc())
+        .jobActionDone(!item.getJobWorks().isEmpty())
+        .jobWork(toClientItemJobWork(item.getJobWorks(), fulfillment))
+        .stages(OrderLineStagesMapper.toStages(fulfillment));
+  }
+
+  private ClientOrderItem baseClientOrderItem(OrderItemEntity item) {
     return new ClientOrderItem()
         .id(item.getId())
         .itemName(
@@ -348,12 +385,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         .sizeInMm(item.getItemSize() == null ? null : item.getItemSize().getSizeInMm())
         .plating(item.getPlating())
         .qtyPc(item.getQtyPc())
-        .qtyKg(item.getQtyKg())
-        .pendingPc(item.getPendingPc())
-        .dispatchedPc(item.getTotalDispatchedPc())
-        .jobActionDone(!item.getJobWorks().isEmpty())
-        .jobWork(toClientItemJobWork(item.getJobWorks(), fulfillment))
-        .stages(OrderLineStagesMapper.toStages(fulfillment));
+        .qtyKg(item.getQtyKg());
   }
 
   /**
