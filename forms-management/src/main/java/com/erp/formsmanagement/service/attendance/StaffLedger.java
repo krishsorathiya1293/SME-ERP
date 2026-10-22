@@ -56,8 +56,7 @@ final class StaffLedger {
     this.rates =
         new Rates(
             employee.getStaffDepartment(),
-            employee.getPerDaySalary(),
-            employee.getOtRatePerHour(),
+            employee.getPerHourSalary(),
             employee.getJoiningDate(),
             employee.getBalanceFrom(),
             weeklyOff);

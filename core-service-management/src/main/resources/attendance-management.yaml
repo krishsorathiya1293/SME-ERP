@@ -1021,13 +1021,10 @@ components:
         departmentId:
           type: integer
           format: int64
-        perDaySalary:
+        perHourSalary:
           type: number
           format: double
-        otRatePerHour:
-          type: number
-          format: double
-          description: Empty = same as per-hour salary
+          description: Pay = worked hours x this. No overtime, deduction or half day
         payMode:
           $ref: '#/components/schemas/PayMode'
         openingBalance:
@@ -1076,7 +1073,7 @@ components:
           type: string
         active:
           type: boolean
-        perDaySalary:
+        perHourSalary:
           type: number
           format: double
         payMode:
@@ -1090,7 +1087,7 @@ components:
           format: double
         salarySet:
           type: boolean
-          description: Department and per-day salary are filled in
+          description: Per-hour salary is filled in
         lastPunchTime:
           type: string
         todayStatus:
@@ -1121,16 +1118,7 @@ components:
           format: date
         department:
           $ref: '#/components/schemas/StaffDepartment'
-        perDaySalary:
-          type: number
-          format: double
-        perDayHours:
-          type: number
-          format: double
         perHourSalary:
-          type: number
-          format: double
-        otRatePerHour:
           type: number
           format: double
         payMode:
@@ -1192,10 +1180,6 @@ components:
           example: Present (Late Commer)
         late:
           type: boolean
-        overtime:
-          type: boolean
-        halfDay:
-          type: boolean
         manual:
           type: boolean
           description: Edited by hand (Edit Attendance)
@@ -1220,15 +1204,10 @@ components:
         workedMinutes:
           type: integer
           description: Actual work = (out - in) - break
-        deduction:
-          type: number
-          format: double
-        addition:
-          type: number
-          format: double
         payable:
           type: number
           format: double
+          description: Worked hours x per-hour salary
         punches:
           type: array
           description: The day's in/outs, HH:mm, in order (the hand-edited ones when manual)
@@ -1282,13 +1261,7 @@ components:
           format: date
         payMode:
           $ref: '#/components/schemas/PayMode'
-        perDaySalary:
-          type: number
-          format: double
         perHourSalary:
-          type: number
-          format: double
-        otRatePerHour:
           type: number
           format: double
         standardMinutes:
@@ -1306,8 +1279,6 @@ components:
         presentDays:
           type: number
           format: double
-        halfDays:
-          type: integer
         absentDays:
           type: integer
         weeklyOffDays:
@@ -1316,12 +1287,6 @@ components:
           type: integer
         totalWorkedMinutes:
           type: integer
-        totalDeduction:
-          type: number
-          format: double
-        totalAddition:
-          type: number
-          format: double
         totalSalary:
           type: number
           format: double

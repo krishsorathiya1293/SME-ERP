@@ -58,8 +58,7 @@ public class AttendanceEmployeeEntity extends AuditInfo {
   @JoinColumn(name = "staff_department_id")
   private StaffDepartmentEntity staffDepartment;
 
-  private Double perDaySalary;
-  private Double otRatePerHour;
+  private Double perHourSalary;
   private String payMode;
 
   private double openingBalance;
@@ -94,9 +93,9 @@ public class AttendanceEmployeeEntity extends AuditInfo {
     return staffDepartment != null ? staffDepartment.getName() : department;
   }
 
-  /** Department and per-day salary are filled in, so the day can be paid. */
+  /** Per-hour salary is filled in, so the day can be paid. */
   public boolean isSalarySet() {
-    return staffDepartment != null && perDaySalary != null && perDaySalary > 0;
+    return perHourSalary != null && perHourSalary > 0;
   }
 
   @Override

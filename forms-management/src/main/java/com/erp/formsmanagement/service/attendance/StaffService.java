@@ -255,7 +255,7 @@ public class StaffService {
                       e.getStaffDepartment() == null ? null : e.getStaffDepartment().getName())
                   .photoThumb(e.getPhotoThumb())
                   .active(e.isActive())
-                  .perDaySalary(e.getPerDaySalary())
+                  .perHourSalary(e.getPerHourSalary())
                   .payMode(payMode(e))
                   .balance(l.balanceNow())
                   .pendingLoan(l.pendingLoanNow())
@@ -339,7 +339,7 @@ public class StaffService {
 
   private void applyProfile(AttendanceEmployeeEntity e, StaffProfileInput in) {
     if (isBlank(in.getName())) throw bad("Worker name is required");
-    if (in.getPerDaySalary() != null && in.getPerDaySalary() < 0) throw bad("Salary can't be negative");
+    if (in.getPerHourSalary() != null && in.getPerHourSalary() < 0) throw bad("Salary can't be negative");
     e.setName(in.getName().trim());
     e.setGender(in.getGender() == null ? null : in.getGender().name());
     e.setPhone(trim(in.getPhone()));
@@ -348,8 +348,7 @@ public class StaffService {
     e.setReference(trim(in.getReference()));
     e.setJoiningDate(in.getJoiningDate());
     e.setStaffDepartment(in.getDepartmentId() == null ? null : department(in.getDepartmentId()));
-    e.setPerDaySalary(in.getPerDaySalary());
-    e.setOtRatePerHour(in.getOtRatePerHour());
+    e.setPerHourSalary(in.getPerHourSalary());
     e.setPayMode(in.getPayMode() == null ? PayMode.WEEKLY.name() : in.getPayMode().name());
     e.setOpeningBalance(in.getOpeningBalance() == null ? 0 : in.getOpeningBalance());
     e.setOpeningLoan(in.getOpeningLoan() == null ? 0 : in.getOpeningLoan());
@@ -361,7 +360,6 @@ public class StaffService {
   private StaffProfile toProfile(AttendanceEmployeeEntity e) {
     LocalDate today = WorkDay.today();
     StaffLedger l = ledger(e, earliestStart(List.of(e), today), today);
-    StaffDayCalculator.Rates r = l.rates;
     LocalDate lastPaid = l.lastPaidTo();
     LocalDate[] suggested = suggestedPeriod(e, lastPaid, today);
     LocalDateTime last = punches.findLatestPunchFor(e.getEmpCode());
@@ -377,10 +375,7 @@ public class StaffService {
         .reference(e.getReference())
         .joiningDate(e.getJoiningDate())
         .department(toDepartment(d))
-        .perDaySalary(e.getPerDaySalary())
-        .perDayHours(d == null ? null : round2(d.standardMinutes() / 60.0))
-        .perHourSalary(r.salarySet() ? round2(r.perHour()) : null)
-        .otRatePerHour(e.getOtRatePerHour())
+        .perHourSalary(e.getPerHourSalary())
         .payMode(payMode(e))
         .openingBalance(e.getOpeningBalance())
         .openingLoan(e.getOpeningLoan())
@@ -493,16 +488,13 @@ public class StaffService {
         l.payments.stream()
             .anyMatch(p -> p != paid && !p.getPeriodFrom().isAfter(to) && !p.getPeriodTo().isBefore(from));
 
-    int present = 0, half = 0, absent = 0, off = 0, late = 0, worked = 0;
-    double deduction = 0, addition = 0, live = 0;
+    int present = 0, absent = 0, off = 0, late = 0, worked = 0;
+    double live = 0;
     for (StaffDay d : days) {
       switch (d.getStatus()) {
         case PRESENT -> {
-          if (Boolean.TRUE.equals(d.getHalfDay())) half++;
-          else present++;
+          present++;
           live += d.getPayable();
-          deduction += d.getDeduction();
-          addition += d.getAddition();
         }
         case ABSENT, MISSED_PUNCH -> absent++;
         case WEEKLY_OFF -> off++;
@@ -536,22 +528,17 @@ public class StaffService {
         .timing(timing(d))
         .joiningDate(e.getJoiningDate())
         .payMode(payMode(e))
-        .perDaySalary(e.getPerDaySalary())
         .perHourSalary(r.salarySet() ? round2(r.perHour()) : null)
-        .otRatePerHour(r.salarySet() ? round2(r.otPerHour()) : null)
         .standardMinutes(d == null ? null : d.standardMinutes())
         .salarySet(r.salarySet())
         .periodFrom(from)
         .periodTo(to)
         .totalDays((int) ChronoUnit.DAYS.between(from, to) + 1)
-        .presentDays(present + half * 0.5)
-        .halfDays(half)
+        .presentDays((double) present)
         .absentDays(absent)
         .weeklyOffDays(off)
         .lateDays(late)
         .totalWorkedMinutes(worked)
-        .totalDeduction(round2(deduction))
-        .totalAddition(round2(addition))
         .totalSalary(total)
         .openingBalance(opening)
         .bonus(bonus)
@@ -596,7 +583,7 @@ public class StaffService {
     LocalDate from = in.getPeriodFrom();
     LocalDate to = in.getPeriodTo();
     checkRange(from, to);
-    if (!e.isSalarySet()) throw bad("Set the department and per-day salary first");
+    if (!e.isSalarySet()) throw bad("Set the per-hour salary first");
     if (in.getPaymentMode() == null) throw bad("Choose how the salary was paid");
     double paid = nz(in.getPaidAmount());
     double bonus = nz(in.getBonus());

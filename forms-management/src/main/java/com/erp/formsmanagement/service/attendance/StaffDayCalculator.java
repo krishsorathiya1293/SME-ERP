@@ -18,20 +18,18 @@ import java.util.List;
  * statement. Pure and stateless, so the statement, Salary Paid, payment history and dashboard all
  * read a day the same way.
  *
- * <p>The rule, which reproduces the client's PagarGuru statement to the paisa:
+ * <p>The rule is purely hourly:
  *
  * <ul>
  *   <li>In = first punch, Out = last punch. Punches alternate in, out, in, out: with 4+ the
  *       break is every out→in gap (2nd→3rd, 4th→5th, ...), otherwise the department break if the
  *       day spans it. A hand-edited day is read the same way from its edited list.
- *   <li>Actual work = (Out − In) − break. Standard = the department's two halves.
- *   <li>Per-hour = per-day salary ÷ standard hours. Short of standard → (−) deduction at per-hour;
- *       beyond it → (+) addition at the OT rate (per-hour when not set).
- *   <li>Payable = per-day salary − deduction + addition.
+ *   <li>Worked = (Out − In) − break.
+ *   <li>Payable = worked hours × per-hour salary. No overtime, deduction or half day: 10 hours at
+ *       ₹50 is ₹500.
  * </ul>
  *
- * Coming in after the department's in-time is "Late Commer"; it costs only the minutes actually
- * missed, so someone late who stays late still earns the full day (as in the PagarGuru rows).
+ * Coming in after the department's in-time is still marked "Late Commer", for the record only.
  *
  * <p>{@code date} is a working day (7 AM to 7 AM, see {@link WorkDay}); punches are that working
  * day's, so an 8 PM in and 3 AM out are one shift on the first date.
@@ -45,25 +43,17 @@ public final class StaffDayCalculator {
   /** Everything known about the worker that a day's pay depends on. */
   public record Rates(
       StaffDepartmentEntity department,
-      Double perDaySalary,
-      Double otRatePerHour,
+      Double perHourSalary,
       LocalDate joiningDate,
       LocalDate balanceFrom,
       DayOfWeek weeklyOff) {
 
     public boolean salarySet() {
-      return department != null
-          && department.standardMinutes() > 0
-          && perDaySalary != null
-          && perDaySalary > 0;
+      return perHourSalary != null && perHourSalary > 0;
     }
 
     public double perHour() {
-      return salarySet() ? perDaySalary / (department.standardMinutes() / 60.0) : 0;
-    }
-
-    public double otPerHour() {
-      return otRatePerHour != null && otRatePerHour > 0 ? otRatePerHour : perHour();
+      return salarySet() ? perHourSalary : 0;
     }
   }
 
@@ -78,11 +68,11 @@ public final class StaffDayCalculator {
       Rates rates,
       LocalDate today) {
 
-    StaffDay day = new StaffDay().date(date).late(false).overtime(false).halfDay(false);
+    StaffDay day = new StaffDay().date(date).late(false);
     day.manual(adjustment != null).note(adjustment == null ? null : adjustment.getNote());
     day.manualBreakMinutes(adjustment == null ? null : adjustment.getBreakMinutes());
     day.breakMinutes(0).excessBreakMinutes(0).workedMinutes(0);
-    day.deduction(0.0).addition(0.0).payable(0.0);
+    day.payable(0.0);
 
     List<LocalTime> device = new ArrayList<>();
     if (punches != null) {
@@ -138,23 +128,12 @@ public final class StaffDayCalculator {
         .excessBreakMinutes(Math.max(0, breakMinutes - deptBreak))
         .workedMinutes(worked);
 
-    String label = "Present";
-    if (rates.salarySet()) {
-      int standard = dept.standardMinutes();
-      double deduction = worked < standard ? (standard - worked) * rates.perHour() / 60.0 : 0;
-      double addition = worked > standard ? (worked - standard) * rates.otPerHour() / 60.0 : 0;
-      day.overtime(worked > standard).halfDay(worked < standard / 2);
-      day.deduction(round2(deduction))
-          .addition(round2(addition))
-          .payable(round2(Math.max(0, rates.perDaySalary() - deduction + addition)));
-    }
-    if (Boolean.TRUE.equals(day.getHalfDay())) label = "Half Day";
-    else if (Boolean.TRUE.equals(day.getLate())) label = "Present (Late Commer)";
-    else if (Boolean.TRUE.equals(day.getOvertime())) label = "Present (Over Time)";
+    if (rates.salarySet()) day.payable(round2(worked * rates.perHour() / 60.0));
+    String label = Boolean.TRUE.equals(day.getLate()) ? "Present (Late Commer)" : "Present";
 
     if (rates.balanceFrom() != null && date.isBefore(rates.balanceFrom())) {
       // Shown so the times are visible, but paid by the old software, not the ERP.
-      day.deduction(0.0).addition(0.0).payable(0.0);
+      day.payable(0.0);
       return status(day, StaffDayStatus.BEFORE_START, label + " · before ERP start");
     }
     return status(day, StaffDayStatus.PRESENT, label);

@@ -348,7 +348,7 @@ public class AttendanceService {
   /** Only the department matters for hours (its break); pay isn't shown here. */
   private static StaffDayCalculator.Rates ratesOf(AttendanceEmployeeEntity e) {
     return new StaffDayCalculator.Rates(
-        e == null ? null : e.getStaffDepartment(), null, null, null, null, null);
+        e == null ? null : e.getStaffDepartment(), null, null, null, null);
   }
 
   private Map<String, Map<LocalDate, List<LocalDateTime>>> groupByEmployeeAndDay(
