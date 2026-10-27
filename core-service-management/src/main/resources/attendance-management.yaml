@@ -1021,6 +1021,10 @@ components:
         departmentId:
           type: integer
           format: int64
+        perDaySalary:
+          type: number
+          format: double
+          description: For info only; the form derives per-hour salary from it (per-day / department hours)
         perHourSalary:
           type: number
           format: double
@@ -1118,6 +1122,10 @@ components:
           format: date
         department:
           $ref: '#/components/schemas/StaffDepartment'
+        perDaySalary:
+          type: number
+          format: double
+          description: For info only; pay is worked hours x perHourSalary
         perHourSalary:
           type: number
           format: double

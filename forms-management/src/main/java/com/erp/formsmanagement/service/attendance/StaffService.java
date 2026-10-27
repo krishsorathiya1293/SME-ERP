@@ -339,7 +339,8 @@ public class StaffService {
 
   private void applyProfile(AttendanceEmployeeEntity e, StaffProfileInput in) {
     if (isBlank(in.getName())) throw bad("Worker name is required");
-    if (in.getPerHourSalary() != null && in.getPerHourSalary() < 0) throw bad("Salary can't be negative");
+    if ((in.getPerHourSalary() != null && in.getPerHourSalary() < 0)
+        || (in.getPerDaySalary() != null && in.getPerDaySalary() < 0)) throw bad("Salary can't be negative");
     e.setName(in.getName().trim());
     e.setGender(in.getGender() == null ? null : in.getGender().name());
     e.setPhone(trim(in.getPhone()));
@@ -348,6 +349,7 @@ public class StaffService {
     e.setReference(trim(in.getReference()));
     e.setJoiningDate(in.getJoiningDate());
     e.setStaffDepartment(in.getDepartmentId() == null ? null : department(in.getDepartmentId()));
+    e.setPerDaySalary(in.getPerDaySalary());
     e.setPerHourSalary(in.getPerHourSalary());
     e.setPayMode(in.getPayMode() == null ? PayMode.WEEKLY.name() : in.getPayMode().name());
     e.setOpeningBalance(in.getOpeningBalance() == null ? 0 : in.getOpeningBalance());
@@ -375,6 +377,7 @@ public class StaffService {
         .reference(e.getReference())
         .joiningDate(e.getJoiningDate())
         .department(toDepartment(d))
+        .perDaySalary(e.getPerDaySalary())
         .perHourSalary(e.getPerHourSalary())
         .payMode(payMode(e))
         .openingBalance(e.getOpeningBalance())

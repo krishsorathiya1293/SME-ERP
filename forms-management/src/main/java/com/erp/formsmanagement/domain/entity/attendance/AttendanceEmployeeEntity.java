@@ -58,6 +58,8 @@ public class AttendanceEmployeeEntity extends AuditInfo {
   @JoinColumn(name = "staff_department_id")
   private StaffDepartmentEntity staffDepartment;
 
+  /** For info only — pay is worked hours x perHourSalary. */
+  private Double perDaySalary;
   private Double perHourSalary;
   private String payMode;
 
