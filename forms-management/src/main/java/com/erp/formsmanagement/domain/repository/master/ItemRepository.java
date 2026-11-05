@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ItemRepository extends CoreRepository<ItemEntity, Long> {
+  Optional<ItemEntity> findFirstBySize_IdOrderByIdAsc(Long sizeId);
+
   default Specification<ItemEntity> filterByStatus(Optional<String> status) {
     return (root, query, cb) ->
         status

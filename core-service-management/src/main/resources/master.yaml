@@ -310,6 +310,48 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  # -------------------- STOCK ENTRIES --------------------
+  /api/v1/stock-entries:
+    get:
+      operationId: getStockEntries
+      tags:
+        - Item
+      summary: Stock history of one size, newest first
+      parameters:
+        - name: sizeId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Stock entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockEntry'
+    post:
+      operationId: createStockEntry
+      tags:
+        - Item
+      summary: Add stock (+) or set (recount) the stock of a size; every entry is kept as dated history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewStockEntry'
+      responses:
+        '201':
+          description: Stock after the entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+
   # -------------------- PARTY --------------------
   /api/v1/parties:
     get:
@@ -591,6 +633,95 @@ components:
           format: double
         stockStatus:
           $ref: '#/components/schemas/StockStatus'
+        petiCount:
+          type: integer
+          description: Petis (crates) in stock
+        emptyPetiWeight:
+          type: number
+          format: double
+          description: Weight of one empty peti in kg, remembered for the next entry
+    NewStockEntryType:
+      type: string
+      enum:
+        - ADD
+        - SET
+    NewStockEntry:
+      required:
+        - sizeId
+        - type
+        - weightPerPc
+      type: object
+      properties:
+        sizeId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/NewStockEntryType'
+        entryDate:
+          type: string
+          format: date
+          description: Defaults to today
+        petiCount:
+          type: integer
+          description: Petis in this entry (ADD) or the whole stock (SET)
+        grossKg:
+          type: number
+          format: double
+          description: Weight from the weighing machine, petis included
+        emptyPetiWeight:
+          type: number
+          format: double
+          description: Weight of one empty peti in kg; petiCount x this is taken off grossKg
+        weightPerPc:
+          type: number
+          format: double
+          description: Weight of one piece in kg
+        lowStockWarning:
+          type: number
+          format: double
+        note:
+          type: string
+    StockEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/NewStockEntryType'
+        entryDate:
+          type: string
+          format: date
+        petiCount:
+          type: integer
+        grossKg:
+          type: number
+          format: double
+        emptyPetiWeight:
+          type: number
+          format: double
+        netKg:
+          type: number
+          format: double
+        weightPerPc:
+          type: number
+          format: double
+        pcs:
+          type: number
+          format: double
+        totalPetiAfter:
+          type: integer
+        totalKgAfter:
+          type: number
+          format: double
+        totalPcAfter:
+          type: number
+          format: double
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
     NewParty:
       required:
         - name

@@ -3,11 +3,16 @@ package com.erp.formsmanagement.controller.master;
 import com.erp.api.mastermanagement.ItemMasterManagementApi;
 import com.erp.api.mastermanagement.model.Item;
 import com.erp.api.mastermanagement.model.NewItem;
+import com.erp.api.mastermanagement.model.NewStockEntry;
 import com.erp.api.mastermanagement.model.PaginatedResultItem;
+import com.erp.api.mastermanagement.model.StockEntry;
 import com.erp.controller.AbstractCrudControllerV1;
 import com.erp.formsmanagement.service.master.ItemService;
+import com.erp.formsmanagement.service.master.StockEntryService;
 import com.erp.util.GetAllQuery;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,8 +21,21 @@ public class ItemController
     extends AbstractCrudControllerV1<NewItem, Item, String, PaginatedResultItem>
     implements ItemMasterManagementApi {
 
-  public ItemController(ItemService s) {
+  private final StockEntryService stockEntries;
+
+  public ItemController(ItemService s, StockEntryService stockEntries) {
     super(s, s);
+    this.stockEntries = stockEntries;
+  }
+
+  @Override
+  public ResponseEntity<List<StockEntry>> getStockEntries(Long sizeId) {
+    return ResponseEntity.ok(stockEntries.list(sizeId));
+  }
+
+  @Override
+  public ResponseEntity<Item> createStockEntry(NewStockEntry newStockEntry) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(stockEntries.create(newStockEntry));
   }
 
   @Override

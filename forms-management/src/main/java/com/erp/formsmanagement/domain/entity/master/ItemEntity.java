@@ -39,6 +39,11 @@ public class ItemEntity extends AuditInfo {
   private Double totalPc;
   private Double lowStockWarning;
 
+  /** Petis (crates) in stock, and the weight of one empty peti in kg (kept for the next entry). */
+  private Integer petiCount;
+
+  private Double emptyPetiWeight;
+
   @Enumerated(EnumType.STRING)
   private StockStatus stockStatus;
 
