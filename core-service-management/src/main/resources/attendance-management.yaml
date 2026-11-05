@@ -616,6 +616,52 @@ paths:
         '204':
           description: Deleted
 
+  /api/v1/staff/employees/{empCode}/bonus-jama:
+    get:
+      operationId: getBonusJama
+      tags: [ Staff ]
+      summary: Bonus and upad jama entered between salaries, newest first
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      responses:
+        '200':
+          description: Entries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BonusJama'
+    post:
+      operationId: createBonusJama
+      tags: [ Staff ]
+      summary: Give a bonus or take upad jama on any day; the pay week stays open
+      parameters:
+        - $ref: '#/components/parameters/empCodePathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BonusJamaInput'
+      responses:
+        '200':
+          description: Recorded entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BonusJama'
+
+  /api/v1/staff/bonus-jama/{id}:
+    delete:
+      operationId: deleteBonusJama
+      tags: [ Staff ]
+      parameters:
+        - $ref: '#/components/parameters/idPathParam'
+      responses:
+        '204':
+          description: Deleted
+
   /api/v1/staff/employees/{empCode}/payment-history:
     get:
       operationId: getPaymentHistory
@@ -1307,9 +1353,27 @@ components:
         loanDeduction:
           type: number
           format: double
+        extraBonus:
+          type: number
+          format: double
+          description: Bonus entries dated in the period (given between salaries)
+        extraBonusPaid:
+          type: number
+          format: double
+          description: Part of extraBonus already handed over on the day
+        upadJamaCash:
+          type: number
+          format: double
+          description: Upad given back in cash during the period (JAMA entries)
+        bonusJama:
+          type: array
+          description: The bonus and jama entries dated in the period
+          items:
+            $ref: '#/components/schemas/BonusJama'
         salaryToPay:
           type: number
           format: double
+          description: openingBalance + totalSalary + extraBonus - extraBonusPaid + bonus - loanDeduction
         paidAmount:
           type: number
           format: double
@@ -1448,6 +1512,58 @@ components:
         note:
           type: string
 
+    BonusJamaType:
+      type: string
+      enum: [ BONUS, JAMA ]
+
+    BonusJamaInput:
+      type: object
+      required: [ type, entryDate, amount ]
+      properties:
+        type:
+          $ref: '#/components/schemas/BonusJamaType'
+        entryDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        paidNow:
+          type: number
+          format: double
+          description: BONUS only - how much of it was handed over today (rest is paid with the salary)
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        note:
+          type: string
+
+    BonusJama:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        empCode:
+          type: string
+        type:
+          $ref: '#/components/schemas/BonusJamaType'
+        entryDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        paidNow:
+          type: number
+          format: double
+        paymentMode:
+          $ref: '#/components/schemas/PaymentMode'
+        note:
+          type: string
+        settled:
+          type: boolean
+          description: Falls in a paid salary period (undo that payment to remove it)
+
     PaymentHistoryRow:
       type: object
       properties:
@@ -1466,9 +1582,14 @@ components:
         loanDeducted:
           type: number
           format: double
+          description: Upad recovered - loan jama from salary plus upad given back in cash
+        bonus:
+          type: number
+          format: double
         paidSalary:
           type: number
           format: double
+          description: Salary paid plus bonus handed over on the day
         settled:
           type: boolean
         paymentModes:
@@ -1497,7 +1618,7 @@ components:
       properties:
         kind:
           type: string
-          enum: [ SALARY, UPAD ]
+          enum: [ SALARY, UPAD, BONUS, JAMA ]
         id:
           type: integer
           format: int64

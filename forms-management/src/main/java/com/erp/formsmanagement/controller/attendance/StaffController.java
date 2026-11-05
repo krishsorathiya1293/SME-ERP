@@ -2,6 +2,8 @@ package com.erp.formsmanagement.controller.attendance;
 
 import com.erp.api.attendancemanagement.StaffAttendanceManagementApi;
 import com.erp.api.attendancemanagement.model.AttendanceAdjustmentInput;
+import com.erp.api.attendancemanagement.model.BonusJama;
+import com.erp.api.attendancemanagement.model.BonusJamaInput;
 import com.erp.api.attendancemanagement.model.PaymentHistoryRow;
 import com.erp.api.attendancemanagement.model.SalaryPayment;
 import com.erp.api.attendancemanagement.model.SalaryPaymentInput;
@@ -163,6 +165,22 @@ public class StaffController implements StaffAttendanceManagementApi {
   @Override
   public ResponseEntity<Void> deleteUpad(Long id) {
     service.deleteUpad(id);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<List<BonusJama>> getBonusJama(String empCode) {
+    return ResponseEntity.ok(service.listBonusJama(empCode));
+  }
+
+  @Override
+  public ResponseEntity<BonusJama> createBonusJama(String empCode, BonusJamaInput input) {
+    return ResponseEntity.ok(service.createBonusJama(empCode, input));
+  }
+
+  @Override
+  public ResponseEntity<Void> deleteBonusJama(Long id) {
+    service.deleteBonusJama(id);
     return ResponseEntity.noContent().build();
   }
 
