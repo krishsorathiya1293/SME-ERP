@@ -78,12 +78,15 @@ final class StaffLedger {
     return out;
   }
 
-  /** Salary earned on days in [from, to] that no settled payment in {@code settled} covers. */
+  /**
+   * Salary earned on days in [from, to] whose salary no payment in {@code settled} has frozen. A
+   * payment freezes only the days up to when it was saved; the rest of its period counts here.
+   */
   double liveSalary(LocalDate from, LocalDate to, List<StaffSalaryPaymentEntity> settled) {
     double sum = 0;
     LocalDate end = to.isAfter(today) ? today : to;
     for (LocalDate d = from; !d.isAfter(end); d = d.plusDays(1)) {
-      if (covered(d, settled)) continue;
+      if (frozen(d, settled)) continue;
       StaffDay day = day(d);
       if (day.getStatus() == StaffDayStatus.PRESENT) sum += day.getPayable();
     }
@@ -154,6 +157,20 @@ final class StaffLedger {
     return null;
   }
 
+  /** A payment in {@code settled} already holds this day's salary in its snapshot. */
+  static boolean frozen(LocalDate d, List<StaffSalaryPaymentEntity> settled) {
+    for (StaffSalaryPaymentEntity p : settled) {
+      if (!d.isBefore(p.getPeriodFrom()) && !d.isAfter(p.frozenTo())) return true;
+    }
+    return false;
+  }
+
+  /** Full salary of a paid period: the frozen part plus the days worked after it was saved. */
+  double periodSalary(StaffSalaryPaymentEntity p) {
+    return p.getTotalSalary() + liveSalary(p.getPeriodFrom(), p.getPeriodTo(), List.of(p));
+  }
+
+  /** The day falls in a paid period (paid, whether or not its salary was frozen yet). */
   static boolean covered(LocalDate d, List<StaffSalaryPaymentEntity> settled) {
     for (StaffSalaryPaymentEntity p : settled) {
       if (!d.isBefore(p.getPeriodFrom()) && !d.isAfter(p.getPeriodTo())) return true;

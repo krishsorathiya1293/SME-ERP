@@ -42,6 +42,17 @@ public class StaffSalaryPaymentEntity extends AuditInfo {
   private LocalDate paidOn;
   private String note;
 
+  /**
+   * Last day whose salary is in {@link #totalSalary}, frozen when the payment was saved. Days
+   * after it, up to {@link #periodTo}, had not been worked yet and are worked out live.
+   */
+  private LocalDate salaryThrough;
+
+  /** The last day frozen into this payment's salary (the whole period when not recorded). */
+  public LocalDate frozenTo() {
+    return salaryThrough == null || salaryThrough.isAfter(periodTo) ? periodTo : salaryThrough;
+  }
+
   /** What the worker is still owed after this payment (+) or owes back (-). */
   public double balanceAfter() {
     return payable - paidAmount;

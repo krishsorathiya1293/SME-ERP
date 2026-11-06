@@ -516,7 +516,7 @@ public class StaffService {
     }
 
     double opening = paid != null ? paid.getOpeningBalance() : l.balanceBefore(from);
-    double total = paid != null ? paid.getTotalSalary() : round2(live);
+    double total = paid != null ? round2(l.periodSalary(paid)) : round2(live);
     double bonus = paid != null ? paid.getBonus() : 0;
     double loanDed = paid != null ? paid.getLoanDeduction() : 0;
     // Bonus and upad jama entered between salaries, on days in this period.
@@ -579,7 +579,7 @@ public class StaffService {
         .totalLoanGiven(round2(loanGiven))
         .totalLoanDeducted(round2(loanDeducted))
         .pendingLoan(round2(loanGiven - loanDeducted))
-        .payment(paid == null ? null : toPayment(paid, e))
+        .payment(paid == null ? null : toPayment(paid, e, l))
         .overlapsPayment(overlaps)
         .days(days);
   }
@@ -602,9 +602,12 @@ public class StaffService {
   @Transactional(readOnly = true)
   public List<SalaryPayment> listPayments(String empCode) {
     AttendanceEmployeeEntity e = employee(empCode);
-    return payments.findByEmpCodeOrderByPeriodFromDescIdDesc(e.getEmpCode()).stream()
-        .map(p -> toPayment(p, e))
-        .toList();
+    List<StaffSalaryPaymentEntity> list = payments.findByEmpCodeOrderByPeriodFromDescIdDesc(e.getEmpCode());
+    if (list.isEmpty()) return List.of();
+    LocalDate first = list.stream().map(StaffSalaryPaymentEntity::getPeriodFrom).min(LocalDate::compareTo).get();
+    LocalDate last = list.stream().map(StaffSalaryPaymentEntity::getPeriodTo).max(LocalDate::compareTo).get();
+    StaffLedger l = ledger(e, first, last);
+    return list.stream().map(p -> toPayment(p, e, l)).toList();
   }
 
   public SalaryPayment createPayment(String empCode, SalaryPaymentInput in) {
@@ -636,7 +639,15 @@ public class StaffService {
     }
 
     SalaryStatement s = statement(e, l, from, to);
+    // The salary is frozen only for days already worked: up to today if today's shift is done,
+    // else yesterday. Days after that (a monthly worker paid mid-month) still count when worked.
+    LocalDate today = l.today;
+    LocalDate through =
+        to.isBefore(today)
+            ? to
+            : l.day(today).getStatus() == StaffDayStatus.PRESENT ? today : today.minusDays(1);
     StaffSalaryPaymentEntity p = new StaffSalaryPaymentEntity();
+    p.setSalaryThrough(through);
     p.setEmpCode(e.getEmpCode());
     p.setPeriodFrom(from);
     p.setPeriodTo(to);
@@ -656,7 +667,7 @@ public class StaffService {
     p.setPaymentMode(in.getPaymentMode().name());
     p.setPaidOn(in.getPaidOn() == null ? LocalDate.now() : in.getPaidOn());
     p.setNote(trim(in.getNote()));
-    return toPayment(payments.save(p), e);
+    return toPayment(payments.save(p), e, null);
   }
 
   public void deletePayment(Long id) {
@@ -666,7 +677,13 @@ public class StaffService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found")));
   }
 
-  private SalaryPayment toPayment(StaffSalaryPaymentEntity p, AttendanceEmployeeEntity e) {
+  /**
+   * A payment as shown in the list. With a ledger, the salary includes the days of the period
+   * worked after the payment was saved, and the amount still owed grows by the same.
+   */
+  private SalaryPayment toPayment(
+      StaffSalaryPaymentEntity p, AttendanceEmployeeEntity e, StaffLedger l) {
+    double later = l == null ? 0 : round2(l.periodSalary(p) - p.getTotalSalary());
     return new SalaryPayment()
         .id(p.getId())
         .empCode(p.getEmpCode())
@@ -674,12 +691,12 @@ public class StaffService {
         .periodFrom(p.getPeriodFrom())
         .periodTo(p.getPeriodTo())
         .openingBalance(p.getOpeningBalance())
-        .totalSalary(p.getTotalSalary())
+        .totalSalary(round2(p.getTotalSalary() + later))
         .bonus(p.getBonus())
         .loanDeduction(p.getLoanDeduction())
-        .payable(p.getPayable())
+        .payable(round2(p.getPayable() + later))
         .paidAmount(p.getPaidAmount())
-        .balanceAfter(round2(p.balanceAfter()))
+        .balanceAfter(round2(p.balanceAfter() + later))
         .paymentMode(PaymentMode.valueOf(p.getPaymentMode()))
         .paidOn(p.getPaidOn())
         .note(p.getNote());
