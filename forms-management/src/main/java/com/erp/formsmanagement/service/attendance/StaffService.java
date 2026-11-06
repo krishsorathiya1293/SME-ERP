@@ -530,6 +530,25 @@ public class StaffService {
         jamaCash += b.getAmount();
       }
     }
+    // Upad given on days in this period: shown on Pagar didho and taken from this salary.
+    List<StaffUpadEntity> periodUpads =
+        l.upads.stream()
+            .filter(u -> !u.getEntryDate().isBefore(from) && !u.getEntryDate().isAfter(to))
+            .sorted(
+                Comparator.comparing(StaffUpadEntity::getEntryDate)
+                    .thenComparing(StaffUpadEntity::getId, Comparator.nullsLast(Long::compareTo)))
+            .toList();
+    double upadGiven = periodUpads.stream().mapToDouble(StaffUpadEntity::getAmount).sum();
+
+    // Not paid yet: upad given during the period is an advance on this salary, so it is cut from
+    // it — as much as the salary covers; the rest stays pending upad. Older upad is cut only when
+    // typed in on Pagar didho.
+    boolean planned = paid == null;
+    if (planned) {
+      double upadNow = l.loanBefore(from) + upadGiven - jamaCash;
+      double beforeJama = opening + total + extraBonus - extraBonusPaid + bonus;
+      loanDed = round2(Math.max(0, Math.min(upadGiven - jamaCash, Math.min(upadNow, beforeJama))));
+    }
     double toPay = round2(opening + total + extraBonus - extraBonusPaid + bonus - loanDed);
     double paidAmount = paid != null ? paid.getPaidAmount() : 0;
 
@@ -542,6 +561,8 @@ public class StaffService {
     for (StaffBonusJamaEntity b : l.bonusJama) {
       if (!b.getEntryDate().isAfter(to)) loanDeducted += b.loanEffect();
     }
+    // The upad this statement would cut, so pending upad reads as it will be after the salary.
+    if (planned) loanDeducted += loanDed;
 
     StaffDepartmentEntity d = e.getStaffDepartment();
     StaffDayCalculator.Rates r = l.rates;
@@ -576,6 +597,8 @@ public class StaffService {
         .paidAmount(paidAmount)
         .closingBalance(round2(toPay - paidAmount))
         .loanBefore(l.loanBefore(from))
+        .upadGiven(round2(upadGiven))
+        .upads(periodUpads.stream().map(u -> toUpad(u, e)).toList())
         .totalLoanGiven(round2(loanGiven))
         .totalLoanDeducted(round2(loanDeducted))
         .pendingLoan(round2(loanGiven - loanDeducted))

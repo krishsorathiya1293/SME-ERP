@@ -1353,6 +1353,7 @@ components:
         loanDeduction:
           type: number
           format: double
+          description: Loan jama. Paid period - what was cut. Not paid yet - the upad given in the period, as much as the salary covers (Pagar didho's default)
         extraBonus:
           type: number
           format: double
@@ -1384,6 +1385,15 @@ components:
           type: number
           format: double
           description: Upad pending at the start of the period (Baki Upad)
+        upadGiven:
+          type: number
+          format: double
+          description: Upad given on days in the period (taken from this salary by default)
+        upads:
+          type: array
+          description: The upad entries dated in the period, oldest first
+          items:
+            $ref: '#/components/schemas/Upad'
         totalLoanGiven:
           type: number
           format: double
