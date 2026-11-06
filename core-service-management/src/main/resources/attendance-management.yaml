@@ -1318,6 +1318,10 @@ components:
         perHourSalary:
           type: number
           format: double
+        perDaySalary:
+          type: number
+          format: double
+          description: Salary for one day, as set on the profile (shown on the slip; pay is worked hours x per hour)
         standardMinutes:
           type: integer
         salarySet:

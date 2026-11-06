@@ -575,6 +575,7 @@ public class StaffService {
         .joiningDate(e.getJoiningDate())
         .payMode(payMode(e))
         .perHourSalary(r.salarySet() ? round2(r.perHour()) : null)
+        .perDaySalary(e.getPerDaySalary())
         .standardMinutes(d == null ? null : d.standardMinutes())
         .salarySet(r.salarySet())
         .periodFrom(from)
