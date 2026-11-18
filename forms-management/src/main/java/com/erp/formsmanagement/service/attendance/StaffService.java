@@ -3,6 +3,9 @@ package com.erp.formsmanagement.service.attendance;
 import static com.erp.formsmanagement.service.attendance.StaffDayCalculator.round2;
 
 import com.erp.api.attendancemanagement.model.AttendanceAdjustmentInput;
+import com.erp.api.attendancemanagement.model.BonusJama;
+import com.erp.api.attendancemanagement.model.BonusJamaInput;
+import com.erp.api.attendancemanagement.model.BonusJamaType;
 import com.erp.api.attendancemanagement.model.Gender;
 import com.erp.api.attendancemanagement.model.PayMode;
 import com.erp.api.attendancemanagement.model.PaymentHistoryRow;
@@ -29,6 +32,7 @@ import com.erp.api.attendancemanagement.model.WeekDay;
 import com.erp.formsmanagement.domain.entity.attendance.AttendanceAdjustmentEntity;
 import com.erp.formsmanagement.domain.entity.attendance.AttendanceEmployeeEntity;
 import com.erp.formsmanagement.domain.entity.attendance.AttendancePunchEntity;
+import com.erp.formsmanagement.domain.entity.attendance.StaffBonusJamaEntity;
 import com.erp.formsmanagement.domain.entity.attendance.StaffDepartmentEntity;
 import com.erp.formsmanagement.domain.entity.attendance.StaffSalaryPaymentEntity;
 import com.erp.formsmanagement.domain.entity.attendance.StaffSettingEntity;
@@ -37,6 +41,7 @@ import com.erp.formsmanagement.domain.entity.attendance.WorkDay;
 import com.erp.formsmanagement.domain.repository.attendance.AttendanceAdjustmentRepository;
 import com.erp.formsmanagement.domain.repository.attendance.AttendanceEmployeeRepository;
 import com.erp.formsmanagement.domain.repository.attendance.AttendancePunchRepository;
+import com.erp.formsmanagement.domain.repository.attendance.StaffBonusJamaRepository;
 import com.erp.formsmanagement.domain.repository.attendance.StaffDepartmentRepository;
 import com.erp.formsmanagement.domain.repository.attendance.StaffSalaryPaymentRepository;
 import com.erp.formsmanagement.domain.repository.attendance.StaffSettingRepository;
@@ -85,6 +90,7 @@ public class StaffService {
   private final StaffUpadRepository upads;
   private final StaffSalaryPaymentRepository payments;
   private final StaffSettingRepository settings;
+  private final StaffBonusJamaRepository bonusJama;
 
   public StaffService(
       AttendanceEmployeeRepository employees,
@@ -93,7 +99,8 @@ public class StaffService {
       AttendanceAdjustmentRepository adjustments,
       StaffUpadRepository upads,
       StaffSalaryPaymentRepository payments,
-      StaffSettingRepository settings) {
+      StaffSettingRepository settings,
+      StaffBonusJamaRepository bonusJama) {
     this.employees = employees;
     this.departments = departments;
     this.punches = punches;
@@ -101,6 +108,7 @@ public class StaffService {
     this.upads = upads;
     this.payments = payments;
     this.settings = settings;
+    this.bonusJama = bonusJama;
   }
 
   // ================================================================== settings
@@ -508,10 +516,40 @@ public class StaffService {
     }
 
     double opening = paid != null ? paid.getOpeningBalance() : l.balanceBefore(from);
-    double total = paid != null ? paid.getTotalSalary() : round2(live);
+    double total = paid != null ? round2(l.periodSalary(paid)) : round2(live);
     double bonus = paid != null ? paid.getBonus() : 0;
     double loanDed = paid != null ? paid.getLoanDeduction() : 0;
-    double toPay = round2(opening + total + bonus - loanDed);
+    // Bonus and upad jama entered between salaries, on days in this period.
+    List<StaffBonusJamaEntity> entries = l.bonusJama(from, to);
+    double extraBonus = 0, extraBonusPaid = 0, jamaCash = 0;
+    for (StaffBonusJamaEntity b : entries) {
+      if (b.isBonus()) {
+        extraBonus += b.getAmount();
+        extraBonusPaid += b.getPaidNow();
+      } else {
+        jamaCash += b.getAmount();
+      }
+    }
+    // Upad given on days in this period: shown on Pagar didho and taken from this salary.
+    List<StaffUpadEntity> periodUpads =
+        l.upads.stream()
+            .filter(u -> !u.getEntryDate().isBefore(from) && !u.getEntryDate().isAfter(to))
+            .sorted(
+                Comparator.comparing(StaffUpadEntity::getEntryDate)
+                    .thenComparing(StaffUpadEntity::getId, Comparator.nullsLast(Long::compareTo)))
+            .toList();
+    double upadGiven = periodUpads.stream().mapToDouble(StaffUpadEntity::getAmount).sum();
+
+    // Not paid yet: upad given during the period is an advance on this salary, so it is cut from
+    // it — as much as the salary covers; the rest stays pending upad. Older upad is cut only when
+    // typed in on Pagar didho.
+    boolean planned = paid == null;
+    if (planned) {
+      double upadNow = l.loanBefore(from) + upadGiven - jamaCash;
+      double beforeJama = opening + total + extraBonus - extraBonusPaid + bonus;
+      loanDed = round2(Math.max(0, Math.min(upadGiven - jamaCash, Math.min(upadNow, beforeJama))));
+    }
+    double toPay = round2(opening + total + extraBonus - extraBonusPaid + bonus - loanDed);
     double paidAmount = paid != null ? paid.getPaidAmount() : 0;
 
     double loanGiven = e.getOpeningLoan();
@@ -520,6 +558,11 @@ public class StaffService {
     for (StaffSalaryPaymentEntity p : l.payments) {
       if (!p.getPeriodFrom().isAfter(to)) loanDeducted += p.getLoanDeduction();
     }
+    for (StaffBonusJamaEntity b : l.bonusJama) {
+      if (!b.getEntryDate().isAfter(to)) loanDeducted += b.loanEffect();
+    }
+    // The upad this statement would cut, so pending upad reads as it will be after the salary.
+    if (planned) loanDeducted += loanDed;
 
     StaffDepartmentEntity d = e.getStaffDepartment();
     StaffDayCalculator.Rates r = l.rates;
@@ -532,6 +575,7 @@ public class StaffService {
         .joiningDate(e.getJoiningDate())
         .payMode(payMode(e))
         .perHourSalary(r.salarySet() ? round2(r.perHour()) : null)
+        .perDaySalary(e.getPerDaySalary())
         .standardMinutes(d == null ? null : d.standardMinutes())
         .salarySet(r.salarySet())
         .periodFrom(from)
@@ -546,14 +590,20 @@ public class StaffService {
         .openingBalance(opening)
         .bonus(bonus)
         .loanDeduction(loanDed)
+        .extraBonus(round2(extraBonus))
+        .extraBonusPaid(round2(extraBonusPaid))
+        .upadJamaCash(round2(jamaCash))
+        .bonusJama(entries.stream().map(b -> toBonusJama(b, l)).toList())
         .salaryToPay(toPay)
         .paidAmount(paidAmount)
         .closingBalance(round2(toPay - paidAmount))
         .loanBefore(l.loanBefore(from))
+        .upadGiven(round2(upadGiven))
+        .upads(periodUpads.stream().map(u -> toUpad(u, e)).toList())
         .totalLoanGiven(round2(loanGiven))
         .totalLoanDeducted(round2(loanDeducted))
         .pendingLoan(round2(loanGiven - loanDeducted))
-        .payment(paid == null ? null : toPayment(paid, e))
+        .payment(paid == null ? null : toPayment(paid, e, l))
         .overlapsPayment(overlaps)
         .days(days);
   }
@@ -576,9 +626,12 @@ public class StaffService {
   @Transactional(readOnly = true)
   public List<SalaryPayment> listPayments(String empCode) {
     AttendanceEmployeeEntity e = employee(empCode);
-    return payments.findByEmpCodeOrderByPeriodFromDescIdDesc(e.getEmpCode()).stream()
-        .map(p -> toPayment(p, e))
-        .toList();
+    List<StaffSalaryPaymentEntity> list = payments.findByEmpCodeOrderByPeriodFromDescIdDesc(e.getEmpCode());
+    if (list.isEmpty()) return List.of();
+    LocalDate first = list.stream().map(StaffSalaryPaymentEntity::getPeriodFrom).min(LocalDate::compareTo).get();
+    LocalDate last = list.stream().map(StaffSalaryPaymentEntity::getPeriodTo).max(LocalDate::compareTo).get();
+    StaffLedger l = ledger(e, first, last);
+    return list.stream().map(p -> toPayment(p, e, l)).toList();
   }
 
   public SalaryPayment createPayment(String empCode, SalaryPaymentInput in) {
@@ -610,7 +663,15 @@ public class StaffService {
     }
 
     SalaryStatement s = statement(e, l, from, to);
+    // The salary is frozen only for days already worked: up to today if today's shift is done,
+    // else yesterday. Days after that (a monthly worker paid mid-month) still count when worked.
+    LocalDate today = l.today;
+    LocalDate through =
+        to.isBefore(today)
+            ? to
+            : l.day(today).getStatus() == StaffDayStatus.PRESENT ? today : today.minusDays(1);
     StaffSalaryPaymentEntity p = new StaffSalaryPaymentEntity();
+    p.setSalaryThrough(through);
     p.setEmpCode(e.getEmpCode());
     p.setPeriodFrom(from);
     p.setPeriodTo(to);
@@ -618,12 +679,19 @@ public class StaffService {
     p.setTotalSalary(s.getTotalSalary());
     p.setBonus(bonus);
     p.setLoanDeduction(loanDed);
-    p.setPayable(round2(s.getOpeningBalance() + s.getTotalSalary() + bonus - loanDed));
+    p.setPayable(
+        round2(
+            s.getOpeningBalance()
+                + s.getTotalSalary()
+                + s.getExtraBonus()
+                - s.getExtraBonusPaid()
+                + bonus
+                - loanDed));
     p.setPaidAmount(paid);
     p.setPaymentMode(in.getPaymentMode().name());
     p.setPaidOn(in.getPaidOn() == null ? LocalDate.now() : in.getPaidOn());
     p.setNote(trim(in.getNote()));
-    return toPayment(payments.save(p), e);
+    return toPayment(payments.save(p), e, null);
   }
 
   public void deletePayment(Long id) {
@@ -633,7 +701,13 @@ public class StaffService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found")));
   }
 
-  private SalaryPayment toPayment(StaffSalaryPaymentEntity p, AttendanceEmployeeEntity e) {
+  /**
+   * A payment as shown in the list. With a ledger, the salary includes the days of the period
+   * worked after the payment was saved, and the amount still owed grows by the same.
+   */
+  private SalaryPayment toPayment(
+      StaffSalaryPaymentEntity p, AttendanceEmployeeEntity e, StaffLedger l) {
+    double later = l == null ? 0 : round2(l.periodSalary(p) - p.getTotalSalary());
     return new SalaryPayment()
         .id(p.getId())
         .empCode(p.getEmpCode())
@@ -641,12 +715,12 @@ public class StaffService {
         .periodFrom(p.getPeriodFrom())
         .periodTo(p.getPeriodTo())
         .openingBalance(p.getOpeningBalance())
-        .totalSalary(p.getTotalSalary())
+        .totalSalary(round2(p.getTotalSalary() + later))
         .bonus(p.getBonus())
         .loanDeduction(p.getLoanDeduction())
-        .payable(p.getPayable())
+        .payable(round2(p.getPayable() + later))
         .paidAmount(p.getPaidAmount())
-        .balanceAfter(round2(p.balanceAfter()))
+        .balanceAfter(round2(p.balanceAfter() + later))
         .paymentMode(PaymentMode.valueOf(p.getPaymentMode()))
         .paidOn(p.getPaidOn())
         .note(p.getNote());
@@ -693,6 +767,92 @@ public class StaffService {
         .note(u.getNote());
   }
 
+  // ================================================================== bonus / jama between salaries
+
+  @Transactional(readOnly = true)
+  public List<BonusJama> listBonusJama(String empCode) {
+    AttendanceEmployeeEntity e = employee(empCode);
+    List<StaffSalaryPaymentEntity> paid = payments.findByEmpCodeIn(List.of(e.getEmpCode()));
+    return bonusJama.findByEmpCodeOrderByEntryDateDescIdDesc(e.getEmpCode()).stream()
+        .map(b -> toBonusJama(b, StaffLedger.covered(b.getEntryDate(), paid)))
+        .toList();
+  }
+
+  /**
+   * A bonus or upad jama on any day, from Pagar Didho. Unlike a salary payment it settles
+   * nothing: the pay week stays open and the entry is counted in that week's payable.
+   */
+  public BonusJama createBonusJama(String empCode, BonusJamaInput in) {
+    AttendanceEmployeeEntity e = employee(empCode);
+    if (in.getType() == null) throw bad("Choose bonus or jama");
+    double amount = nz(in.getAmount());
+    if (amount <= 0) throw bad("Enter the amount");
+    LocalDate date = in.getEntryDate() == null ? WorkDay.today() : in.getEntryDate();
+    boolean isBonus = in.getType() == BonusJamaType.BONUS;
+    double paidNow = isBonus ? nz(in.getPaidNow()) : 0;
+    if (paidNow < 0) throw bad("Paid now can't be negative");
+    if (paidNow > amount + 0.001) throw bad("Paid now is more than the bonus");
+    if ((paidNow > 0 || !isBonus) && in.getPaymentMode() == null) {
+      throw bad(isBonus ? "Choose how the bonus was paid" : "Choose how the upad came back");
+    }
+
+    StaffLedger l = ledger(e, min(date, e.getBalanceFrom()), date);
+    StaffSalaryPaymentEntity settled = l.paymentCovering(date);
+    if (settled != null) {
+      throw bad(
+          "Salary for "
+              + settled.getPeriodFrom()
+              + " to "
+              + settled.getPeriodTo()
+              + " is already paid - pick a later date");
+    }
+    if (!isBonus) {
+      double pending = l.loanBefore(date.plusDays(1));
+      if (amount > pending + 0.01) {
+        throw bad("Jama (" + amount + ") is more than the pending upad (" + round2(pending) + ")");
+      }
+    }
+
+    StaffBonusJamaEntity b = new StaffBonusJamaEntity();
+    b.setEmpCode(e.getEmpCode());
+    b.setEntryType(in.getType().name());
+    b.setEntryDate(date);
+    b.setAmount(amount);
+    b.setPaidNow(paidNow);
+    b.setPaymentMode(
+        in.getPaymentMode() == null || (isBonus && paidNow <= 0) ? null : in.getPaymentMode().name());
+    b.setNote(trim(in.getNote()));
+    return toBonusJama(bonusJama.save(b), false);
+  }
+
+  public void deleteBonusJama(Long id) {
+    StaffBonusJamaEntity b =
+        bonusJama
+            .findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found"));
+    if (StaffLedger.covered(b.getEntryDate(), payments.findByEmpCodeIn(List.of(b.getEmpCode())))) {
+      throw bad("That salary is already paid - undo the payment first");
+    }
+    bonusJama.delete(b);
+  }
+
+  private static BonusJama toBonusJama(StaffBonusJamaEntity b, StaffLedger l) {
+    return toBonusJama(b, l.paymentCovering(b.getEntryDate()) != null);
+  }
+
+  private static BonusJama toBonusJama(StaffBonusJamaEntity b, boolean settled) {
+    return new BonusJama()
+        .id(b.getId())
+        .empCode(b.getEmpCode())
+        .type(BonusJamaType.valueOf(b.getEntryType()))
+        .entryDate(b.getEntryDate())
+        .amount(b.getAmount())
+        .paidNow(b.getPaidNow())
+        .paymentMode(b.getPaymentMode() == null ? null : PaymentMode.valueOf(b.getPaymentMode()))
+        .note(b.getNote())
+        .settled(settled);
+  }
+
   // ================================================================== payment history
 
   /** One row per pay period (by the worker's pay mode) in [from, to], newest first. */
@@ -714,13 +874,23 @@ public class StaffService {
               .filter(p -> !p.getPeriodFrom().isBefore(pFrom) && !p.getPeriodFrom().isAfter(pTo))
               .toList();
       double salary = l.liveSalary(pFrom, pTo, inPeriod);
-      double paid = 0, loanDed = 0;
+      double paid = 0, loanDed = 0, bonus = 0;
       Set<String> modes = new LinkedHashSet<>();
       for (StaffSalaryPaymentEntity p : inPeriod) {
         salary += p.getTotalSalary();
         paid += p.getPaidAmount();
         loanDed += p.getLoanDeduction();
+        bonus += p.getBonus();
         modes.add(modeLabel(p.getPaymentMode()));
+      }
+      for (StaffBonusJamaEntity b : l.bonusJama(pFrom, pTo)) {
+        if (b.isBonus()) {
+          bonus += b.getAmount();
+          paid += b.getPaidNow();
+        } else {
+          loanDed += b.getAmount();
+        }
+        if (b.getPaymentMode() != null) modes.add(modeLabel(b.getPaymentMode()));
       }
       double loanGiven = 0;
       for (StaffUpadEntity u : l.upads) {
@@ -743,6 +913,7 @@ public class StaffService {
               .totalSalary(round2(salary))
               .loanGiven(round2(loanGiven))
               .loanDeducted(round2(loanDed))
+              .bonus(round2(bonus))
               .paidSalary(round2(paid))
               .settled(settled)
               .paymentModes(String.join(", ", modes)));
@@ -839,6 +1010,10 @@ public class StaffService {
     for (StaffUpadEntity u : upads.findAll()) {
       if (!u.getEntryDate().isBefore(weekFrom) && !u.getEntryDate().isAfter(weekTo)) upadWeek += u.getAmount();
     }
+    // Bonus handed over on the day is money paid out this week too.
+    for (StaffBonusJamaEntity b : bonusJama.findByEntryDateBetween(weekFrom, weekTo)) {
+      paidWeek += b.getPaidNow();
+    }
     for (StaffSalaryPaymentEntity p : payments.findTop10ByOrderByPaidOnDescIdDesc()) {
       AttendanceEmployeeEntity e = byCode.get(p.getEmpCode());
       recent.add(
@@ -866,6 +1041,19 @@ public class StaffService {
               .date(u.getEntryDate())
               .amount(u.getAmount())
               .paymentMode(PaymentMode.valueOf(u.getPaymentMode())));
+    }
+    for (StaffBonusJamaEntity b : bonusJama.findTop10ByOrderByEntryDateDescIdDesc()) {
+      AttendanceEmployeeEntity e = byCode.get(b.getEmpCode());
+      recent.add(
+          new RecentTransaction()
+              .kind(b.isBonus() ? RecentTransaction.KindEnum.BONUS : RecentTransaction.KindEnum.JAMA)
+              .id(b.getId())
+              .empCode(b.getEmpCode())
+              .employeeName(e == null ? b.getEmpCode() : e.getFullName())
+              .photoThumb(e == null ? null : e.getPhotoThumb())
+              .date(b.getEntryDate())
+              .amount(b.getAmount())
+              .paymentMode(b.getPaymentMode() == null ? null : PaymentMode.valueOf(b.getPaymentMode())));
     }
     recent.sort(Comparator.comparing(RecentTransaction::getDate).reversed());
 
@@ -920,6 +1108,7 @@ public class StaffService {
     Map<String, Map<LocalDate, AttendanceAdjustmentEntity>> adjMap = new HashMap<>();
     Map<String, List<StaffSalaryPaymentEntity>> payMap = new HashMap<>();
     Map<String, List<StaffUpadEntity>> upadMap = new HashMap<>();
+    Map<String, List<StaffBonusJamaEntity>> bonusMap = new HashMap<>();
     if (!codes.isEmpty()) {
       List<AttendancePunchEntity> rows =
           codes.size() == 1
@@ -943,6 +1132,9 @@ public class StaffService {
       for (StaffUpadEntity u : upads.findByEmpCodeIn(codes)) {
         upadMap.computeIfAbsent(u.getEmpCode(), k -> new ArrayList<>()).add(u);
       }
+      for (StaffBonusJamaEntity b : bonusJama.findByEmpCodeIn(codes)) {
+        bonusMap.computeIfAbsent(b.getEmpCode(), k -> new ArrayList<>()).add(b);
+      }
     }
     DayOfWeek off = weeklyOff();
     Map<String, StaffLedger> out = new HashMap<>();
@@ -951,7 +1143,14 @@ public class StaffService {
       out.put(
           c,
           new StaffLedger(
-              e, off, today, punchMap.get(c), adjMap.get(c), payMap.get(c), upadMap.get(c)));
+              e,
+              off,
+              today,
+              punchMap.get(c),
+              adjMap.get(c),
+              payMap.get(c),
+              upadMap.get(c),
+              bonusMap.get(c)));
     }
     return out;
   }

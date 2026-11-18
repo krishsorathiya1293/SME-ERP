@@ -4,6 +4,7 @@ import com.erp.api.attendancemanagement.model.StaffDay;
 import com.erp.api.attendancemanagement.model.StaffDayStatus;
 import com.erp.formsmanagement.domain.entity.attendance.AttendanceAdjustmentEntity;
 import com.erp.formsmanagement.domain.entity.attendance.AttendanceEmployeeEntity;
+import com.erp.formsmanagement.domain.entity.attendance.StaffBonusJamaEntity;
 import com.erp.formsmanagement.domain.entity.attendance.StaffSalaryPaymentEntity;
 import com.erp.formsmanagement.domain.entity.attendance.StaffUpadEntity;
 import com.erp.formsmanagement.service.attendance.StaffDayCalculator.Rates;
@@ -22,8 +23,9 @@ import java.util.Map;
  *
  * <ul>
  *   <li><b>Balance</b> (+ = company owes the worker, "Jama"; − = worker owes): opening balance +
- *       salary earned since {@code balanceFrom} + bonus − loan jama − paid.
- *   <li><b>Upad</b> pending: opening loan + upad given − loan jama.
+ *       salary earned since {@code balanceFrom} + bonus − loan jama − paid. Bonus given between
+ *       salaries counts on its own date, less what was handed over that day.
+ *   <li><b>Upad</b> pending: opening loan + upad given − loan jama − upad given back in cash.
  * </ul>
  *
  * Settled periods use the payment's snapshot of the salary; days not yet settled are worked out
@@ -38,6 +40,7 @@ final class StaffLedger {
   private final Map<LocalDate, AttendanceAdjustmentEntity> adjustments;
   final List<StaffSalaryPaymentEntity> payments;
   final List<StaffUpadEntity> upads;
+  final List<StaffBonusJamaEntity> bonusJama;
 
   StaffLedger(
       AttendanceEmployeeEntity employee,
@@ -46,13 +49,15 @@ final class StaffLedger {
       Map<LocalDate, List<LocalDateTime>> punchesByDay,
       Map<LocalDate, AttendanceAdjustmentEntity> adjustments,
       List<StaffSalaryPaymentEntity> payments,
-      List<StaffUpadEntity> upads) {
+      List<StaffUpadEntity> upads,
+      List<StaffBonusJamaEntity> bonusJama) {
     this.employee = employee;
     this.today = today;
     this.punchesByDay = punchesByDay == null ? Map.of() : punchesByDay;
     this.adjustments = adjustments == null ? Map.of() : adjustments;
     this.payments = payments == null ? List.of() : payments;
     this.upads = upads == null ? List.of() : upads;
+    this.bonusJama = bonusJama == null ? List.of() : bonusJama;
     this.rates =
         new Rates(
             employee.getStaffDepartment(),
@@ -73,12 +78,15 @@ final class StaffLedger {
     return out;
   }
 
-  /** Salary earned on days in [from, to] that no settled payment in {@code settled} covers. */
+  /**
+   * Salary earned on days in [from, to] whose salary no payment in {@code settled} has frozen. A
+   * payment freezes only the days up to when it was saved; the rest of its period counts here.
+   */
   double liveSalary(LocalDate from, LocalDate to, List<StaffSalaryPaymentEntity> settled) {
     double sum = 0;
     LocalDate end = to.isAfter(today) ? today : to;
     for (LocalDate d = from; !d.isAfter(end); d = d.plusDays(1)) {
-      if (covered(d, settled)) continue;
+      if (frozen(d, settled)) continue;
       StaffDay day = day(d);
       if (day.getStatus() == StaffDayStatus.PRESENT) sum += day.getPayable();
     }
@@ -93,6 +101,9 @@ final class StaffLedger {
     for (StaffSalaryPaymentEntity p : settled) {
       balance += p.getTotalSalary() + p.getBonus() - p.getLoanDeduction() - p.getPaidAmount();
     }
+    for (StaffBonusJamaEntity b : bonusJama) {
+      if (b.getEntryDate().isBefore(date)) balance += b.balanceEffect();
+    }
     LocalDate start = employee.getBalanceFrom();
     if (start != null && start.isBefore(date)) {
       balance += liveSalary(start, date.minusDays(1), settled);
@@ -106,6 +117,9 @@ final class StaffLedger {
     for (StaffUpadEntity u : upads) if (u.getEntryDate().isBefore(date)) loan += u.getAmount();
     for (StaffSalaryPaymentEntity p : payments) {
       if (p.getPeriodTo().isBefore(date)) loan -= p.getLoanDeduction();
+    }
+    for (StaffBonusJamaEntity b : bonusJama) {
+      if (b.getEntryDate().isBefore(date)) loan -= b.loanEffect();
     }
     return StaffDayCalculator.round2(loan);
   }
@@ -125,6 +139,38 @@ final class StaffLedger {
         .orElse(null);
   }
 
+  /** Bonus and jama entries dated in [from, to], oldest first. */
+  List<StaffBonusJamaEntity> bonusJama(LocalDate from, LocalDate to) {
+    return bonusJama.stream()
+        .filter(b -> b.on(from, to))
+        .sorted(
+            java.util.Comparator.comparing(StaffBonusJamaEntity::getEntryDate)
+                .thenComparing(StaffBonusJamaEntity::getId, java.util.Comparator.nullsLast(Long::compareTo)))
+        .toList();
+  }
+
+  /** The settled payment whose period holds {@code date}, if any. */
+  StaffSalaryPaymentEntity paymentCovering(LocalDate date) {
+    for (StaffSalaryPaymentEntity p : payments) {
+      if (!date.isBefore(p.getPeriodFrom()) && !date.isAfter(p.getPeriodTo())) return p;
+    }
+    return null;
+  }
+
+  /** A payment in {@code settled} already holds this day's salary in its snapshot. */
+  static boolean frozen(LocalDate d, List<StaffSalaryPaymentEntity> settled) {
+    for (StaffSalaryPaymentEntity p : settled) {
+      if (!d.isBefore(p.getPeriodFrom()) && !d.isAfter(p.frozenTo())) return true;
+    }
+    return false;
+  }
+
+  /** Full salary of a paid period: the frozen part plus the days worked after it was saved. */
+  double periodSalary(StaffSalaryPaymentEntity p) {
+    return p.getTotalSalary() + liveSalary(p.getPeriodFrom(), p.getPeriodTo(), List.of(p));
+  }
+
+  /** The day falls in a paid period (paid, whether or not its salary was frozen yet). */
   static boolean covered(LocalDate d, List<StaffSalaryPaymentEntity> settled) {
     for (StaffSalaryPaymentEntity p : settled) {
       if (!d.isBefore(p.getPeriodFrom()) && !d.isAfter(p.getPeriodTo())) return true;
