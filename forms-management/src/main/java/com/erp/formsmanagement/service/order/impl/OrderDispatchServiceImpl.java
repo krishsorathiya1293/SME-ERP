@@ -110,8 +110,7 @@ public class OrderDispatchServiceImpl
   @Transactional(readOnly = true)
   public PaginatedResultOrderDispatch getAll(Long itemId, GetAllQuery<String> query) {
     Specification<OrderDispatchEntity> spec =
-        Specification.where(
-            (root, q, cb) -> cb.equal(root.get("orderItem").get("id"), itemId));
+            (root, q, cb) -> cb.equal(root.get("orderItem").get("id"), itemId);
 
     Page<OrderDispatchEntity> results =
         orderDispatchRepository.findAll(
