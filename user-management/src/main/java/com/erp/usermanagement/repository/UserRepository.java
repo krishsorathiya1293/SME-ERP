@@ -2,6 +2,7 @@ package com.erp.usermanagement.repository;
 
 import com.erp.repository.CoreRepository;
 import com.erp.usermanagement.model.entity.UserEntity;
+import com.erp.usermanagement.model.entity.UserGroup;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -61,6 +62,14 @@ public interface UserRepository extends CoreRepository<UserEntity, Long> {
    * @return true if user exists, false otherwise
    */
   boolean existsByUsername(String username);
+
+  /**
+   * Check if any user belongs to the given user group.
+   *
+   * @param userGroup The user group to look for
+   * @return true if at least one such user exists, false otherwise
+   */
+  boolean existsByUserGroup(UserGroup userGroup);
 
   /**
    * Find the user account linked to a given party.

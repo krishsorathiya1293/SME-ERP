@@ -83,8 +83,11 @@ paths:
       tags:
         - User Management
       operationId: registerUser
-      summary: Register a new user
-      description: Create a new user account with email, password, and user group
+      summary: Register a new user (Admin only)
+      description: >-
+        Create a new user account with email, password, and user group. Needs an Admin token; the
+        very first Admin is created at server startup from BOOTSTRAP_ADMIN_EMAIL /
+        BOOTSTRAP_ADMIN_PASSWORD, not through this endpoint.
       requestBody:
         required: true
         content:
@@ -104,6 +107,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Admin access required
+      security:
+        - oauth2: [ ]
 
   /api/v1/users:
     get:

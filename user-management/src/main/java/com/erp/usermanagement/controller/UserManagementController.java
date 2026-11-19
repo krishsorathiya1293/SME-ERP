@@ -24,7 +24,10 @@ public class UserManagementController implements UserManagementUserManagementApi
   private final UserService userService;
   private final UserMapper userMapper;
 
+  // Admin only, and not on the public-access list: this creates a login of any user group, so an
+  // open register would hand out Admin accounts. The first Admin comes from FirstAdminBootstrap.
   @Override
+  @Admin
   public ResponseEntity<User> registerUser(UserRegistrationRequest request) {
 
     return ResponseEntity.status(HttpStatus.CREATED)

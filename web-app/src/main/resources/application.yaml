@@ -102,15 +102,21 @@ security:
         allowed-methods:
           - "*"
         allow-credentials: false
+  # /api/v1/users/register is deliberately NOT public: it creates logins of any user group, so it
+  # needs an Admin token. The very first Admin comes from bootstrap-admin below.
   public-access:
     - /api/v1/auth/signin
-    - /api/v1/users/register
     # Factory PC sync agent - authenticated by X-Sync-Key in AttendanceSyncController, not JWT.
     - /api/v1/attendance/sync/**
     - /swagger-ui.html
     - /swagger-ui/**
     - /v3/api-docs/**
     - /doc/v3/**
+  # First Admin on a database that has none: set both, start once, then remove them again. Ignored
+  # as soon as any Admin exists, so it can never add or reset a login on a running system.
+  bootstrap-admin:
+    email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
 attendance:
   # Shared secret the Ishita HRMS app (factory PC) sends as X-Sync-Key. Empty = sync disabled (401).
   sync-key: ${ATTENDANCE_SYNC_KEY:}

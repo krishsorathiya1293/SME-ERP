@@ -57,6 +57,21 @@ public class UserService {
   }
 
   /**
+   * Create the very first Admin, and only that one: does nothing once any Admin exists. This is the
+   * only way to get an Admin without already being one, and it is reachable from startup
+   * configuration alone (see FirstAdminBootstrap), never from a request.
+   *
+   * @return the new Admin, or empty when an Admin already exists
+   */
+  @Transactional
+  public Optional<UserEntity> createFirstAdmin(String email, String password) {
+    if (userRepository.existsByUserGroup(UserGroup.ADMIN)) {
+      return Optional.empty();
+    }
+    return Optional.of(registerUser(email, password, UserGroup.ADMIN.getValue()));
+  }
+
+  /**
    * Auto-create a CLIENT user account for a newly created party. Generates a unique login
    * username derived from the party's name and a random password; the email and other profile
    * fields remain empty until the client fills them in. The plaintext password is retained

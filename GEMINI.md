@@ -304,9 +304,9 @@ POST /api/v1/auth/refresh { refreshToken }
 - `JwtAuthenticationFilter` runs before `UsernamePasswordAuthenticationFilter`
 - Public endpoints (from `security.public-access` list in YAML):
   - `POST /api/v1/auth/signin`
-  - `POST /api/v1/users/register`
   - `/swagger-ui/**`, `/v3/api-docs/**`, `/doc/v3/**`
 - All other endpoints require a valid JWT
+- `POST /api/v1/users/register` is **Admin only** (`@Admin`) and must stay off the public list: it creates logins of any user group. The first Admin on an empty database comes from `FirstAdminBootstrap` (`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`, ignored once any Admin exists)
 
 ### 7.3 Password & Roles
 
