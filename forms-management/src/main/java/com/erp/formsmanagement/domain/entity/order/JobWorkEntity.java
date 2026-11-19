@@ -103,6 +103,15 @@ public class JobWorkEntity extends AuditInfo {
 
   private String jobWorkLabel;
 
+  /**
+   * Net kg (and petis) this chitthi is holding out of its size's stock right now. Kept here so an
+   * edit moves the stock by the difference and a delete puts back exactly this. Null = it never
+   * drew from stock: raised before stock was linked, or the size had no stock entry then.
+   */
+  private Double stockKg;
+
+  private Integer stockPeti;
+
   @OneToMany(
       mappedBy = "jobWork",
       cascade = CascadeType.ALL,

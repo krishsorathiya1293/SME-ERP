@@ -337,7 +337,7 @@ paths:
       operationId: createStockEntry
       tags:
         - Item
-      summary: Add stock (+) or set (recount) the stock of a size; every entry is kept as dated history
+      summary: Add (+), minus (-) or set (recount) the stock of a size; every entry is kept as dated history
       requestBody:
         required: true
         content:
@@ -347,6 +347,32 @@ paths:
       responses:
         '201':
           description: Stock after the entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+
+  /api/v1/stock-entries/{id}:
+    delete:
+      operationId: deleteStockEntry
+      tags:
+        - Item
+      summary: Remove one hand-made stock entry outright
+      description: >-
+        Deletes an ADD, MINUS or SET entry as if it had never been typed. Nothing records the
+        removal. The stock moves back by what the entry had changed, unless a later recount (SET)
+        already replaced it. Entries written by a job work (JW_OUT / JW_BACK) cannot be removed
+        here - edit or delete the job work instead.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Stock after the removal
           content:
             application/json:
               schema:
@@ -642,9 +668,34 @@ components:
           description: Weight of one empty peti in kg, remembered for the next entry
     NewStockEntryType:
       type: string
+      description: ADD puts on top of the stock, MINUS takes off it, SET replaces it (a recount).
       enum:
         - ADD
+        - MINUS
         - SET
+    StockEntryUnit:
+      type: string
+      description: >-
+        How the quantity of a stock entry was given. PETI: petis on the weighing machine - grossKg
+        includes the petis, and petiCount x emptyPetiWeight is taken off. KG: loose weight with no
+        petis - grossKg is the net kg itself. PCS: a count of pieces - pcs x weightPerPc is the kg.
+        KG and PCS leave the peti count of the stock as it is.
+      enum:
+        - PETI
+        - KG
+        - PCS
+    StockEntryType:
+      type: string
+      description: >-
+        What a history row is. ADD / MINUS / SET are typed in by hand. JW_OUT is stock sent to a
+        job work and JW_BACK is stock put back when a job work is edited down or deleted; the
+        system writes those two, and their kg and petis are stored as positive figures.
+      enum:
+        - ADD
+        - MINUS
+        - SET
+        - JW_OUT
+        - JW_BACK
     NewStockEntry:
       required:
         - sizeId
@@ -657,6 +708,12 @@ components:
           format: int64
         type:
           $ref: '#/components/schemas/NewStockEntryType'
+        unit:
+          $ref: '#/components/schemas/StockEntryUnit'
+        pcs:
+          type: number
+          format: double
+          description: Pieces, when unit is PCS. A whole number; the kg is pcs x weightPerPc.
         entryDate:
           type: string
           format: date
@@ -688,7 +745,9 @@ components:
           type: integer
           format: int64
         type:
-          $ref: '#/components/schemas/NewStockEntryType'
+          $ref: '#/components/schemas/StockEntryType'
+        unit:
+          $ref: '#/components/schemas/StockEntryUnit'
         entryDate:
           type: string
           format: date

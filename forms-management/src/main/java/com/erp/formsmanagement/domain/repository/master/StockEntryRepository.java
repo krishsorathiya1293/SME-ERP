@@ -8,4 +8,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface StockEntryRepository extends CoreRepository<StockEntryEntity, Long> {
   List<StockEntryEntity> findByItem_IdOrderByEntryDateDescIdDesc(Long itemId);
+
+  /** In the order the entries were made — the order the running "stock after" figures follow. */
+  List<StockEntryEntity> findByItem_IdOrderByIdAsc(Long itemId);
 }

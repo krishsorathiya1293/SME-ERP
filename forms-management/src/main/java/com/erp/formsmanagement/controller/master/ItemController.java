@@ -39,6 +39,11 @@ public class ItemController
   }
 
   @Override
+  public ResponseEntity<Item> deleteStockEntry(Long id) {
+    return ResponseEntity.ok(stockEntries.remove(id));
+  }
+
+  @Override
   public ResponseEntity<Item> createItem(NewItem newItem) {
     return crud().createOne(newItem);
   }

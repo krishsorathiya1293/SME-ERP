@@ -37,6 +37,9 @@ public class StockEntryEntity extends AuditInfo {
   private ItemEntity item;
 
   private String entryType;
+
+  /** How the quantity was given: PETI, KG or PCS. Null on rows from before units existed (PETI). */
+  private String entryUnit;
   private LocalDate entryDate;
   private Integer petiCount;
   private Double grossKg;

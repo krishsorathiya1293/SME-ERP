@@ -23,6 +23,7 @@ import com.erp.formsmanagement.domain.repository.master.PartyRepository;
 import com.erp.formsmanagement.domain.repository.order.JobWorkRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.mapper.order.JobWorkMapper;
+import com.erp.formsmanagement.service.master.StockEntryService;
 import com.erp.formsmanagement.service.master.TranslationService;
 import com.erp.formsmanagement.service.order.JobWorkService;
 import com.erp.formsmanagement.service.order.JobWorkStats;
@@ -31,6 +32,7 @@ import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
 import com.erp.util.PageMapper;
 import com.erp.util.PaginationUtils;
+import com.erp.wrappers.CreateResult;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.ArrayList;
@@ -46,7 +48,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Service
@@ -61,6 +66,10 @@ public class JobWorkServiceImpl
   private final ItemBlueprintDataRepository itemBlueprintDataRepository;
   private final TranslationService translationService;
   private final ClientOrderFulfillmentService clientOrderFulfillmentService;
+  private final StockEntryService stockEntryService;
+
+  /** Runs a best-effort step in a transaction of its own, so its failure stays its own. */
+  private final TransactionTemplate isolated;
 
   public JobWorkServiceImpl(
       JobWorkRepository jobWorkRepository,
@@ -69,6 +78,8 @@ public class JobWorkServiceImpl
       ItemBlueprintDataRepository itemBlueprintDataRepository,
       TranslationService translationService,
       ClientOrderFulfillmentService clientOrderFulfillmentService,
+      StockEntryService stockEntryService,
+      PlatformTransactionManager transactionManager,
       JobWorkMapper jobWorkMapper) {
     super(jobWorkRepository, jobWorkMapper);
     this.jobWorkRepository = jobWorkRepository;
@@ -77,28 +88,58 @@ public class JobWorkServiceImpl
     this.itemBlueprintDataRepository = itemBlueprintDataRepository;
     this.translationService = translationService;
     this.clientOrderFulfillmentService = clientOrderFulfillmentService;
+    this.stockEntryService = stockEntryService;
+    this.isolated = new TransactionTemplate(transactionManager);
+    this.isolated.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
   }
 
   /**
    * Registers the job work's party (by id) and finish in the translation dictionary so the editor
    * lists them and the print can render saved Hindi/Gujarati. Rows start blank — values are entered
    * by the user, never fetched. Best effort — a hiccup here must never block saving the job work.
+   *
+   * <p>It runs in its own transaction for that reason: the save around it is one transaction now
+   * (the job work and the stock it takes go together), and a failure inside a shared transaction
+   * would mark the whole save for rollback even though it is caught here.
    */
   private void ensureTranslations(JobWorkEntity entity) {
     try {
-      if (entity.getParty() != null) {
-        translationService.ensureParty(entity.getParty());
-      }
-      translationService.ensureFinish(entity.getFinish());
+      isolated.executeWithoutResult(
+          status -> {
+            if (entity.getParty() != null) {
+              translationService.ensureParty(entity.getParty());
+            }
+            translationService.ensureFinish(entity.getFinish());
+          });
     } catch (Exception e) {
       log.warn("Failed to seed translations for job work {}", entity.getId(), e);
     }
+  }
+
+  /**
+   * Redeclared only to make it transactional. The class-level annotation does not reach a method
+   * inherited from the base service, and a job work now takes its kg out of stock as it is saved:
+   * the two have to commit or fail as one, or a refused save could leave the stock short.
+   */
+  @Override
+  @Transactional
+  public CreateResult<JobWork> save(Long orderItemId, NewJobWork request) {
+    return super.save(orderItemId, request);
+  }
+
+  /** Transactional for the same reason as {@link #save}: the edit and its stock change are one. */
+  @Override
+  @Transactional
+  public JobWork update(Long orderItemId, Long id, NewJobWork request) {
+    return super.update(orderItemId, id, request);
   }
 
   @Override
   protected void afterCreate(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
     linkRelations(entity, orderItemId, request);
     assignJobWorkNo(entity);
+    // Takes the net kg out of the size's stock, and refuses the save when there is not that much.
+    stockEntryService.jobWorkSent(entity);
     ensureTranslations(entity);
     if (entity.getStatus() == null) {
       entity.setStatus(JobWorkStatus.PENDING);
@@ -141,6 +182,10 @@ public class JobWorkServiceImpl
                   .removeIf(a -> a.getJobWork() != null && id.equals(a.getJobWork().getId()));
             });
 
+    // Whatever the chitthi took out of stock goes back before it disappears.
+    if (jobWork != null) {
+      stockEntryService.jobWorkDeleted(jobWork);
+    }
     jobWorkRepository.deleteById(id);
     jobWorkRepository.flush();
     covered.values().forEach(clientOrderFulfillmentService::syncByOrderItem);
@@ -148,9 +193,13 @@ public class JobWorkServiceImpl
 
   @Override
   protected void afterUpdate(JobWorkEntity entity, Long orderItemId, NewJobWork request) {
+    // The mapper leaves the size alone, so this is still the size the stock was taken from.
+    Long previousSizeId = entity.getSize() == null ? null : entity.getSize().getId();
     linkRelations(entity, orderItemId, request);
     // jobWorkNo is never changed on update — keep the originally assigned number
     syncChitthiNoWithJobWorkLabel(entity);
+    // Moves the stock by the difference; refuses the edit when it asks for more than is there.
+    stockEntryService.jobWorkEdited(entity, previousSizeId);
     applyMergedOrderItems(entity, request);
     syncCoveredOrderItems(entity);
   }
@@ -188,9 +237,18 @@ public class JobWorkServiceImpl
                       new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id))));
     }
 
-    entity.getMergedOrderItems().clear();
+    // The rows already there are reused, never cleared and re-added. Hibernate writes inserts
+    // before deletes, so a fresh row for a line the chitthi already covers would collide with the
+    // old one on (job work, order line) — which is what made editing a merged chitthi fail with
+    // "Duplicate value already exists".
+    Map<Long, JobWorkOrderItemEntity> existing = new LinkedHashMap<>();
+    for (JobWorkOrderItemEntity row : entity.getMergedOrderItems()) {
+      if (row.getOrderItem() != null) existing.putIfAbsent(row.getOrderItem().getId(), row);
+    }
+
     if (covered.size() < 2) {
       // Not a merge. Leaving the table empty keeps ordinary job works on exactly the old path.
+      entity.getMergedOrderItems().clear();
       return;
     }
 
@@ -202,7 +260,7 @@ public class JobWorkServiceImpl
     double totalKg = entity.getQtyKg() != null ? entity.getQtyKg() : 0d;
     double totalPc = entity.getQtyPc() != null ? entity.getQtyPc() : 0d;
 
-    List<JobWorkOrderItemEntity> allocations = new ArrayList<>();
+    List<JobWorkOrderItemEntity> added = new ArrayList<>();
     double assignedKg = 0d;
     double assignedPc = 0d;
     for (int i = 0; i < items.size(); i++) {
@@ -211,18 +269,24 @@ public class JobWorkServiceImpl
       double share =
           totalWeight > 0 ? weights[i] / totalWeight : 1d / items.size();
 
-      JobWorkOrderItemEntity allocation = new JobWorkOrderItemEntity();
-      allocation.setJobWork(entity);
-      allocation.setOrderItem(items.get(i));
+      // The line's own row if it has one; only a line new to the chitthi gets a new row.
+      JobWorkOrderItemEntity allocation = existing.remove(items.get(i).getId());
+      if (allocation == null) {
+        allocation = new JobWorkOrderItemEntity();
+        allocation.setJobWork(entity);
+        allocation.setOrderItem(items.get(i));
+        added.add(allocation);
+      }
       boolean last = i == items.size() - 1;
       // The last line absorbs the rounding, so the parts always add back up to the whole.
       allocation.setQtyKg(last ? round3(totalKg - assignedKg) : round3(totalKg * share));
       allocation.setQtyPc(last ? round3(totalPc - assignedPc) : round3(totalPc * share));
       assignedKg += allocation.getQtyKg();
       assignedPc += allocation.getQtyPc();
-      allocations.add(allocation);
     }
-    entity.getMergedOrderItems().addAll(allocations);
+    // What is left in the map are lines no longer on the chitthi.
+    entity.getMergedOrderItems().removeAll(existing.values());
+    entity.getMergedOrderItems().addAll(added);
   }
 
   /** The Kg an order line stands for, falling back to pieces through the size's 1-pc weight. */
@@ -526,6 +590,7 @@ public class JobWorkServiceImpl
             ? JobWorkType.valueOf(request.getJobWorkType().name())
             : JobWorkType.MANUAL);
     assignJobWorkNo(entity);
+    stockEntryService.jobWorkSent(entity);
     JobWorkEntity saved = jobWorkRepository.save(entity);
     ensureTranslations(saved);
     return mapper().toDomain(saved);
@@ -539,8 +604,10 @@ public class JobWorkServiceImpl
             .findById(id)
             .orElseThrow(
                 () -> new EntityNotFoundException(String.format(Constant.ENTITY_NOT_FOUND, id)));
+    Long previousSizeId = entity.getSize() == null ? null : entity.getSize().getId();
     applyManualFields(entity, request);
     syncChitthiNoWithJobWorkLabel(entity);
+    stockEntryService.jobWorkEdited(entity, previousSizeId);
     return mapper().toDomain(jobWorkRepository.save(entity));
   }
 

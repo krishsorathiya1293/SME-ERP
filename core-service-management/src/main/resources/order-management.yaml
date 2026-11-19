@@ -1359,6 +1359,12 @@ components:
         jobWorkLabel:
           type: string
           description: Party-wise number shown on the list and print, e.g. "AZ-1".
+        stockKg:
+          type: number
+          format: double
+          description: >-
+            Net kg this job work is holding out of its size's stock. Null when it never drew from
+            stock (raised before stock was linked, or the size had no stock entry at the time).
         mergedOrderItemIds:
           type: array
           description: The order lines this chitthi covers; empty/absent unless it is a merged one.

@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import com.erp.repository.CoreRepository;
@@ -35,6 +36,51 @@ public interface JobWorkRepository extends CoreRepository<JobWorkEntity, Long> {
       @Param("partyId") Long partyId,
       @Param("startDate") LocalDateTime startDate,
       @Param("endDate") LocalDateTime endDate);
+
+  /** What one chitthi is holding out of its size's stock, read as plain values. */
+  interface StockHold {
+    Long getId();
+
+    Long getSizeId();
+
+    Double getStockKg();
+
+    Integer getStockPeti();
+
+    Double getPetiWeightKg();
+
+    String getJobWorkLabel();
+
+    String getChitthiNo();
+  }
+
+  /**
+   * The stock held by the chitthis of an order line that is about to be deleted.
+   *
+   * <p>Deliberately not entities. The line's row is deleted through JPA while its chitthis go by
+   * the database's FK cascade; a loaded {@code JobWorkEntity} would then still point at the removed
+   * line and Hibernate refuses to flush that. Plain values leave nothing behind in the session.
+   */
+  @Query(
+"""
+    SELECT jw.id AS id, jw.size.id AS sizeId, jw.stockKg AS stockKg, jw.stockPeti AS stockPeti,
+           jw.petiWeightKg AS petiWeightKg, jw.jobWorkLabel AS jobWorkLabel, jw.chitthiNo AS chitthiNo
+    FROM JobWorkEntity jw
+    WHERE jw.orderItem.id = :orderItemId
+      AND jw.stockKg IS NOT NULL
+    ORDER BY jw.id
+""")
+  List<StockHold> findStockHeldByOrderItemId(@Param("orderItemId") Long orderItemId);
+
+  /** Marks those chitthis as holding nothing, once their stock has been put back. */
+  @Modifying
+  @Query(
+"""
+    UPDATE JobWorkEntity jw SET jw.stockKg = NULL, jw.stockPeti = NULL
+    WHERE jw.orderItem.id = :orderItemId
+      AND jw.stockKg IS NOT NULL
+""")
+  int clearStockHeldByOrderItemId(@Param("orderItemId") Long orderItemId);
 
   default Specification<JobWorkEntity> filterByOrderItemId(Long orderItemId) {
     return (root, query, cb) ->

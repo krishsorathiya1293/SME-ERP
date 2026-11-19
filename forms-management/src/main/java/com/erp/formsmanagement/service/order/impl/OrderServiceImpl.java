@@ -26,6 +26,7 @@ import com.erp.formsmanagement.domain.repository.order.OrderItemRepository;
 import com.erp.formsmanagement.domain.repository.order.OrderRepository;
 import com.erp.formsmanagement.mapper.order.OrderItemMapper;
 import com.erp.formsmanagement.mapper.order.OrderMapper;
+import com.erp.formsmanagement.service.master.StockEntryService;
 import com.erp.formsmanagement.service.order.OrderService;
 import com.erp.service.AbstractSpecificationServiceV2;
 import com.erp.util.GetAllQuery;
@@ -63,6 +64,7 @@ public class OrderServiceImpl
   private final OrderItemMapper orderItemMapper;
   private final OrderItemMergeMoveRepository mergeMoveRepository;
   private final ClientOrderFulfillmentService clientOrderFulfillmentService;
+  private final StockEntryService stockEntryService;
 
   public OrderServiceImpl(
       OrderRepository orderRepository,
@@ -72,8 +74,10 @@ public class OrderServiceImpl
       OrderItemRepository orderItemRepository,
       OrderItemMapper orderItemMapper,
       OrderItemMergeMoveRepository mergeMoveRepository,
-      ClientOrderFulfillmentService clientOrderFulfillmentService) {
+      ClientOrderFulfillmentService clientOrderFulfillmentService,
+      StockEntryService stockEntryService) {
     super(orderRepository, orderMapper);
+    this.stockEntryService = stockEntryService;
     this.orderRepository = orderRepository;
     this.partyRepository = partyRepository;
     this.clientOrderRequestRepository = clientOrderRequestRepository;
@@ -92,7 +96,16 @@ public class OrderServiceImpl
    */
   @Override
   public void deleteById(Long partyId, Long id) {
-    orderRepository.findById(id).ifPresent(OrderServiceImpl::refuseDeletingMerged);
+    orderRepository
+        .findById(id)
+        .ifPresent(
+            order -> {
+              refuseDeletingMerged(order);
+              // The lines' chitthis go with them (FK cascade), so their stock is put back first.
+              if (order.getOrderItems() != null) {
+                order.getOrderItems().forEach(line -> stockEntryService.orderLineDeleted(line.getId()));
+              }
+            });
     clientOrderRequestRepository.findAllByOrder_Id(id).forEach(clientOrderRequestRepository::delete);
     orderRepository.deleteById(id);
   }
@@ -143,7 +156,9 @@ public class OrderServiceImpl
           "This line is merged into another order — un-merge that order before deleting it");
     }
 
-    // job_works + job_work_returns + order_dispatch all FK-cascade on order_item delete.
+    // job_works + job_work_returns + order_dispatch all FK-cascade on order_item delete. The
+    // cascade knows nothing of stock, so what those job works took out is put back first.
+    stockEntryService.orderLineDeleted(itemId);
     orderItemRepository.deleteById(itemId);
 
     // The derived query below auto-flushes the pending delete first, so an order left with no
@@ -803,8 +818,13 @@ public class OrderServiceImpl
     // Lines folded into a merge are not on the sheet, so the edit never resends them; their absence
     // is not a removal, and dropping them would orphan the merged line built from them.
     existing.removeIf(
-        item ->
-            item.getId() != null && !keptIds.contains(item.getId()) && !item.isMergedAway());
+        item -> {
+          boolean dropped =
+              item.getId() != null && !keptIds.contains(item.getId()) && !item.isMergedAway();
+          // A dropped line takes its chitthis with it; their stock goes back before it does.
+          if (dropped) stockEntryService.orderLineDeleted(item.getId());
+          return dropped;
+        });
     existing.addAll(toAdd);
   }
 

@@ -31,6 +31,8 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "size", ignore = true)
   @Mapping(target = "jobWorkReturns", ignore = true)
   @Mapping(target = "mergedOrderItems", ignore = true)
+  @Mapping(target = "stockKg", ignore = true)
+  @Mapping(target = "stockPeti", ignore = true)
   JobWorkEntity toEntity(NewJobWork request);
 
   @Override
@@ -40,6 +42,9 @@ public interface JobWorkMapper extends EntityMapper<JobWorkEntity, NewJobWork, J
   @Mapping(target = "size", ignore = true)
   @Mapping(target = "jobWorkReturns", ignore = true)
   @Mapping(target = "mergedOrderItems", ignore = true)
+  // What the chitthi holds out of stock is the stock service's to set, never the request's.
+  @Mapping(target = "stockKg", ignore = true)
+  @Mapping(target = "stockPeti", ignore = true)
   void updateEntity(@MappingTarget JobWorkEntity entity, NewJobWork request);
 
   // ---------- Custom Mappers ----------
